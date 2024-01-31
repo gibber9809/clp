@@ -64,7 +64,7 @@ void TimestampDictionaryWriter::open_local(
     m_is_open_local = true;
 }
 
-void TimestampDictionaryWriter::close() {
+size_t TimestampDictionaryWriter::close() {
     if (false == m_is_open) {
         throw OperationFailed(ErrorCodeNotInit, __FILENAME__, __LINE__);
     }
@@ -74,18 +74,21 @@ void TimestampDictionaryWriter::close() {
     merge_local_range();
     write_and_flush_to_disk();
     m_dictionary_compressor.close();
+    size_t compressed_size = m_dictionary_file_writer.get_pos();
     m_dictionary_file_writer.close();
 
     m_is_open = false;
+    return compressed_size;
 }
 
-void TimestampDictionaryWriter::close_local() {
+size_t TimestampDictionaryWriter::close_local() {
     if (false == m_is_open_local) {
         throw OperationFailed(ErrorCodeNotInit, __FILENAME__, __LINE__);
     }
 
     write_local_and_flush_to_disk();
     m_dictionary_compressor_local.close();
+    size_t compressed_size = m_dictionary_file_writer_local.get_pos();
     m_dictionary_file_writer_local.close();
 
     m_is_open_local = false;
@@ -93,6 +96,7 @@ void TimestampDictionaryWriter::close_local() {
     // merge after every sub-archive
     merge_local_range();
     m_local_column_to_range.clear();
+    return compressed_size;
 }
 
 uint64_t TimestampDictionaryWriter::get_pattern_id(TimestampPattern const* pattern) {
