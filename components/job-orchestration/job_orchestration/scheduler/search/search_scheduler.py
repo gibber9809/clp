@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import argparse
+import asyncio
 import contextlib
 import logging
 import os
 import pathlib
 import sys
-import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -157,30 +157,36 @@ def dispatch_search_job(
     active_jobs[job_id] = SearchJob(task_group.apply_async())
 
 
-def handle_pending_search_jobs(db_conn, results_cache_uri: str) -> None:
+async def handle_pending_search_jobs(
+    db_conn, results_cache_uri: str, jobs_poll_delay: float
+) -> None:
     global active_jobs
 
-    with contextlib.closing(db_conn.cursor(dictionary=True)) as cursor:
-        new_jobs = fetch_new_search_jobs(cursor)
-        db_conn.commit()
+    while True:
+        with contextlib.closing(db_conn.cursor(dictionary=True)) as cursor:
+            new_jobs = fetch_new_search_jobs(cursor)
+            db_conn.commit()
 
-    for job in new_jobs:
-        logger.debug(f"Got job {job['job_id']} with status {job['job_status']}.")
-        search_config_obj = SearchConfig.parse_obj(msgpack.unpackb(job["search_config"]))
-        archives_for_search = get_archives_for_search(db_conn, search_config_obj)
-        if len(archives_for_search) == 0:
-            if set_job_status(db_conn, job["job_id"], SearchJobStatus.SUCCEEDED, job["job_status"]):
-                logger.info(f"No matching archives, skipping job {job['job_id']}.")
-            continue
+        for job in new_jobs:
+            logger.debug(f"Got job {job['job_id']} with status {job['job_status']}.")
+            search_config_obj = SearchConfig.parse_obj(msgpack.unpackb(job["search_config"]))
+            archives_for_search = get_archives_for_search(db_conn, search_config_obj)
+            if len(archives_for_search) == 0:
+                if set_job_status(
+                    db_conn, job["job_id"], SearchJobStatus.SUCCEEDED, job["job_status"]
+                ):
+                    logger.info(f"No matching archives, skipping job {job['job_id']}.")
+                continue
 
-        dispatch_search_job(
-            archives_for_search, str(job["job_id"]), search_config_obj, results_cache_uri
-        )
-        if set_job_status(db_conn, job["job_id"], SearchJobStatus.RUNNING, job["job_status"]):
-            logger.info(
-                f"Dispatched job {job['job_id']} with {len(archives_for_search)} archives to"
-                f" search."
+            dispatch_search_job(
+                archives_for_search, str(job["job_id"]), search_config_obj, results_cache_uri
             )
+            if set_job_status(db_conn, job["job_id"], SearchJobStatus.RUNNING, job["job_status"]):
+                logger.info(
+                    f"Dispatched job {job['job_id']} with {len(archives_for_search)} archives to"
+                    f" search."
+                )
+        await asyncio.sleep(jobs_poll_delay)
 
 
 def try_getting_task_result(async_task_result):
@@ -220,19 +226,31 @@ def check_job_status_and_update_db(db_conn):
                     logger.info(f"Completed job {job_id} with failing tasks.")
 
 
-def handle_jobs(
-    db_conn,
+async def handle_job_updates(db_conn, jobs_poll_delay: float):
+    while True:
+        handle_cancelling_search_jobs(db_conn)
+        check_job_status_and_update_db(db_conn)
+        await asyncio.sleep(jobs_poll_delay)
+
+
+async def handle_jobs(
+    db_conn_job_fetcher,
+    db_conn_job_updater,
     results_cache_uri: str,
     jobs_poll_delay: float,
 ) -> None:
-    while True:
-        handle_pending_search_jobs(db_conn, results_cache_uri)
-        handle_cancelling_search_jobs(db_conn)
-        check_job_status_and_update_db(db_conn)
-        time.sleep(jobs_poll_delay)
+    handle_pending_task = asyncio.create_task(
+        handle_pending_search_jobs(db_conn_job_fetcher, results_cache_uri, jobs_poll_delay)
+    )
+    handle_updating_task = asyncio.create_task(
+        handle_job_updates(db_conn_job_updater, jobs_poll_delay)
+    )
+    await asyncio.wait(
+        [handle_pending_task, handle_updating_task], return_when=asyncio.FIRST_COMPLETED
+    )
 
 
-def main(argv: List[str]) -> int:
+async def main(argv: List[str]) -> int:
     args_parser = argparse.ArgumentParser(description="Wait for and run search jobs.")
     args_parser.add_argument("--config", "-c", required=True, help="CLP configuration file.")
 
@@ -262,17 +280,25 @@ def main(argv: List[str]) -> int:
 
     logger.debug(f"Job polling interval {clp_config.search_scheduler.jobs_poll_delay} seconds.")
     try:
-        with contextlib.closing(sql_adapter.create_connection(True)) as db_conn:
+        with contextlib.closing(
+            sql_adapter.create_connection(True)
+        ) as db_conn_job_fetcher, contextlib.closing(
+            sql_adapter.create_connection(True)
+        ) as db_conn_job_updater:
             logger.info(
                 f"Connected to archive database"
                 f" {clp_config.database.host}:{clp_config.database.port}."
             )
             logger.info("Search scheduler started.")
-            handle_jobs(
-                db_conn=db_conn,
-                results_cache_uri=clp_config.results_cache.get_uri(),
-                jobs_poll_delay=clp_config.search_scheduler.jobs_poll_delay,
+            job_handler = asyncio.create_task(
+                handle_jobs(
+                    db_conn_job_fetcher=db_conn_job_fetcher,
+                    db_conn_job_updater=db_conn_job_updater,
+                    results_cache_uri=clp_config.results_cache.get_uri(),
+                    jobs_poll_delay=clp_config.search_scheduler.jobs_poll_delay,
+                )
             )
+            done, pending = await asyncio.wait([job_handler], return_when=asyncio.FIRST_COMPLETED)
     except Exception:
         logger.exception(f"Uncaught exception in job handling loop.")
 
@@ -280,4 +306,4 @@ def main(argv: List[str]) -> int:
 
 
 if "__main__" == __name__:
-    sys.exit(main(sys.argv))
+    sys.exit(asyncio.run(main(sys.argv)))
