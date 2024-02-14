@@ -129,6 +129,7 @@ void Output::filter() {
             m_array_dict->close();
         }
     }
+    m_output_handler->finish();
 }
 
 void Output::init(

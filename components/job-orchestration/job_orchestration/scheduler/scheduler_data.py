@@ -1,5 +1,6 @@
+import asyncio
 import datetime
-import typing
+from typing import Any, Optional
 
 from job_orchestration.scheduler.constants import CompressionTaskStatus
 from pydantic import BaseModel, validator
@@ -8,7 +9,7 @@ from pydantic import BaseModel, validator
 class CompressionJob(BaseModel):
     id: int
     start_time: datetime.datetime
-    async_task_result: typing.Any
+    async_task_result: Any
 
 
 class CompressionTaskResult(BaseModel):
@@ -35,8 +36,15 @@ class CompressionTaskSuccessResult(CompressionTaskResult):
 
 
 class SearchJob:
-    def __init__(self, async_task_result: any) -> None:
+    def __init__(
+        self,
+        async_task_result: any,
+        reducer_recv_handle: Optional[asyncio.Queue],
+        reducer_send_handle: Optional[asyncio.Queue],
+    ) -> None:
         self.async_task_result: any = async_task_result
+        self.reducer_recv_handle: Optional[asyncio.Queue] = reducer_recv_handle
+        self.reducer_send_handle: Optional[asyncio.Queue] = reducer_send_handle
 
 
 class SearchTaskResult(BaseModel):

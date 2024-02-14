@@ -10,6 +10,7 @@ from clp_py_utils.clp_config import (
     DB_COMPONENT_NAME,
     QUEUE_COMPONENT_NAME,
     REDIS_COMPONENT_NAME,
+    REDUCER_COMPONENT_NAME,
     RESULTS_CACHE_COMPONENT_NAME,
     SEARCH_SCHEDULER_COMPONENT_NAME,
     SEARCH_WORKER_COMPONENT_NAME,
@@ -62,6 +63,7 @@ def main(argv):
     component_args_parser.add_parser(DB_COMPONENT_NAME)
     component_args_parser.add_parser(QUEUE_COMPONENT_NAME)
     component_args_parser.add_parser(REDIS_COMPONENT_NAME)
+    component_args_parser.add_parser(REDUCER_COMPONENT_NAME)
     component_args_parser.add_parser(RESULTS_CACHE_COMPONENT_NAME)
     component_args_parser.add_parser(COMPRESSION_SCHEDULER_COMPONENT_NAME)
     component_args_parser.add_parser(SEARCH_SCHEDULER_COMPONENT_NAME)
@@ -111,6 +113,13 @@ def main(argv):
 
         if "" == component_name or WEBUI_COMPONENT_NAME == component_name:
             stop_container(f"clp-{WEBUI_COMPONENT_NAME}-{instance_id}")
+        if "" == component_name or REDUCER_COMPONENT_NAME == component_name:
+            container_name = f"clp-{REDUCER_COMPONENT_NAME}-{instance_id}"
+            stop_container(container_name)
+
+            container_config_file_path = logs_dir / f"{container_name}.yml"
+            if container_config_file_path.exists():
+                container_config_file_path.unlink()
         if "" == component_name or SEARCH_WORKER_COMPONENT_NAME == component_name:
             stop_container(f"clp-{SEARCH_WORKER_COMPONENT_NAME}-{instance_id}")
         if "" == component_name or COMPRESSION_WORKER_COMPONENT_NAME == component_name:

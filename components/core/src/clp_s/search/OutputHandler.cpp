@@ -1,5 +1,11 @@
 #include "OutputHandler.hpp"
 
+#include <spdlog/spdlog.h>
+
+#include "../../reducer/CountOperator.hpp"
+#include "../../reducer/Record.hpp"
+#include "../../reducer/ReducerNetworkUtils.hpp"
+
 namespace clp_s::search {
 ResultsCacheOutputHandler::ResultsCacheOutputHandler(
         std::string const& uri,
@@ -62,5 +68,25 @@ void ResultsCacheOutputHandler::write(std::string const& message, epochtime_t ti
         m_latest_results.pop();
         m_latest_results.emplace(std::make_unique<QueryResult>("", message, timestamp));
     }
+}
+
+void ReducerOutputHandler::finish() {
+    if (false == send_results()) {
+        SPDLOG_ERROR("Failed to send aggregated results to reducer");
+    }
+}
+
+CountOutputHandler::CountOutputHandler(int socket_fd)
+        : ReducerOutputHandler(socket_fd, false),
+          m_pipeline(reducer::PipelineInputMode::INTER_STAGE) {
+    m_pipeline.add_pipeline_stage(std::make_shared<reducer::CountOperator>());
+}
+
+void CountOutputHandler::write(std::string const& message) {
+    m_pipeline.push_record(reducer::EmptyRecord());
+}
+
+bool CountOutputHandler::send_results() {
+    return reducer::send_pipeline_results(m_socket_fd, std::move(m_pipeline.finish()));
 }
 }  // namespace clp_s::search

@@ -28,14 +28,18 @@ logger = get_logger("search-job-handler")
 # Dictionary of active jobs indexed by job id
 active_jobs: Dict[str, SearchJob] = {}
 
+reducer_connection_queue = None
 
-def cancel_job(job_id):
+
+async def cancel_job(job_id):
     global active_jobs
     active_jobs[job_id].async_task_result.revoke(terminate=True)
     try:
         active_jobs[job_id].async_task_result.get()
     except Exception:
         pass
+    if active_jobs[job_id].reducer_send_handle is not None:
+        await active_jobs[job_id].reducer_send_handle.put(False)
     del active_jobs[job_id]
 
 
@@ -87,7 +91,7 @@ def set_job_status(
     return rval
 
 
-def handle_cancelling_search_jobs(db_conn) -> None:
+async def handle_cancelling_search_jobs(db_conn) -> None:
     global active_jobs
 
     with contextlib.closing(db_conn.cursor(dictionary=True)) as cursor:
@@ -97,7 +101,7 @@ def handle_cancelling_search_jobs(db_conn) -> None:
     for job in cancelling_jobs:
         job_id = job["job_id"]
         if job_id in active_jobs:
-            cancel_job(job_id)
+            await cancel_job(job_id)
         if set_job_status(
             db_conn, job_id, SearchJobStatus.CANCELLED, prev_status=SearchJobStatus.CANCELLING
         ):
@@ -148,13 +152,20 @@ def get_task_group_for_job(
 
 
 def dispatch_search_job(
-    archives_for_search: List[str], job_id: str, search_config: SearchConfig, results_cache_uri: str
+    archives_for_search: List[str],
+    job_id: str,
+    search_config: SearchConfig,
+    results_cache_uri: str,
+    reducer_recv_handle: Optional[asyncio.Queue],
+    reducer_send_handle: Optional[asyncio.Queue],
 ) -> None:
     global active_jobs
     task_group = get_task_group_for_job(
         archives_for_search, job_id, search_config, results_cache_uri
     )
-    active_jobs[job_id] = SearchJob(task_group.apply_async())
+    active_jobs[job_id] = SearchJob(
+        task_group.apply_async(), reducer_recv_handle, reducer_send_handle
+    )
 
 
 async def handle_pending_search_jobs(
@@ -178,8 +189,30 @@ async def handle_pending_search_jobs(
                     logger.info(f"No matching archives, skipping job {job['job_id']}.")
                 continue
 
+            reducer_recv_handle = None
+            reducer_send_handle = None
+            if search_config_obj.count is not None:
+                search_config_obj.job_id = job["job_id"]
+                # Get a reducer and wait for it
+                while True:
+                    reducer_host, reducer_port, reducer_recv_handle, reducer_send_handle = (
+                        await reducer_connection_queue.get()
+                    )
+                    await reducer_send_handle.put(search_config_obj)
+                    if True == await reducer_recv_handle.get():
+                        break
+
+                search_config_obj.reducer_host = reducer_host
+                search_config_obj.reducer_port = reducer_port
+                logger.info(f"Got reducer for job {job['job_id']} at {reducer_host}:{reducer_port}")
+
             dispatch_search_job(
-                archives_for_search, str(job["job_id"]), search_config_obj, results_cache_uri
+                archives_for_search,
+                str(job["job_id"]),
+                search_config_obj,
+                results_cache_uri,
+                reducer_recv_handle,
+                reducer_send_handle,
             )
             if set_job_status(db_conn, job["job_id"], SearchJobStatus.RUNNING, job["job_status"]):
                 logger.info(
@@ -195,7 +228,7 @@ def try_getting_task_result(async_task_result):
     return async_task_result.get()
 
 
-def check_job_status_and_update_db(db_conn):
+async def check_job_status_and_update_db(db_conn):
     global active_jobs
 
     for job_id in list(active_jobs.keys()):
@@ -204,6 +237,8 @@ def check_job_status_and_update_db(db_conn):
         except Exception as e:
             logger.error(f"Job `{job_id}` failed: {e}.")
             # clean up
+            if active_jobs[job_id].reducer_handle is not None:
+                await active_jobs[job_id].reducer_handle.put(False)
             del active_jobs[job_id]
             set_job_status(db_conn, job_id, SearchJobStatus.FAILED, SearchJobStatus.RUNNING)
             continue
@@ -217,6 +252,12 @@ def check_job_status_and_update_db(db_conn):
                     new_job_status = SearchJobStatus.FAILED
                     logger.debug(f"Task {task_id} failed - result {task_result}.")
 
+            if active_jobs[job_id].reducer_send_handle is not None:
+                # Notify reducer that it should have received all of the results
+                await active_jobs[job_id].reducer_send_handle.put(True)
+                if False == await active_jobs[job_id].reducer_recv_handle.get():
+                    new_job_status = SearchJobStatus.FAILED
+
             del active_jobs[job_id]
 
             if set_job_status(db_conn, job_id, new_job_status, SearchJobStatus.RUNNING):
@@ -228,8 +269,8 @@ def check_job_status_and_update_db(db_conn):
 
 async def handle_job_updates(db_conn, jobs_poll_delay: float):
     while True:
-        handle_cancelling_search_jobs(db_conn)
-        check_job_status_and_update_db(db_conn)
+        await handle_cancelling_search_jobs(db_conn)
+        await check_job_status_and_update_db(db_conn)
         await asyncio.sleep(jobs_poll_delay)
 
 
@@ -250,7 +291,93 @@ async def handle_jobs(
     )
 
 
+async def handle_reducer_connection(reader, writer):
+    global reducer_connection_queue
+    size_header_bytes = await reader.read(8)
+    if not size_header_bytes:
+        writer.close()
+        await writer.wait_closed()
+        return
+    size_header = int.from_bytes(size_header_bytes, byteorder="little")
+
+    message_bytes = await reader.read(size_header)
+    if not message_bytes:
+        writer.close()
+        await writer.wait_closed()
+        return
+    message = msgpack.unpackb(message_bytes)
+
+    reducer_recv_queue = asyncio.Queue(1)  # send messages from reducer to scheduler here
+    reducer_send_queue = asyncio.Queue(1)  # listen here for messages from scheduler to reducer
+    await reducer_connection_queue.put(
+        (message["host"], message["port"], reducer_recv_queue, reducer_send_queue)
+    )
+
+    wait_for_ack = asyncio.create_task(reader.read(1))
+    wait_for_job = asyncio.create_task(reducer_send_queue.get())
+    done, pending = await asyncio.wait(
+        [wait_for_ack, wait_for_job], return_when=asyncio.FIRST_COMPLETED
+    )
+
+    job_config = None
+    if wait_for_job in done:
+        job_config = wait_for_job.result()
+
+    if wait_for_ack in done:
+        await reducer_recv_queue.put(False)
+        writer.close()
+        await writer.wait_closed()
+        return
+
+    job_config_bytes = msgpack.packb(job_config.dict())
+    size_header_bytes = (len(job_config_bytes)).to_bytes(8, byteorder="little")
+    writer.write(size_header_bytes)
+    writer.write(job_config_bytes)
+    await writer.drain()
+
+    ack = await wait_for_ack
+    if not ack:
+        await reducer_recv_queue.put(False)
+        writer.close()
+        await writer.wait_closed()
+        return
+    await reducer_recv_queue.put(True)
+
+    wait_for_ack = asyncio.create_task(reader.read(1))
+    wait_for_job_done = asyncio.create_task(reducer_send_queue.get())
+
+    done, pending = await asyncio.wait(
+        [wait_for_ack, wait_for_job_done], return_when=asyncio.FIRST_COMPLETED
+    )
+
+    if wait_for_job_done in done and False == wait_for_job_done.result():
+        writer.close()
+        await writer.wait_closed()
+        return
+
+    if wait_for_ack in done:
+        await reducer_recv_queue.put(False)
+        writer.close()
+        await writer.wait_closed()
+        return
+
+    job_done_bytes = msgpack.packb({"done": True})
+    size_header_bytes = (len(job_done_bytes)).to_bytes(8, byteorder="little")
+    writer.write(size_header_bytes)
+    writer.write(job_done_bytes)
+    await writer.drain()
+
+    ack = await wait_for_ack
+    if not ack:
+        await reducer_recv_queue.put(False)
+    else:
+        await reducer_recv_queue.put(True)
+    writer.close()
+    await writer.wait_closed()
+
+
 async def main(argv: List[str]) -> int:
+    global reducer_connection_queue
     args_parser = argparse.ArgumentParser(description="Wait for and run search jobs.")
     args_parser.add_argument("--config", "-c", required=True, help="CLP configuration file.")
 
@@ -276,10 +403,17 @@ async def main(argv: List[str]) -> int:
         logger.error(ex)
         return -1
 
+    reducer_connection_queue = asyncio.Queue(32)
+
     sql_adapter = SQL_Adapter(clp_config.database)
 
     logger.debug(f"Job polling interval {clp_config.search_scheduler.jobs_poll_delay} seconds.")
     try:
+        server = await asyncio.start_server(
+            handle_reducer_connection,
+            clp_config.search_scheduler.host,
+            clp_config.search_scheduler.port,
+        )
         with contextlib.closing(
             sql_adapter.create_connection(True)
         ) as db_conn_job_fetcher, contextlib.closing(
@@ -289,6 +423,7 @@ async def main(argv: List[str]) -> int:
                 f"Connected to archive database"
                 f" {clp_config.database.host}:{clp_config.database.port}."
             )
+            server = server.serve_forever()
             logger.info("Search scheduler started.")
             job_handler = asyncio.create_task(
                 handle_jobs(
@@ -298,7 +433,9 @@ async def main(argv: List[str]) -> int:
                     jobs_poll_delay=clp_config.search_scheduler.jobs_poll_delay,
                 )
             )
-            done, pending = await asyncio.wait([job_handler], return_when=asyncio.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(
+                [server, job_handler], return_when=asyncio.FIRST_COMPLETED
+            )
     except Exception:
         logger.exception(f"Uncaught exception in job handling loop.")
 

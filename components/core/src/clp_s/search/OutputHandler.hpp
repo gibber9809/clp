@@ -10,6 +10,7 @@
 #include <mongocxx/instance.hpp>
 #include <mongocxx/uri.hpp>
 
+#include "../../reducer/Pipeline.hpp"
 #include "../Defs.hpp"
 #include "../TraceableException.hpp"
 
@@ -41,9 +42,14 @@ public:
     virtual void write(std::string const& message) = 0;
 
     /**
-     * Flushes the output handler.
+     * Flushes the output handler after each table that gets searched.
      */
     virtual void flush() = 0;
+
+    /**
+     * Perform any final operations after all tables have been searched.
+     */
+    virtual void finish() {}
 
     [[nodiscard]] bool should_output_timestamp() const { return m_should_output_timestamp; }
 
@@ -131,6 +137,50 @@ private:
             std::vector<std::unique_ptr<QueryResult>>,
             QueryResultGreaterTimestampComparator>
             m_latest_results;
+};
+
+/**
+ * Output handler that performs an aggregation operation and can send the results to a reducer
+ */
+class ReducerOutputHandler : public OutputHandler {
+public:
+    // Constructor
+    ReducerOutputHandler(int socket_fd, bool should_output_timestamp)
+            : OutputHandler(should_output_timestamp),
+              m_socket_fd(socket_fd) {}
+
+    // Methods inherited from OutputHandler
+    // Instead of flushing after every table we call SendResults after all records have been
+    // aggregated
+    void flush() override {}
+
+    void write(std::string const& message, epochtime_t timestamp) override = 0;
+
+    void write(std::string const& message) override = 0;
+
+    void finish() override;
+
+    virtual bool send_results() = 0;
+
+protected:
+    int m_socket_fd;
+};
+
+class CountOutputHandler : public ReducerOutputHandler {
+public:
+    // Constructor
+    CountOutputHandler(int socket_fd);
+
+    // Methods inherited from ReducerOutputHandler
+
+    void write(std::string const& message, epochtime_t timestamp) override {}
+
+    void write(std::string const& message) override;
+
+    bool send_results() override;
+
+private:
+    reducer::Pipeline m_pipeline;
 };
 }  // namespace clp_s::search
 

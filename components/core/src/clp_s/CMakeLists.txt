@@ -1,6 +1,28 @@
 add_subdirectory(search/kql)
 
 set(
+        REDUCER_SOURCES
+        ../reducer/CountOperator.cpp
+        ../reducer/CountOperator.hpp
+        ../reducer/GroupByTime.cpp
+        ../reducer/GroupByTime.hpp
+        ../reducer/GroupTags.hpp
+        ../reducer/Operator.cpp
+        ../reducer/Operator.hpp
+        ../reducer/Pipeline.cpp
+        ../reducer/Pipeline.hpp
+        ../reducer/Record.hpp
+        ../reducer/RecordGroup.hpp
+        ../reducer/RecordGroupIterator.hpp
+        ../reducer/RecordGroupSerdes.cpp
+        ../reducer/RecordGroupSerdes.hpp
+        ../reducer/RecordIterator.hpp
+        ../reducer/RecordValueIterator.hpp
+        ../reducer/ReducerNetworkUtils.cpp
+        ../reducer/ReducerNetworkUtils.hpp
+)
+
+set(
         CLP_SOURCES
         ../clp/database_utils.cpp
         ../clp/database_utils.hpp
@@ -17,6 +39,8 @@ set(
         ../clp/MySQLParamBindings.hpp
         ../clp/MySQLPreparedStatement.cpp
         ../clp/MySQLPreparedStatement.hpp
+        ../clp/networking/socket_utils.cpp
+        ../clp/networking/socket_utils.hpp
         ../clp/ReaderInterface.cpp
         ../clp/ReaderInterface.hpp
         ../clp/streaming_archive/ArchiveMetadata.cpp
@@ -149,7 +173,7 @@ set(
         search/Value.hpp
 )
 
-add_executable(clp-s clp-s.cpp ${CLP_SOURCES} ${CLP_S_SOURCES} ${CLP_S_SEARCH_SOURCES})
+add_executable(clp-s clp-s.cpp ${CLP_SOURCES} ${CLP_S_SOURCES} ${CLP_S_SEARCH_SOURCES} ${REDUCER_SOURCES})
 target_compile_features(clp-s PRIVATE cxx_std_17)
 target_link_libraries(
         clp-s

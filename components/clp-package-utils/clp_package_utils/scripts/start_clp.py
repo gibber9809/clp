@@ -20,6 +20,7 @@ from clp_py_utils.clp_config import (
     DB_COMPONENT_NAME,
     QUEUE_COMPONENT_NAME,
     REDIS_COMPONENT_NAME,
+    REDUCER_COMPONENT_NAME,
     RESULTS_CACHE_COMPONENT_NAME,
     SEARCH_JOBS_TABLE_NAME,
     SEARCH_SCHEDULER_COMPONENT_NAME,
@@ -726,6 +727,84 @@ def start_webui(instance_id: str, clp_config: CLPConfig, mounts: CLPDockerMounts
     logger.info(f"Started {WEBUI_COMPONENT_NAME}.")
 
 
+def get_host_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't even have to be reachable
+        s.connect(("10.254.254.254", 1))
+        ip = s.getsockname()[0]
+    except Exception:
+        ip = "127.0.0.1"
+    finally:
+        s.close()
+    return ip
+
+
+def start_reducer(
+    instance_id: str,
+    clp_config: CLPConfig,
+    container_clp_config: CLPConfig,
+    num_cpus: int,
+    mounts: CLPDockerMounts,
+):
+    component_name = REDUCER_COMPONENT_NAME
+    logger.info(f"Starting {component_name}...")
+
+    container_name = f"clp-{component_name}-{instance_id}"
+    if container_exists(container_name):
+        logger.info(f"{component_name} already running.")
+        return
+
+    container_config_filename = f"{container_name}.yml"
+    container_config_file_path = clp_config.logs_directory / container_config_filename
+    with open(container_config_file_path, "w") as f:
+        yaml.safe_dump(container_clp_config.dump_to_primitive_dict(), f)
+
+    logs_dir = clp_config.logs_directory / component_name
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    container_logs_dir = container_clp_config.logs_directory / component_name
+
+    clp_site_packages_dir = CONTAINER_CLP_HOME / "lib" / "python3" / "site-packages"
+    # fmt: off
+    container_start_cmd = [
+        'docker', 'run',
+        '-di',
+        '--network', 'host',
+        '-w', str(CONTAINER_CLP_HOME),
+        '--rm',
+        '--name', container_name,
+        '-e', f'PYTHONPATH={clp_site_packages_dir}',
+        '-e', f'CLP_LOGS_DIR={container_logs_dir}',
+        '-e', f'CLP_LOGGING_LEVEL={clp_config.reducer.logging_level}',
+        '-e', f'CLP_HOME={CONTAINER_CLP_HOME}',
+        '--mount', str(mounts.clp_home),
+    ]
+    #fmt on
+    necessary_mounts = [
+        mounts.logs_dir,
+    ]
+    for mount in necessary_mounts:
+        if mount:
+            container_start_cmd.append('--mount')
+            container_start_cmd.append(str(mount))
+    container_start_cmd.append(clp_config.execution_container)
+
+    reducer_cmd = [
+        'python3', '-u', '-m',
+        'job_orchestration.reducer.reducer',
+        '--config', str(container_clp_config.logs_directory / container_config_filename),
+        '--host', get_host_ip(),
+        "--concurrency", str(num_cpus),
+        "--polling-interval-ms", str(clp_config.reducer.polling_interval),
+    ]
+
+    cmd = container_start_cmd + reducer_cmd
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, check=True)
+
+    logger.info(f"Started {component_name}")
+
+
 def main(argv):
     clp_home = get_clp_home()
     default_config_file_path = clp_home / CLP_DEFAULT_CONFIG_FILE_RELATIVE_PATH
@@ -742,6 +821,7 @@ def main(argv):
     component_args_parser.add_parser(DB_COMPONENT_NAME)
     component_args_parser.add_parser(QUEUE_COMPONENT_NAME)
     component_args_parser.add_parser(REDIS_COMPONENT_NAME)
+    component_args_parser.add_parser(REDUCER_COMPONENT_NAME)
     component_args_parser.add_parser(RESULTS_CACHE_COMPONENT_NAME)
     component_args_parser.add_parser(COMPRESSION_SCHEDULER_COMPONENT_NAME)
     component_args_parser.add_parser(SEARCH_SCHEDULER_COMPONENT_NAME)
@@ -813,8 +893,12 @@ def main(argv):
     # Get the number of CPU cores to use
     num_cpus = multiprocessing.cpu_count() // 2
     if (
-        COMPRESSION_WORKER_COMPONENT_NAME == component_name
-        or SEARCH_WORKER_COMPONENT_NAME == component_name
+        component_name
+        in [
+            COMPRESSION_WORKER_COMPONENT_NAME,
+            REDUCER_COMPONENT_NAME,
+            SEARCH_WORKER_COMPONENT_NAME,
+        ]
     ) and parsed_args.num_cpus != 0:
         num_cpus = parsed_args.num_cpus
 
@@ -858,6 +942,8 @@ def main(argv):
             )
         if "" == component_name or SEARCH_WORKER_COMPONENT_NAME == component_name:
             start_search_worker(instance_id, clp_config, container_clp_config, num_cpus, mounts)
+        if "" == component_name or REDUCER_COMPONENT_NAME == component_name:
+            start_reducer(instance_id, clp_config, container_clp_config, num_cpus, mounts)
         if "" == component_name or WEBUI_COMPONENT_NAME == component_name:
             start_webui(instance_id, clp_config, mounts)
 

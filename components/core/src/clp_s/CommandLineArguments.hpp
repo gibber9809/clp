@@ -72,6 +72,14 @@ public:
         return m_metadata_db_config;
     }
 
+    std::string const& get_reducer_host() { return m_reducer_host; }
+
+    int get_reducer_port() { return m_reducer_port; }
+
+    int32_t get_job_id() { return m_job_id; }
+
+    bool get_count() { return m_count; }
+
 private:
     // Methods
     void print_basic_usage() const;
@@ -113,6 +121,12 @@ private:
 
     // Decompression and search variables
     std::string m_archive_id;
+
+    // Search aggregation variables
+    bool m_count{false};
+    std::string m_reducer_host{"127.0.0.1"};
+    int m_reducer_port{14'009};
+    int32_t m_job_id{-1};
 };
 }  // namespace clp_s
 

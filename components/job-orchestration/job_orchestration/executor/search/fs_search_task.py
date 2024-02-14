@@ -77,6 +77,15 @@ def make_clp_s_command(
     if search_config.ignore_case:
         search_cmd.append("--ignore-case")
 
+    if search_config.count is not None:
+        search_cmd.append("--reducer-host")
+        search_cmd.append(search_config.reducer_host)
+        search_cmd.append("--reducer-port")
+        search_cmd.append(str(search_config.reducer_port))
+        search_cmd.append("--job-id")
+        search_cmd.append(str(search_config.job_id))
+        search_cmd.append("--count")
+
     return search_cmd
 
 
