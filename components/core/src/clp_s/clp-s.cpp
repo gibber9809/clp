@@ -315,7 +315,7 @@ int main(int argc, char const* argv[]) {
 
         int reducer_socket_fd = -1;
         if (command_line_arguments.get_count()) {
-            socket_fd = reducer::connect_to_reducer(
+            reducer_socket_fd = reducer::connect_to_reducer(
                     command_line_arguments.get_reducer_host(),
                     command_line_arguments.get_reducer_port(),
                     command_line_arguments.get_job_id()
