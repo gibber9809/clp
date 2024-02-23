@@ -21,8 +21,9 @@ namespace clp_s::search {
 class OutputHandler {
 public:
     // Constructors
-    explicit OutputHandler(bool should_output_timestamp)
-            : m_should_output_timestamp(should_output_timestamp){};
+    explicit OutputHandler(bool should_output_timestamp, bool should_marshal_records)
+            : m_should_output_timestamp(should_output_timestamp),
+              m_should_marshal_records(should_marshal_records){};
 
     // Destructor
     virtual ~OutputHandler() = default;
@@ -53,8 +54,11 @@ public:
 
     [[nodiscard]] bool should_output_timestamp() const { return m_should_output_timestamp; }
 
+    [[nodiscard]] bool should_marshal_records() const { return m_should_marshal_records; }
+
 protected:
     bool m_should_output_timestamp;
+    bool m_should_marshal_records;
 };
 
 /**
@@ -64,7 +68,7 @@ class StandardOutputHandler : public OutputHandler {
 public:
     // Constructors
     explicit StandardOutputHandler(bool should_output_timestamp = false)
-            : OutputHandler(should_output_timestamp) {}
+            : OutputHandler(should_output_timestamp, true) {}
 
     // Methods inherited from OutputHandler
     void write(std::string const& message, epochtime_t timestamp) override {
@@ -145,8 +149,8 @@ private:
 class ReducerOutputHandler : public OutputHandler {
 public:
     // Constructor
-    ReducerOutputHandler(int socket_fd, bool should_output_timestamp)
-            : OutputHandler(should_output_timestamp),
+    ReducerOutputHandler(int socket_fd, bool should_output_timestamp, bool should_marshal_records)
+            : OutputHandler(should_output_timestamp, should_marshal_records),
               m_socket_fd(socket_fd) {}
 
     // Methods inherited from OutputHandler

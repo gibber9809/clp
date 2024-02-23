@@ -14,7 +14,7 @@ ResultsCacheOutputHandler::ResultsCacheOutputHandler(
         uint64_t max_num_results,
         bool should_output_timestamp
 )
-        : OutputHandler(should_output_timestamp),
+        : OutputHandler(should_output_timestamp, true),
           m_batch_size(batch_size),
           m_max_num_results(max_num_results) {
     try {
@@ -77,7 +77,7 @@ void ReducerOutputHandler::finish() {
 }
 
 CountOutputHandler::CountOutputHandler(int socket_fd)
-        : ReducerOutputHandler(socket_fd, false),
+        : ReducerOutputHandler(socket_fd, false, false),
           m_pipeline(reducer::PipelineInputMode::INTER_STAGE) {
     m_pipeline.add_pipeline_stage(std::make_shared<reducer::CountOperator>());
 }
