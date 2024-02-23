@@ -45,6 +45,15 @@ def make_clo_command(
     if search_config.path_filter is not None:
         search_cmd.append(search_config.path_filter)
 
+    if search_config.count is not None:
+        search_cmd.append("--reducer-host")
+        search_cmd.append(search_config.reducer_host)
+        search_cmd.append("--reducer-port")
+        search_cmd.append(str(search_config.reducer_port))
+        search_cmd.append("--job-id")
+        search_cmd.append(str(search_config.job_id))
+        search_cmd.append("--count")
+
     return search_cmd
 
 

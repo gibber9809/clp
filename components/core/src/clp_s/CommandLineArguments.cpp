@@ -485,8 +485,25 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             if (m_query.empty()) {
                 throw std::invalid_argument("No query specified");
             }
-        }
 
+            if (m_count) {
+                if (m_reducer_host.empty()) {
+                    throw std::invalid_argument(
+                            "Reducer host must be specified for aggregation jobs"
+                    );
+                }
+
+                if (m_reducer_port <= 0) {
+                    throw std::invalid_argument(
+                            "Reducer port must be specified for aggregation jobs"
+                    );
+                }
+
+                if (m_job_id <= 0) {
+                    throw std::invalid_argument("Job ID must be specified for aggregation jobs");
+                }
+            }
+        }
     } catch (std::exception& e) {
         SPDLOG_ERROR("{}", e.what());
         print_basic_usage();
