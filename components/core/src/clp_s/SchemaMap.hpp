@@ -39,6 +39,8 @@ public:
 
     schema_map_t::const_iterator schema_map_end() const { return m_schema_map.cend(); }
 
+    size_t get_num_nodes() const { return m_schema_map.size(); }
+
 private:
     std::string m_archives_dir;
     int m_compression_level;

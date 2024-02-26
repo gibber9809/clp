@@ -90,6 +90,10 @@ private:
      */
     void parse_line(ondemand::value line, int32_t parent_node_id, std::string const& key);
 
+    void parse_array_obj(ondemand::array line, int32_t parent_node_id);
+
+    void parse_obj_in_array(ondemand::object line, int32_t parent_node_id);
+
     /**
      * Splits the archive if the size of the archive exceeds the maximum size
      */
