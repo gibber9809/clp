@@ -31,6 +31,7 @@ struct JsonParserOption {
     std::string archives_dir;
     size_t target_encoded_size;
     int compression_level;
+    bool structurize_arrays;
 };
 
 class JsonParser {
@@ -121,6 +122,8 @@ private:
 
     size_t m_uncompressed_size{0};
     size_t m_compressed_size{0};
+
+    bool m_structurize_arrays{false};
 };
 }  // namespace clp_s
 

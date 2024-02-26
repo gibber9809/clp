@@ -12,7 +12,8 @@ JsonParser::JsonParser(JsonParserOption const& option)
           m_num_messages(0),
           m_compression_level(option.compression_level),
           m_target_encoded_size(option.target_encoded_size),
-          m_timestamp_key(option.timestamp_key) {
+          m_timestamp_key(option.timestamp_key),
+          m_structurize_arrays(option.structurize_arrays) {
     if (false == boost::filesystem::create_directory(m_archives_dir)) {
         SPDLOG_ERROR("The output directory '{}' already exists", m_archives_dir);
         exit(1);
@@ -116,9 +117,18 @@ void JsonParser::parse_obj_in_array(ondemand::object line, int32_t parent_node_i
             case ondemand::json_type::number: {
                 ondemand::number number_value = cur_value.get_number();
                 if (true == number_value.is_double()) {
+                    double double_value = number_value.get_double();
+                    m_current_parsed_message.add_unordered_value(double_value);
                     node_id = m_schema_tree
                                       ->add_node(node_id_stack.top(), NodeType::Float, cur_key);
                 } else {
+                    int64_t i64_value;
+                    if (number_value.is_uint64()) {
+                        i64_value = static_cast<int64_t>(number_value.get_uint64());
+                    } else {
+                        i64_value = number_value.get_int64();
+                    }
+                    m_current_parsed_message.add_unordered_value(i64_value);
                     node_id = m_schema_tree
                                       ->add_node(node_id_stack.top(), NodeType::Integer, cur_key);
                 }
@@ -134,10 +144,13 @@ void JsonParser::parse_obj_in_array(ondemand::object line, int32_t parent_node_i
                 } else {
                     node_id = m_schema_tree->add_node(node_id_stack.top(), NodeType::VarString, "");
                 }
+                m_current_parsed_message.add_unordered_value(value);
                 m_current_schema.insert_unordered(node_id);
                 break;
             }
             case ondemand::json_type::boolean: {
+                bool bval = cur_value.get_bool();
+                m_current_parsed_message.add_unordered_value(bval);
                 node_id = m_schema_tree->add_node(node_id_stack.top(), NodeType::Boolean, cur_key);
                 m_current_schema.insert_unordered(node_id);
                 break;
@@ -181,8 +194,17 @@ void JsonParser::parse_array_obj(ondemand::array array, int32_t parent_node_id) 
             case ondemand::json_type::number: {
                 ondemand::number number_value = cur_value.get_number();
                 if (true == number_value.is_double()) {
+                    double double_value = number_value.get_double();
+                    m_current_parsed_message.add_unordered_value(double_value);
                     node_id = m_schema_tree->add_node(parent_node_id, NodeType::Float, "");
                 } else {
+                    int64_t i64_value;
+                    if (number_value.is_uint64()) {
+                        i64_value = static_cast<int64_t>(number_value.get_uint64());
+                    } else {
+                        i64_value = number_value.get_int64();
+                    }
+                    m_current_parsed_message.add_unordered_value(i64_value);
                     node_id = m_schema_tree->add_node(parent_node_id, NodeType::Integer, "");
                 }
                 m_current_schema.insert_unordered(node_id);
@@ -197,10 +219,13 @@ void JsonParser::parse_array_obj(ondemand::array array, int32_t parent_node_id) 
                 } else {
                     node_id = m_schema_tree->add_node(parent_node_id, NodeType::VarString, "");
                 }
+                m_current_parsed_message.add_unordered_value(value);
                 m_current_schema.insert_unordered(node_id);
                 break;
             }
             case ondemand::json_type::boolean: {
+                bool bval = cur_value.get_bool();
+                m_current_parsed_message.add_unordered_value(bval);
                 node_id = m_schema_tree->add_node(parent_node_id, NodeType::Boolean, "");
                 m_current_schema.insert_unordered(node_id);
                 break;
@@ -270,14 +295,26 @@ void JsonParser::parse_line(ondemand::value line, int32_t parent_node_id, std::s
                 }
             }
             case ondemand::json_type::array: {
-                node_id = m_schema_tree->add_node(
-                        node_id_stack.top(),
-                        NodeType::StructuredArray,
-                        cur_key
-                );
-                // m_current_parsed_message.add_value(node_id, value);
-                // m_current_schema.insert_ordered(node_id);
-                parse_array_obj(std::move(line.get_array()), node_id);
+                if (m_structurize_arrays) {
+                    node_id = m_schema_tree->add_node(
+                            node_id_stack.top(),
+                            NodeType::StructuredArray,
+                            cur_key
+                    );
+                    // m_current_parsed_message.add_value(node_id, value);
+                    // m_current_schema.insert_ordered(node_id);
+                    parse_array_obj(std::move(line.get_array()), node_id);
+                } else {
+                    std::string value
+                            = std::string(std::string_view(simdjson::to_json_string(line)));
+                    node_id = m_schema_tree->add_node(
+                            node_id_stack.top(),
+                            NodeType::UnstructuredArray,
+                            cur_key
+                    );
+                    m_current_parsed_message.add_value(node_id, value);
+                    m_current_schema.insert_ordered(node_id);
+                }
                 break;
             }
             case ondemand::json_type::number: {
@@ -412,9 +449,8 @@ void JsonParser::parse() {
                 split_archive();
             }
 
-            // m_archive_writer
-            //         ->append_message(current_schema_id, m_current_schema,
-            //         m_current_parsed_message);
+            m_archive_writer
+                    ->append_message(current_schema_id, m_current_schema, m_current_parsed_message);
             m_current_parsed_message.clear();
         }
 

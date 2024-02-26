@@ -17,8 +17,8 @@ size_t SchemaWriter::append_message(ParsedMessage& message) {
         count++;
     }
 
-    for (auto& i : message.get_content()) {
-        m_columns[count]->add_value(i.second, size);
+    for (auto& i : message.get_unordered_content()) {
+        m_columns[count]->add_value(i, size);
         total_size += size;
         ++count;
     }

@@ -72,6 +72,8 @@ public:
         return m_metadata_db_config;
     }
 
+    bool get_structurize_arrays() const { return m_structurize_arrays; }
+
 private:
     // Methods
     void print_basic_usage() const;
@@ -94,6 +96,7 @@ private:
     int m_compression_level{3};
     size_t m_target_encoded_size{8ULL * 1024 * 1024 * 1024};  // 8 GiB
     bool m_print_archive_stats{false};
+    bool m_structurize_arrays{false};
 
     // Metadata db variables
     std::optional<clp::GlobalMetadataDBConfig> m_metadata_db_config;

@@ -92,6 +92,7 @@ bool compress(CommandLineArguments const& command_line_arguments) {
     option.target_encoded_size = command_line_arguments.get_target_encoded_size();
     option.compression_level = command_line_arguments.get_compression_level();
     option.timestamp_key = command_line_arguments.get_timestamp_key();
+    option.structurize_arrays = command_line_arguments.get_structurize_arrays();
 
     clp_s::JsonParser parser(option);
     parser.parse();

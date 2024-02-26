@@ -51,6 +51,7 @@ public:
     void clear() {
         m_schema_id = -1;
         m_message.clear();
+        m_unordered_message.clear();
     }
 
     /**
