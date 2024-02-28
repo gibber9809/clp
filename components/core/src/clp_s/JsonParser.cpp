@@ -13,7 +13,10 @@ JsonParser::JsonParser(JsonParserOption const& option)
           m_compression_level(option.compression_level),
           m_target_encoded_size(option.target_encoded_size),
           m_timestamp_key(option.timestamp_key),
-          m_structurize_arrays(option.structurize_arrays) {
+          m_structurize_arrays(option.structurize_arrays),
+          m_array_schema_optimization_test(option.array_schema_optimization_test),
+          m_current_parsed_message(option.array_schema_optimization_test),
+          m_current_schema(option.array_schema_optimization_test) {
     if (false == boost::filesystem::create_directory(m_archives_dir)) {
         SPDLOG_ERROR("The output directory '{}' already exists", m_archives_dir);
         exit(1);
@@ -449,8 +452,13 @@ void JsonParser::parse() {
                 split_archive();
             }
 
-            m_archive_writer
-                    ->append_message(current_schema_id, m_current_schema, m_current_parsed_message);
+            if (false == m_array_schema_optimization_test) {
+                m_archive_writer->append_message(
+                        current_schema_id,
+                        m_current_schema,
+                        m_current_parsed_message
+                );
+            }
             m_current_parsed_message.clear();
         }
 

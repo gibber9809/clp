@@ -16,7 +16,7 @@ public:
             = std::variant<int64_t, double, std::string, bool, std::pair<uint64_t, epochtime_t>>;
 
     // Constructor
-    ParsedMessage() : m_schema_id(-1) {}
+    ParsedMessage(bool test) : m_schema_id(-1), m_test(test) {}
 
     // Destructor
     ~ParsedMessage() = default;
@@ -28,7 +28,9 @@ public:
      */
     template <typename T>
     inline void add_value(int32_t node_id, T const& value) {
-        m_message.emplace(node_id, value);
+        if (false == m_test) {
+            m_message.emplace(node_id, value);
+        }
     }
 
     /**
@@ -37,12 +39,16 @@ public:
      * @param value
      */
     inline void add_value(int32_t node_id, uint64_t encoding_id, epochtime_t value) {
-        m_message.emplace(node_id, std::make_pair(encoding_id, value));
+        if (false == m_test) {
+            m_message.emplace(node_id, std::make_pair(encoding_id, value));
+        }
     }
 
     template <typename T>
     inline void add_unordered_value(T const& value) {
-        m_unordered_message.emplace_back(value);
+        if (false == m_test) {
+            m_unordered_message.emplace_back(value);
+        }
     }
 
     /**
@@ -65,6 +71,7 @@ public:
     std::vector<variable_t>& get_unordered_content() { return m_unordered_message; }
 
 private:
+    bool m_test{false};
     int32_t m_schema_id;
     std::map<int32_t, variable_t> m_message;
     std::vector<variable_t> m_unordered_message;

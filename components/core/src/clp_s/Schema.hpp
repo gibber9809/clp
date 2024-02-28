@@ -19,6 +19,8 @@ namespace clp_s {
  */
 class Schema {
 public:
+    Schema(bool test = false) : m_test(test) {}
+
     /**
      * Inserts a node into the ordered region of the schema.
      */
@@ -96,6 +98,7 @@ private:
     std::vector<int32_t> m_schema;
     size_t m_num_ordered{0};
     std::stack<std::pair<int32_t, size_t>> m_obj_stack;
+    bool m_test{false};
 };
 }  // namespace clp_s
 

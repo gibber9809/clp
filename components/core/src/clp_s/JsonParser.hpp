@@ -32,6 +32,7 @@ struct JsonParserOption {
     size_t target_encoded_size;
     int compression_level;
     bool structurize_arrays;
+    bool array_schema_optimization_test;
 };
 
 class JsonParser {
@@ -124,6 +125,7 @@ private:
     size_t m_compressed_size{0};
 
     bool m_structurize_arrays{false};
+    bool m_array_schema_optimization_test{false};
 };
 }  // namespace clp_s
 

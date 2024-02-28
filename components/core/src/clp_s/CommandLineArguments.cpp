@@ -181,6 +181,10 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                     "structurize-arrays",
                     po::bool_switch(&m_structurize_arrays),
                     "Structurize arrays instead of compressing them as clp strings."
+            )(
+                    "array-schema-optimization-test",
+                    po::bool_switch(&m_array_schema_optimization_test),
+                    "Run an experiment to test an optimization for array schematization -- Note: produces incomplete archives."
             );
             // clang-format on
 
@@ -217,6 +221,11 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 visible_options.add(compression_options);
                 std::cerr << visible_options << '\n';
                 return ParsingResult::InfoCommand;
+            }
+
+            if (m_array_schema_optimization_test && false == m_structurize_arrays) {
+                throw std::invalid_argument("--array-schema-optimization-test option must be used "
+                                            "in conjunction with --structurize-arrays");
             }
 
             if (m_archives_dir.empty()) {

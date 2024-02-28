@@ -74,6 +74,8 @@ public:
 
     bool get_structurize_arrays() const { return m_structurize_arrays; }
 
+    bool get_array_schema_optimization_test() const { return m_array_schema_optimization_test; }
+
 private:
     // Methods
     void print_basic_usage() const;
@@ -97,6 +99,7 @@ private:
     size_t m_target_encoded_size{8ULL * 1024 * 1024 * 1024};  // 8 GiB
     bool m_print_archive_stats{false};
     bool m_structurize_arrays{false};
+    bool m_array_schema_optimization_test{false};
 
     // Metadata db variables
     std::optional<clp::GlobalMetadataDBConfig> m_metadata_db_config;
