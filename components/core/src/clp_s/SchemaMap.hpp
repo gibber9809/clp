@@ -41,6 +41,23 @@ public:
 
     size_t get_num_nodes() const { return m_schema_map.size(); }
 
+    std::pair<double, size_t> get_avg_and_max_nodes_per_schema() {
+        size_t max = 0;
+        size_t tot = 0;
+        double n = m_schema_map.size();
+        for (auto it = m_schema_map.begin(); it != m_schema_map.end(); ++it) {
+            size_t size_i = it->first.size();
+
+            if (size_i > max) {
+                max = size_i;
+            }
+            tot += size_i;
+        }
+
+        double avg = tot / n;
+        return {avg, max};
+    }
+
 private:
     std::string m_archives_dir;
     int m_compression_level;
