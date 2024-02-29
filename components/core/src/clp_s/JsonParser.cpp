@@ -476,9 +476,9 @@ void JsonParser::parse() {
     auto avg_max = m_schema_map->get_avg_and_max_nodes_per_schema();
 
     std::cerr << "#MST Nodes: " << m_schema_tree->get_nodes().size()
-              << " #Schemas: " << m_schema_map->get_num_nodes()
-              << " Avg Schema Length: " << avg_max.first << " Max Schema Length: " << avg_max.second
-              << std::endl;
+              << ", #Schemas: " << m_schema_map->get_num_nodes()
+              << ", Avg Schema Length: " << avg_max.first
+              << ", Max Schema Length: " << avg_max.second << std::endl;
 }
 
 void JsonParser::store() {
