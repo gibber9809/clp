@@ -43,3 +43,4 @@ class SearchConfig(BaseModel):
     reducer_host: typing.Optional[str] = None
     reducer_port: typing.Optional[int] = None
     count: typing.Optional[bool] = None
+    bucket_size: typing.Optional[int] = None

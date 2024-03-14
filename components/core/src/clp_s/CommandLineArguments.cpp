@@ -375,6 +375,10 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                     "count",
                     po::bool_switch(&m_do_count_results_aggregation),
                     "Perform a count aggregation (count the number of results)"
+            )(
+                    "bucket-size",
+                    po::value<int64_t>(&m_bucket_size)->default_value(0),
+                    "Optional bucket size for count aggregation"
             );
             // clang-format on
             search_options.add(aggregation_options);

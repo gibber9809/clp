@@ -216,7 +216,15 @@ bool search_archive(
                 break;
             case CommandLineArguments::OutputHandlerType::Reducer:
                 if (command_line_arguments.do_count_results_aggregation()) {
-                    output_handler = std::make_unique<CountOutputHandler>(reducer_socket_fd);
+                    int64_t bucket_size = command_line_arguments.get_bucket_size();
+                    if (bucket_size > 0) {
+                        output_handler = std::make_unique<BucketOutputHandler>(
+                                reducer_socket_fd,
+                                bucket_size
+                        );
+                    } else {
+                        output_handler = std::make_unique<CountOutputHandler>(reducer_socket_fd);
+                    }
                 } else {
                     SPDLOG_ERROR("Unhandled aggregation type.");
                     return false;

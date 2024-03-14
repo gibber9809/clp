@@ -79,6 +79,7 @@ def create_and_monitor_job_in_db(
     max_num_results: int,
     path_filter: str | None,
     count: bool | None,
+    bucket_size: int | None,
 ):
     search_config = SearchConfig(
         query_string=wildcard_query,
@@ -88,6 +89,7 @@ def create_and_monitor_job_in_db(
         max_num_results=max_num_results,
         path_filter=path_filter,
         count=count,
+        bucket_size=bucket_size,
     )
     if tags:
         tag_list = [tag.strip().lower() for tag in tags.split(",") if tag]
@@ -154,6 +156,7 @@ async def do_search(
     max_num_results: int,
     path_filter: str | None,
     count: bool | None,
+    bucket_size: int | None,
 ):
     db_monitor_task = asyncio.ensure_future(
         run_function_in_process(
@@ -168,6 +171,7 @@ async def do_search(
             max_num_results,
             path_filter,
             count,
+            bucket_size,
         )
     )
 
@@ -217,6 +221,9 @@ def main(argv):
         help="Perform the query and count the number of results.",
         const=True,
     )
+    args_parser.add_argument(
+        "--bucket-size", type=int, help="Optional bucket size in ms for count aggregation."
+    )
     parsed_args = args_parser.parse_args(argv[1:])
 
     if (
@@ -249,6 +256,7 @@ def main(argv):
             parsed_args.max_num_results,
             parsed_args.file_path,
             parsed_args.count,
+            parsed_args.bucket_size,
         )
     )
 
