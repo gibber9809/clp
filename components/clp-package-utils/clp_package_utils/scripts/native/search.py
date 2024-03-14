@@ -135,7 +135,10 @@ def create_and_monitor_job_in_db(
                     search_results_collection.find().sort("timestamp", -1).limit(max_num_results)
                 )
 
-            if count is not None:
+            if count is not None and bucket_size is not None:
+                for document in cursor:
+                    print(f"timestamp: {document['timestamp']} count: {document['count']}")
+            elif count is not None:
                 for document in cursor:
                     print(
                         f"tags: {document['group_tags']} count: {document['records'][0]['count']}"
