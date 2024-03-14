@@ -104,7 +104,7 @@ def make_clp_s_command(
         search_cmd.append(str(search_config.job_id))
         if search_config.bucket_size is not None:
             search_cmd.append("--bucket-size")
-            search_cmd.append(str(search_cmd.bucket_size))
+            search_cmd.append(str(search_config.bucket_size))
     else:
         search_cmd.append("results-cache")
         search_cmd.append("--uri")
