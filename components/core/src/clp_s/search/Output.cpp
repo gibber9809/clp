@@ -902,6 +902,12 @@ void Output::populate_string_queries(std::shared_ptr<Expression> const& expr) {
                             false
                     )
             );
+
+            if (m_string_query_map.at(query_string).has_value()) {
+                SPDLOG_INFO("CLP TRUE");
+            } else {
+                SPDLOG_INFO("CLP FALSE");
+            }
         }
         SubQuery sub_query;
         if (filter->get_column()->matches_type(LiteralType::VarStringT)) {
@@ -932,7 +938,10 @@ void Output::populate_string_queries(std::shared_ptr<Expression> const& expr) {
                 );
 
                 if (entry != nullptr) {
+                    SPDLOG_INFO("VAR TRUE");
                     matching_vars.insert(entry->get_id());
+                } else {
+                    SPDLOG_INFO("VAR FALSE");
                 }
             } else if (EncodedVariableInterpreter::
                                wildcard_search_dictionary_and_get_encoded_matches(
@@ -942,18 +951,28 @@ void Output::populate_string_queries(std::shared_ptr<Expression> const& expr) {
                                        sub_query
                                ))
             {
+                bool hit = false;
                 for (auto const& var : sub_query.get_vars()) {
                     if (var.is_precise_var()) {
                         auto const* entry = var.get_var_dict_entry();
                         if (entry != nullptr) {
+                            hit = true;
                             matching_vars.insert(entry->get_id());
                         }
                     } else {
                         for (auto const* entry : var.get_possible_var_dict_entries()) {
+                            hit = true;
                             matching_vars.insert(entry->get_id());
                         }
                     }
                 }
+                if (hit) {
+                    SPDLOG_INFO("VAR TRUE");
+                } else {
+                    SPDLOG_INFO("VAR FALSE");
+                }
+            } else {
+                SPDLOG_INFO("VAR FALSE");
             }
         }
     }
