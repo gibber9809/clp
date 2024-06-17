@@ -51,6 +51,7 @@ bool Output::filter() {
         return true;
     }
 
+    SPDLOG_INFO("Starting dict loading");
     m_var_dict = m_archive_reader->read_variable_dictionary();
     m_log_dict = m_archive_reader->read_log_type_dictionary();
 
@@ -61,6 +62,7 @@ bool Output::filter() {
             m_array_dict = m_archive_reader->read_array_dictionary(true);
         }
     }
+    SPDLOG_INFO("Ending dict loading");
 
     populate_string_queries(top_level_expr);
 
