@@ -14,6 +14,7 @@ void ArchiveWriter::open(ArchiveWriterOption const& option) {
     m_id = boost::uuids::to_string(option.id);
     m_compression_level = option.compression_level;
     m_print_archive_stats = option.print_archive_stats;
+    m_min_table_size = option.min_table_size;
     auto archive_path = boost::filesystem::path(option.archives_dir) / m_id;
 
     boost::system::error_code boost_error_code;
@@ -174,7 +175,7 @@ size_t ArchiveWriter::store_tables() {
         current_table_size += it->second->get_total_uncompressed_size();
         delete it->second;
 
-        if (current_table_size > 1024 * 1024 || schemas.size() == schema_metadata.size()) {
+        if (current_table_size > m_min_table_size || schemas.size() == schema_metadata.size()) {
             table_metadata.emplace_back(current_table_file_offset, current_table_size);
             m_tables_compressor.close();
             current_table_size = 0;
