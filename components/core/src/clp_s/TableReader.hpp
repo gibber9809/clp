@@ -68,8 +68,7 @@ private:
         MetadataRead,
         TablesOpened,
         TablesOpenedAndMetadataRead,
-        ReadingTables,
-        TablesClosed
+        ReadingTables
     };
 
     std::vector<TableMetadata> m_table_metadata;
