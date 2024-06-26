@@ -59,12 +59,14 @@ void TableReader::close() {
         case TableReaderState::TablesOpened:
         case TableReaderState::TablesOpenedAndMetadataRead:
         case TableReaderState::ReadingTables:
-            m_tables_reader.close();
             break;
         default:
             throw OperationFailed(ErrorCodeNotReady, __FILE__, __LINE__);
     }
-    m_state = TableReaderState::TablesClosed;
+    m_tables_reader.close();
+    m_previous_table_id = 0;
+    m_table_metadata.clear();
+    m_state = TableReaderState::Uninitialized;
 }
 
 void TableReader::read_table(size_t table_id, std::shared_ptr<char[]>& buf, size_t& buf_size) {
