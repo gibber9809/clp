@@ -330,6 +330,9 @@ void ArchiveReader::close() {
 
     m_id_to_schema_metadata.clear();
     m_schema_ids.clear();
+    m_cur_table_id = 0;
+    m_table_buffer.reset();
+    m_table_buffer_size = 0ULL;
 }
 
 std::shared_ptr<char[]> ArchiveReader::read_table(size_t table_id, bool reuse_buffer) {
