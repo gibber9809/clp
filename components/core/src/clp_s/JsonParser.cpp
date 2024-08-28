@@ -6,6 +6,7 @@
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 
+#include "../clp/FileReader.hpp"
 #include "archive_constants.hpp"
 #include "JsonFileIterator.hpp"
 
@@ -418,14 +419,27 @@ void JsonParser::parse_line(ondemand::value line, int32_t parent_node_id, std::s
     while (!object_stack.empty());
 }
 
+namespace {
+std::optional<clp::FileReader> try_create_file_reader(std::string const& file_path) {
+    try {
+        return {file_path};
+    } catch (clp::FileReader::OperationFailed& e) {
+        SPDLOG_ERROR("Failed to open file for reading - {} - {}", file_path, e.what());
+        return std::nullopt;
+    }
+}
+}  // namespace
+
 bool JsonParser::parse() {
     for (auto& file_path : m_file_paths) {
-        JsonFileIterator json_file_iterator(file_path, m_max_document_size);
-        if (false == json_file_iterator.is_open()) {
+        auto ret = try_create_file_reader(file_path);
+        if (std::nullopt == ret) {
             m_archive_writer->close();
             return false;
         }
-
+        // Note, we use ret.value() directly here because clp::FileReader doesn't implement a
+        // correct move constructor.
+        JsonFileIterator json_file_iterator(ret.value(), m_max_document_size);
         if (simdjson::error_code::SUCCESS != json_file_iterator.get_error()) {
             SPDLOG_ERROR(
                     "Encountered error - {} - while trying to parse {} after parsing 0 bytes",
