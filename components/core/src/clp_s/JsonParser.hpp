@@ -12,10 +12,12 @@
 
 #include "../clp/GlobalMySQLMetadataDB.hpp"
 #include "ArchiveWriter.hpp"
+#include "CommandLineArguments.hpp"
 #include "DictionaryWriter.hpp"
 #include "FileReader.hpp"
 #include "FileWriter.hpp"
 #include "ParsedMessage.hpp"
+#include "ReaderUtils.hpp"
 #include "Schema.hpp"
 #include "SchemaMap.hpp"
 #include "SchemaTree.hpp"
@@ -40,6 +42,7 @@ struct JsonParserOption {
     bool record_log_order{true};
     bool single_file_archive{false};
     std::shared_ptr<clp::GlobalMySQLMetadataDB> metadata_db;
+    InputOption input_config;
 };
 
 class JsonParser {
@@ -121,6 +124,8 @@ private:
     size_t m_max_document_size;
     bool m_structurize_arrays{false};
     bool m_record_log_order{true};
+
+    InputOption m_input_config{};
 };
 }  // namespace clp_s
 

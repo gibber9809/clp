@@ -148,6 +148,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             po::options_description compression_options("Compression options");
             std::string metadata_db_config_file_path;
             std::string input_path_list_file_path;
+            std::string input_source{"filesystem"};
             // clang-format off
             compression_options.add_options()(
                     "compression-level",
@@ -202,6 +203,12 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                     "disable-log-order",
                     po::bool_switch(&m_disable_log_order),
                     "Do not record log order at ingestion time."
+            )(
+                    "input-source",
+                    po::value<std::string>(&input_source)
+                            ->value_name("INPUT_SOURCE")
+                            ->default_value(input_source),
+                    "Input source for data (either \"filesystem\" or \"s3\")"
             );
             // clang-format on
 
@@ -255,6 +262,14 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 throw std::invalid_argument("No input paths specified.");
             }
 
+            if ("s3" == input_source) {
+                m_input_source = InputSource::S3;
+            } else if ("filesystem" == input_source) {
+                m_input_source = InputSource::Filesystem;
+            } else {
+                throw std::invalid_argument("Invalid input source: " + input_source);
+            }
+
             // Parse and validate global metadata DB config
             if (false == metadata_db_config_file_path.empty()) {
                 clp::GlobalMetadataDBConfig metadata_db_config;
@@ -292,11 +307,20 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             // clang-format on
 
             po::options_description input_options("Input Options");
+            std::string input_source{"filesystem"};
+            // clang-format off
             input_options.add_options()(
                     "archive-id",
                     po::value<std::string>(&m_archive_id)->value_name("ID"),
                     "ID of the archive to decompress"
+            )(
+                    "input-source",
+                    po::value<std::string>(&input_source)
+                            ->value_name("INPUT_SOURCE")
+                            ->default_value(input_source),
+                    "Input source for data (either \"filesystem\" or \"s3\")"
             );
+            // clang-format on
             extraction_options.add(input_options);
 
             po::options_description decompression_options("Decompression Options");
@@ -380,6 +404,19 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 );
             }
 
+            if ("s3" == input_source) {
+                m_input_source = InputSource::S3;
+            } else if ("filesystem" == input_source) {
+                m_input_source = InputSource::Filesystem;
+            } else {
+                throw std::invalid_argument("Invalid input source: " + input_source);
+            }
+
+            if (InputSource::S3 == m_input_source && m_archive_id.empty()) {
+                throw std::invalid_argument("Archive id must be specified for decompression from s3"
+                );
+            }
+
             // We use xor to check that these arguments are either both specified or both
             // unspecified.
             if (m_mongodb_uri.empty() ^ m_mongodb_collection.empty()) {
@@ -421,6 +458,19 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             positional_options.add("query", 1);
             positional_options.add("output-handler", 1);
             positional_options.add("output-handler-args", -1);
+
+            po::options_description input_options("Input Options");
+            std::string input_source{"filesystem"};
+            // clang-format off
+            input_options.add_options()(
+                    "input-source",
+                    po::value<std::string>(&input_source)
+                            ->value_name("INPUT_SOURCE")
+                            ->default_value(input_source),
+                    "Input source for data (either \"filesystem\" or \"s3\")"
+            );
+            // clang-format on
+            search_options.add(input_options);
 
             po::options_description match_options("Match Controls");
             // clang-format off
@@ -590,6 +640,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
                 po::options_description visible_options;
                 visible_options.add(general_options);
+                visible_options.add(input_options);
                 visible_options.add(match_options);
                 visible_options.add(aggregation_options);
                 visible_options.add(network_output_handler_options);
@@ -651,6 +702,19 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 } else {
                     throw std::invalid_argument("Unknown OUTPUT_HANDLER: " + output_handler_name);
                 }
+            }
+
+            if ("s3" == input_source) {
+                m_input_source = InputSource::S3;
+            } else if ("filesystem" == input_source) {
+                m_input_source = InputSource::Filesystem;
+            } else {
+                throw std::invalid_argument("Invalid input source: " + input_source);
+            }
+
+            if (InputSource::S3 == m_input_source && m_archive_id.empty()) {
+                throw std::invalid_argument("Archive id must be specified for decompression from s3"
+                );
             }
 
             if (OutputHandlerType::Network == m_output_handler_type) {

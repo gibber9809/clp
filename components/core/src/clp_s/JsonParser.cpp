@@ -1,13 +1,16 @@
 #include "JsonParser.hpp"
 
 #include <iostream>
+#include <memory>
 #include <stack>
 
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 
+#include "../clp/ReaderInterface.hpp"
 #include "archive_constants.hpp"
 #include "JsonFileIterator.hpp"
+#include "JsonParser.hpp"
 
 namespace clp_s {
 JsonParser::JsonParser(JsonParserOption const& option)
@@ -16,8 +19,15 @@ JsonParser::JsonParser(JsonParserOption const& option)
           m_max_document_size(option.max_document_size),
           m_timestamp_key(option.timestamp_key),
           m_structurize_arrays(option.structurize_arrays),
-          m_record_log_order(option.record_log_order) {
-    if (false == FileUtils::validate_path(option.file_paths)) {
+          m_record_log_order(option.record_log_order),
+          m_input_config(std::move(option.input_config)) {
+    if (false
+        == ReaderUtils::validate_and_populate_input_paths(
+                option.file_paths,
+                m_file_paths,
+                m_input_config
+        ))
+    {
         exit(1);
     }
 
@@ -28,10 +38,6 @@ JsonParser::JsonParser(JsonParserOption const& option)
             SPDLOG_ERROR("Can not parse invalid timestamp key: \"{}\"", m_timestamp_key);
             throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
         }
-    }
-
-    for (auto& file_path : option.file_paths) {
-        FileUtils::find_all_files(file_path, m_file_paths);
     }
 
     m_archive_options.archives_dir = option.archives_dir;
@@ -428,12 +434,16 @@ void JsonParser::parse_line(ondemand::value line, int32_t parent_node_id, std::s
 
 bool JsonParser::parse() {
     for (auto& file_path : m_file_paths) {
-        JsonFileIterator json_file_iterator(file_path, m_max_document_size);
-        if (false == json_file_iterator.is_open()) {
+        std::shared_ptr<clp::ReaderInterface> reader{
+                ReaderUtils::try_create_reader(file_path, m_input_config)
+        };
+
+        if (nullptr == reader) {
             m_archive_writer->close();
             return false;
         }
 
+        JsonFileIterator json_file_iterator(*reader, m_max_document_size);
         if (simdjson::error_code::SUCCESS != json_file_iterator.get_error()) {
             SPDLOG_ERROR(
                     "Encountered error - {} - while trying to parse {} after parsing 0 bytes",

@@ -116,6 +116,8 @@ public:
 
     bool get_record_log_order() const { return false == m_disable_log_order; }
 
+    InputSource get_input_source() const { return m_input_source; }
+
 private:
     // Methods
     /**
@@ -217,6 +219,7 @@ private:
     int64_t m_count_by_time_bucket_size{0};  // Milliseconds
 
     OutputHandlerType m_output_handler_type{OutputHandlerType::Stdout};
+    InputSource m_input_source{InputSource::Filesystem};
 };
 }  // namespace clp_s
 

@@ -32,21 +32,24 @@ JsonConstructor::JsonConstructor(JsonConstructorOption const& option) : m_option
         );
     }
 
+    if (InputSource::Filesystem != m_option.input_config.source) {
+        return;
+    }
     std::filesystem::path archive_path{m_option.archives_dir};
     archive_path /= m_option.archive_id;
-    if (false == std::filesystem::is_directory(archive_path)) {
+    if (false == std::filesystem::exists(archive_path)) {
         throw OperationFailed(
                 ErrorCodeFailure,
                 __FILENAME__,
                 __LINE__,
-                fmt::format("'{}' is not a directory", archive_path.c_str())
+                fmt::format("'{}' does not exist", archive_path.c_str())
         );
     }
 }
 
 void JsonConstructor::store() {
     m_archive_reader = std::make_unique<ArchiveReader>();
-    m_archive_reader->open(m_option.archives_dir, m_option.archive_id);
+    m_archive_reader->open(m_option.archives_dir, m_option.archive_id, m_option.input_config);
     m_archive_reader->read_dictionaries_and_metadata();
 
     if (m_option.ordered && false == m_archive_reader->has_log_order()) {
@@ -54,6 +57,7 @@ void JsonConstructor::store() {
                     "log order. Falling back to out of order decompression.");
     }
 
+    m_archive_reader->open_packed_streams();
     if (false == m_option.ordered || false == m_archive_reader->has_log_order()) {
         FileWriter writer;
         writer.open(
