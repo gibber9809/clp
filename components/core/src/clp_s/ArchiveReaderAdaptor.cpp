@@ -8,6 +8,7 @@
 #include <msgpack.hpp>
 
 #include "../clp/BoundedReader.hpp"
+#include "../clp/FileReader.hpp"
 #include "archive_constants.hpp"
 #include "Defs.hpp"
 #include "ReaderUtils.hpp"
@@ -24,8 +25,7 @@ ArchiveReaderAdaptor::ArchiveReaderAdaptor(
           m_single_file_archive(single_file_archive),
           m_timestamp_dictionary(std::make_shared<TimestampDictionaryReader>()),
           m_input_config{input_config} {
-    if (false == m_single_file_archive) {
-        // TODO: support both
+    if (false == m_single_file_archive && InputSource::Filesystem != m_input_config.source) {
         throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
     }
 }
@@ -99,7 +99,7 @@ ErrorCode ArchiveReaderAdaptor::try_read_archive_info(ZstdDecompressor& decompre
 
 ErrorCode ArchiveReaderAdaptor::load_archive_metadata() {
     constexpr size_t cDecompressorFileReadBufferCapacity = 64 * 1024;
-    m_reader = ReaderUtils::try_create_reader(m_path, m_input_config);
+    m_reader = try_create_reader_at_header();
     if (nullptr == m_reader) {
         return ErrorCodeFileNotFound;
     }
@@ -193,8 +193,14 @@ std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_
         throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
     }
 
-    size_t cur_pos{};
-    if (auto rc = m_reader->try_get_pos(cur_pos); clp::ErrorCode::ErrorCode_Success != rc) {
+    m_current_reader_holder.emplace(section);
+
+    if (false == m_single_file_archive) {
+        return std::make_unique<clp::FileReader>(m_path + std::string{section});
+    }
+
+    size_t curr_pos{};
+    if (auto rc = m_reader->try_get_pos(curr_pos); clp::ErrorCode::ErrorCode_Success != rc) {
         throw OperationFailed(ErrorCodeFailure, __FILENAME__, __LINE__);
     }
 
@@ -205,11 +211,11 @@ std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_
         next_file_offset = m_files_section_offset + it->o;
     }
 
-    if (cur_pos > file_offset) {
+    if (curr_pos > file_offset) {
         throw OperationFailed(ErrorCodeCorrupt, __FILENAME__, __LINE__);
     }
 
-    if (cur_pos != file_offset) {
+    if (curr_pos != file_offset) {
         if (auto rc = m_reader->try_seek_from_begin(file_offset);
             clp::ErrorCode::ErrorCode_Success != rc)
         {
@@ -217,7 +223,6 @@ std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_
         }
     }
 
-    m_current_reader_holder.emplace(section);
     return std::make_unique<clp::BoundedReader>(m_reader.get(), next_file_offset);
 }
 
@@ -232,4 +237,16 @@ void ArchiveReaderAdaptor::checkin_reader_for_section(std::string_view section) 
 
     m_current_reader_holder.reset();
 }
+
+std::shared_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::try_create_reader_at_header() {
+    if (InputSource::Filesystem == m_input_config.source && false == m_single_file_archive) {
+        return ReaderUtils::try_create_reader(
+                m_path + constants::cArchiveHeaderFile,
+                m_input_config
+        );
+    } else {
+        return ReaderUtils::try_create_reader(m_path, m_input_config);
+    }
+}
+
 }  // namespace clp_s

@@ -20,14 +20,19 @@ void ArchiveReader::open(
     m_is_open = true;
     m_archive_id = archive_id;
     std::string archive_path_str{archives_dir};
+    bool single_file_archive{true};
     if (InputSource::Filesystem == input_config.source) {
         std::filesystem::path archive_path{archives_dir};
         archive_path /= m_archive_id;
+        single_file_archive = false == std::filesystem::is_directory(archive_path);
         archive_path_str = archive_path.string();
     }
 
-    m_archive_reader_adaptor
-            = std::make_shared<ArchiveReaderAdaptor>(archive_path_str, input_config, true);
+    m_archive_reader_adaptor = std::make_shared<ArchiveReaderAdaptor>(
+            archive_path_str,
+            input_config,
+            single_file_archive
+    );
 
     auto rc = m_archive_reader_adaptor->load_archive_metadata();
     if (ErrorCodeSuccess != rc) {

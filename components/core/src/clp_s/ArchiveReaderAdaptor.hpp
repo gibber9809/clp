@@ -75,6 +75,8 @@ private:
 
     ErrorCode try_read_archive_info(ZstdDecompressor& decompressor, size_t size);
 
+    std::shared_ptr<clp::ReaderInterface> try_create_reader_at_header();
+
     bool m_single_file_archive{false};
     std::string m_path;
     ArchiveFileInfoPacket m_archive_file_info{};
