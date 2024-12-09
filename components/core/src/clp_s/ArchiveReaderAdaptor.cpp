@@ -104,8 +104,22 @@ ErrorCode ArchiveReaderAdaptor::load_archive_metadata() {
         return ErrorCodeFileNotFound;
     }
 
+    if (auto const rc = try_read_header(*m_reader); ErrorCodeSuccess != rc) {
+        return rc;
+    }
+
+    m_files_section_offset = sizeof(m_archive_header) + m_archive_header.metadata_section_size;
+    clp::BoundedReader bounded_reader{m_reader.get(), m_files_section_offset};
+    ZstdDecompressor decompressor;
+    decompressor.open(bounded_reader, cDecompressorFileReadBufferCapacity);
+    auto const rc = try_read_archive_metadata(decompressor);
+    decompressor.close();
+    return rc;
+}
+
+ErrorCode ArchiveReaderAdaptor::try_read_header(clp::ReaderInterface& reader) {
     std::array<char, sizeof(ArchiveHeader)> header_buffer;
-    auto clp_rc = m_reader->try_read_exact_length(
+    auto const clp_rc = m_reader->try_read_exact_length(
             reinterpret_cast<char*>(&m_archive_header),
             sizeof(m_archive_header)
     );
@@ -129,14 +143,10 @@ ErrorCode ArchiveReaderAdaptor::load_archive_metadata() {
         default:
             return ErrorCodeUnsupported;
     }
+    return ErrorCodeSuccess;
+}
 
-    m_files_section_offset = sizeof(m_archive_header) + m_archive_header.metadata_section_size;
-
-    clp::BoundedReader bounded_reader{m_reader.get(), m_files_section_offset};
-
-    ZstdDecompressor decompressor;
-    decompressor.open(bounded_reader, cDecompressorFileReadBufferCapacity);
-
+ErrorCode ArchiveReaderAdaptor::try_read_archive_metadata(ZstdDecompressor& decompressor) {
     uint8_t num_metadata_packets{};
     auto rc = decompressor.try_read_numeric_value(num_metadata_packets);
     if (ErrorCodeSuccess != rc) {
@@ -172,8 +182,6 @@ ErrorCode ArchiveReaderAdaptor::load_archive_metadata() {
             return rc;
         }
     }
-
-    decompressor.close();
     return ErrorCodeSuccess;
 }
 
@@ -184,6 +192,17 @@ std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_
         throw OperationFailed(ErrorCodeNotReady, __FILENAME__, __LINE__);
     }
 
+    m_current_reader_holder.emplace(section);
+    if (m_single_file_archive) {
+        return checkout_reader_for_sfa_section(section);
+    } else {
+        return std::make_unique<clp::FileReader>(m_path + std::string{section});
+    }
+}
+
+std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_sfa_section(
+        std::string_view section
+) {
     auto it = std::find_if(
             m_archive_file_info.files.begin(),
             m_archive_file_info.files.end(),
@@ -191,12 +210,6 @@ std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_
     );
     if (m_archive_file_info.files.end() == it) {
         throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
-    }
-
-    m_current_reader_holder.emplace(section);
-
-    if (false == m_single_file_archive) {
-        return std::make_unique<clp::FileReader>(m_path + std::string{section});
     }
 
     size_t curr_pos{};
@@ -248,5 +261,4 @@ std::shared_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::try_create_reader_at
         return ReaderUtils::try_create_reader(m_path, m_input_config);
     }
 }
-
 }  // namespace clp_s
