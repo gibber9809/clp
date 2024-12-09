@@ -81,14 +81,14 @@ void ArchiveWriter::close() {
                 FileWriter::OpenMode::CreateForWriting
         );
         write_archive_metadata(header_and_metadata_writer, files);
-        size_t header_and_metadata_size = header_and_metadata_writer.get_pos();
+        size_t metadata_size = header_and_metadata_writer.get_pos() - sizeof(ArchiveHeader);
 
-        m_compressed_size = var_dict_compressed_size + log_dict_compressed_size
-                            + array_dict_compressed_size + header_and_metadata_size
-                            + schema_tree_compressed_size + schema_map_compressed_size
-                            + table_metadata_compressed_size + table_compressed_size;
+        m_compressed_size
+                = var_dict_compressed_size + log_dict_compressed_size + array_dict_compressed_size
+                  + metadata_size + schema_tree_compressed_size + schema_map_compressed_size
+                  + table_metadata_compressed_size + table_compressed_size + sizeof(ArchiveHeader);
 
-        write_archive_header(header_and_metadata_writer, header_and_metadata_size);
+        write_archive_header(header_and_metadata_writer, metadata_size);
         header_and_metadata_writer.close();
     }
 
