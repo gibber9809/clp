@@ -1,5 +1,6 @@
 #include "CommandLineArguments.hpp"
 
+#include <filesystem>
 #include <iostream>
 
 #include <boost/program_options.hpp>
@@ -321,6 +322,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
             po::options_description decompression_options("Decompression Options");
             std::string auth{"none"};
+            std::string archive_id;
             // clang-format off
             decompression_options.add_options()(
                     "ordered",
@@ -333,6 +335,11 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                             ->value_name("SIZE"),
                     "Chunk size (B) for each output file when decompressing records in log order."
                     " When set to 0, no chunking is performed."
+            )(
+                    "archive-id",
+                    po::value<std::string>(&archive_id)->value_name("ID"),
+                    "Limit decompression to the archive with the given ID in a subdirectory of"
+                    " archive-path"
             )(
                     "auth",
                     po::value<std::string>(&auth)
@@ -398,7 +405,16 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 throw std::invalid_argument("No archive path specified");
             }
 
-            if (false == get_input_archives_for_raw_path(archive_path, m_input_paths)) {
+            if (false == archive_id.empty()) {
+                auto archive_fs_path = std::filesystem::path(archive_path) / archive_id;
+                if (false == std::filesystem::exists(archive_fs_path)) {
+                    throw std::invalid_argument("Requested archive does not exist");
+                }
+                m_input_paths.emplace_back(clp_s::Path{
+                        .source{clp_s::InputSource::Filesystem},
+                        .path{archive_fs_path.string()}
+                });
+            } else if (false == get_input_archives_for_raw_path(archive_path, m_input_paths)) {
                 throw std::invalid_argument("Invalid archive path");
             }
 
@@ -471,6 +487,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
             po::options_description match_options("Match Controls");
             std::string auth{"none"};
+            std::string archive_id;
             // clang-format off
             match_options.add_options()(
                 "tge",
@@ -484,6 +501,10 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 "ignore-case,i",
                 po::bool_switch(&m_ignore_case),
                 "Ignore case distinctions between values in the query and the compressed data"
+            )(
+                "archive-id",
+                po::value<std::string>(&archive_id)->value_name("ID"),
+                "Limit search to the archive with the given ID in a subdirectory of archive-path"
             )(
                 "projection",
                 po::value<std::vector<std::string>>(&m_projection_columns)
@@ -655,7 +676,16 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 throw std::invalid_argument("No archive path specified");
             }
 
-            if (false == get_input_archives_for_raw_path(archive_path, m_input_paths)) {
+            if (false == archive_id.empty()) {
+                auto archive_fs_path = std::filesystem::path(archive_path) / archive_id;
+                if (false == std::filesystem::exists(archive_fs_path)) {
+                    throw std::invalid_argument("Requested archive does not exist");
+                }
+                m_input_paths.emplace_back(clp_s::Path{
+                        .source{clp_s::InputSource::Filesystem},
+                        .path{archive_fs_path.string()}
+                });
+            } else if (false == get_input_archives_for_raw_path(archive_path, m_input_paths)) {
                 throw std::invalid_argument("Invalid archive path");
             }
 
