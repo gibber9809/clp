@@ -79,7 +79,7 @@ auto get_archive_id_from_path(Path const& archive_path, std::string& archive_id)
             archive_id = archive_path.path;
             break;
         case InputSource::Filesystem:
-            return FileUtils::get_real_stem(archive_path.path, archive_id);
+            return FileUtils::get_last_non_empty_path_component(archive_path.path, archive_id);
         default:
             return false;
     }

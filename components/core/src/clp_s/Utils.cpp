@@ -1,5 +1,6 @@
 #include "Utils.hpp"
 
+#include <exception>
 #include <filesystem>
 #include <set>
 
@@ -70,24 +71,25 @@ bool directory_is_multi_file_archive(std::string_view const path) {
             return false;
         }
 
-        std::string stem;
-        if (false == FileUtils::get_real_stem(entry.path().string(), stem)) {
+        std::string file_name;
+        if (false == FileUtils::get_last_non_empty_path_component(entry.path().string(), file_name))
+        {
             return false;
         }
-        auto formatted_stem = fmt::format("/{}", stem);
-        if (constants::cArchiveHeaderFile == formatted_stem
-            || constants::cArchiveSchemaTreeFile == formatted_stem
-            || constants::cArchiveSchemaMapFile == formatted_stem
-            || constants::cArchiveVarDictFile == formatted_stem
-            || constants::cArchiveLogDictFile == formatted_stem
-            || constants::cArchiveArrayDictFile == formatted_stem
-            || constants::cArchiveTableMetadataFile == formatted_stem
-            || constants::cArchiveTablesFile == formatted_stem)
+        auto formatted_name = fmt::format("/{}", file_name);
+        if (constants::cArchiveHeaderFile == formatted_name
+            || constants::cArchiveSchemaTreeFile == formatted_name
+            || constants::cArchiveSchemaMapFile == formatted_name
+            || constants::cArchiveVarDictFile == formatted_name
+            || constants::cArchiveLogDictFile == formatted_name
+            || constants::cArchiveArrayDictFile == formatted_name
+            || constants::cArchiveTableMetadataFile == formatted_name
+            || constants::cArchiveTablesFile == formatted_name)
         {
             continue;
         } else {
             try {
-                auto segment_file_number = std::stoi(stem);
+                auto segment_file_number = std::stoi(file_name);
                 continue;
             } catch (std::exception const& e) {
                 return false;
@@ -121,31 +123,28 @@ bool FileUtils::find_all_archives_in_directory(
     return true;
 }
 
-bool FileUtils::get_real_stem(std::string_view const path, std::string& stem) {
-    auto cleaned_path_len{path.size()};
-    for (; cleaned_path_len > 0; --cleaned_path_len) {
-        if (path[cleaned_path_len - 1] != '/') {
-            break;
-        }
-    }
-
-    if (0 == cleaned_path_len) {
-        return false;
-    }
-
+bool FileUtils::get_last_non_empty_path_component(std::string_view const path, std::string& name) {
+    std::filesystem::path fs_path;
     try {
-        auto cleaned_path = std::filesystem::path(path.substr(0, cleaned_path_len));
-        if (false == cleaned_path.has_filename()) {
-            return false;
-        }
-        stem = cleaned_path.filename().string();
-        if (stem.empty()) {
-            return false;
-        }
+        fs_path = std::filesystem::path{path}.lexically_normal();
     } catch (std::exception const& e) {
         return false;
     }
-    return true;
+
+    if (fs_path.has_filename() && false == fs_path.filename().string().empty()) {
+        name = fs_path.filename().string();
+        return true;
+    }
+
+    while (fs_path.has_parent_path()) {
+        fs_path = fs_path.parent_path();
+        if (fs_path.has_filename() && false == fs_path.filename().string().empty()) {
+            name = fs_path.filename().string();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool StringUtils::get_bounds_of_next_var(string const& msg, size_t& begin_pos, size_t& end_pos) {

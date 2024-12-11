@@ -150,6 +150,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             po::options_description compression_options("Compression options");
             std::string metadata_db_config_file_path;
             std::string input_path_list_file_path;
+            std::string auth{"none"};
             // clang-format off
             compression_options.add_options()(
                     "compression-level",
@@ -204,6 +205,14 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                     "disable-log-order",
                     po::bool_switch(&m_disable_log_order),
                     "Do not record log order at ingestion time."
+            )(
+                    "auth",
+                    po::value<std::string>(&auth)
+                        ->value_name("AUTH_TYPE")
+                        ->default_value(auth),
+                    "Type of authentication required for network requests (s3 | none). Authentication"
+                    " with s3 requires the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment"
+                    " variables."
             );
             // clang-format on
 
@@ -263,6 +272,16 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 throw std::invalid_argument("No input paths specified.");
             }
 
+            if (false == auth.empty()) {
+                if ("s3" == auth) {
+                    m_network_auth.method = AuthMethod::S3PresignedUrlV4;
+                } else if ("none" != auth) {
+                    throw std::invalid_argument(
+                            fmt::format("Invalid authentication type \"{}\"", auth)
+                    );
+                }
+            }
+
             // Parse and validate global metadata DB config
             if (false == metadata_db_config_file_path.empty()) {
                 clp::GlobalMetadataDBConfig metadata_db_config;
@@ -301,6 +320,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             // clang-format on
 
             po::options_description decompression_options("Decompression Options");
+            std::string auth{"none"};
             // clang-format off
             decompression_options.add_options()(
                     "ordered",
@@ -313,6 +333,14 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                             ->value_name("SIZE"),
                     "Chunk size (B) for each output file when decompressing records in log order."
                     " When set to 0, no chunking is performed."
+            )(
+                    "auth",
+                    po::value<std::string>(&auth)
+                        ->value_name("AUTH_TYPE")
+                        ->default_value(auth),
+                    "Type of authentication required for network requests (s3 | none). Authentication"
+                    " with s3 requires the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment"
+                    " variables."
             );
             // clang-format on
             extraction_options.add(decompression_options);
@@ -378,6 +406,16 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 throw std::invalid_argument("No archive paths specified");
             }
 
+            if (false == auth.empty()) {
+                if ("s3" == auth) {
+                    m_network_auth.method = AuthMethod::S3PresignedUrlV4;
+                } else if ("none" != auth) {
+                    throw std::invalid_argument(
+                            fmt::format("Invalid authentication type \"{}\"", auth)
+                    );
+                }
+            }
+
             if (m_output_dir.empty()) {
                 throw std::invalid_argument("No output directory specified");
             }
@@ -432,6 +470,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             positional_options.add("output-handler-args", -1);
 
             po::options_description match_options("Match Controls");
+            std::string auth{"none"};
             // clang-format off
             match_options.add_options()(
                 "tge",
@@ -453,6 +492,14 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 "Project only the given set of columns for matching results. This option must be"
                 " specified after all positional options. Values that are objects or structured"
                 " arrays are currently unsupported."
+            )(
+                "auth",
+                po::value<std::string>(&auth)
+                    ->value_name("AUTH_TYPE")
+                    ->default_value(auth),
+                "Type of authentication required for network requests (s3 | none). Authentication"
+                " with s3 requires the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment"
+                " variables."
             );
             // clang-format on
             search_options.add(match_options);
@@ -614,6 +661,16 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
             if (m_input_paths.empty()) {
                 throw std::invalid_argument("No archive paths specified");
+            }
+
+            if (false == auth.empty()) {
+                if ("s3" == auth) {
+                    m_network_auth.method = AuthMethod::S3PresignedUrlV4;
+                } else if ("none" != auth) {
+                    throw std::invalid_argument(
+                            fmt::format("Invalid authentication type \"{}\"", auth)
+                    );
+                }
             }
 
             if (m_query.empty()) {

@@ -33,17 +33,17 @@ public:
     );
 
     /**
-     * Gets the last component of a path, accounting for trailing forward slashes.
+     * Gets the last non-empty component of a path, accounting for trailing forward slashes.
      *
      * For example:
      * ./foo/bar.baz -> bar.baz
      * ./foo/bar.baz/ -> bar.baz
      *
      * @param path
-     * @param stem Returned stem
+     * @param name Returned component name
      * @return true on success, false otherwise
      */
-    static bool get_real_stem(std::string_view const path, std::string& stem);
+    static bool get_last_non_empty_path_component(std::string_view const path, std::string& name);
 };
 
 class StringUtils {
