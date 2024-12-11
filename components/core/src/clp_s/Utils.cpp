@@ -1,13 +1,23 @@
 #include "Utils.hpp"
 
+#include <filesystem>
+#include <set>
+
 #include <boost/filesystem.hpp>
+#include <fmt/core.h>
 #include <spdlog/spdlog.h>
+
+#include "archive_constants.hpp"
+#include "Utils.hpp"
 
 using std::string;
 using std::string_view;
 
 namespace clp_s {
-bool FileUtils::find_all_files(std::string const& path, std::vector<std::string>& file_paths) {
+bool FileUtils::find_all_files_in_directory(
+        std::string const& path,
+        std::vector<std::string>& file_paths
+) {
     try {
         if (false == boost::filesystem::is_directory(path)) {
             // path is a file
@@ -48,16 +58,94 @@ bool FileUtils::find_all_files(std::string const& path, std::vector<std::string>
     return true;
 }
 
-bool FileUtils::validate_path(std::vector<std::string> const& paths) {
-    bool all_paths_exist = true;
-    for (auto const& path : paths) {
-        if (false == boost::filesystem::exists(path)) {
-            SPDLOG_ERROR("'{}' does not exist.", path.c_str());
-            all_paths_exist = false;
+namespace {
+/**
+ * Determines if a directory is a multi-file archive.
+ * @param path
+ * @return true if this directory is a multi-file archive, false otherwise
+ */
+bool directory_is_multi_file_archive(std::string_view const path) {
+    for (auto const& entry : std::filesystem::directory_iterator{path}) {
+        if (entry.is_directory()) {
+            return false;
+        }
+
+        std::string stem;
+        if (false == FileUtils::get_real_stem(entry.path().string(), stem)) {
+            return false;
+        }
+        auto formatted_stem = fmt::format("/{}", stem);
+        if (constants::cArchiveHeaderFile == formatted_stem
+            || constants::cArchiveSchemaTreeFile == formatted_stem
+            || constants::cArchiveSchemaMapFile == formatted_stem
+            || constants::cArchiveVarDictFile == formatted_stem
+            || constants::cArchiveLogDictFile == formatted_stem
+            || constants::cArchiveArrayDictFile == formatted_stem
+            || constants::cArchiveTableMetadataFile == formatted_stem
+            || constants::cArchiveTablesFile == formatted_stem)
+        {
+            continue;
+        } else {
+            try {
+                auto segment_file_number = std::stoi(stem);
+                continue;
+            } catch (std::exception const& e) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+}  // namespace
+
+bool FileUtils::find_all_archives_in_directory(
+        std::string_view const path,
+        std::vector<std::string>& archive_paths
+) {
+    try {
+        if (false == std::filesystem::is_directory(path)) {
+            return false;
+        }
+    } catch (std::exception const& e) {
+        return false;
+    }
+
+    if (directory_is_multi_file_archive(path)) {
+        archive_paths.emplace_back(path);
+        return true;
+    }
+
+    for (auto const& entry : std::filesystem::directory_iterator{path}) {
+        archive_paths.emplace_back(entry.path().string());
+    }
+    return true;
+}
+
+bool FileUtils::get_real_stem(std::string_view const path, std::string& stem) {
+    auto cleaned_path_len{path.size()};
+    for (; cleaned_path_len > 0; --cleaned_path_len) {
+        if (path[cleaned_path_len - 1] != '/') {
+            break;
         }
     }
 
-    return all_paths_exist;
+    if (0 == cleaned_path_len) {
+        return false;
+    }
+
+    try {
+        auto cleaned_path = std::filesystem::path(path.substr(0, cleaned_path_len));
+        if (false == cleaned_path.has_filename()) {
+            return false;
+        }
+        stem = cleaned_path.filename().string();
+        if (stem.empty()) {
+            return false;
+        }
+    } catch (std::exception const& e) {
+        return false;
+    }
+    return true;
 }
 
 bool StringUtils::get_bounds_of_next_var(string const& msg, size_t& begin_pos, size_t& end_pos) {

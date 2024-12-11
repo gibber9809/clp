@@ -20,17 +20,8 @@ JsonParser::JsonParser(JsonParserOption const& option)
           m_timestamp_key(option.timestamp_key),
           m_structurize_arrays(option.structurize_arrays),
           m_record_log_order(option.record_log_order),
-          m_input_config(std::move(option.input_config)) {
-    if (false
-        == ReaderUtils::validate_and_populate_input_paths(
-                option.file_paths,
-                m_file_paths,
-                m_input_config
-        ))
-    {
-        exit(1);
-    }
-
+          m_input_paths(option.input_paths),
+          m_network_auth(option.network_auth) {
     if (false == m_timestamp_key.empty()) {
         if (false
             == clp_s::StringUtils::tokenize_column_descriptor(m_timestamp_key, m_timestamp_column))
@@ -433,11 +424,8 @@ void JsonParser::parse_line(ondemand::value line, int32_t parent_node_id, std::s
 }
 
 bool JsonParser::parse() {
-    for (auto& file_path : m_file_paths) {
-        std::shared_ptr<clp::ReaderInterface> reader{
-                ReaderUtils::try_create_reader(file_path, m_input_config)
-        };
-
+    for (auto const& path : m_input_paths) {
+        auto reader{ReaderUtils::try_create_reader(path, m_network_auth)};
         if (nullptr == reader) {
             m_archive_writer->close();
             return false;
@@ -448,7 +436,7 @@ bool JsonParser::parse() {
             SPDLOG_ERROR(
                     "Encountered error - {} - while trying to parse {} after parsing 0 bytes",
                     simdjson::error_message(json_file_iterator.get_error()),
-                    file_path
+                    path.path
             );
             m_archive_writer->close();
             return false;
@@ -482,7 +470,7 @@ bool JsonParser::parse() {
                 SPDLOG_ERROR(
                         "Encountered non-json-object while trying to parse {} after parsing {} "
                         "bytes",
-                        file_path,
+                        path.path,
                         bytes_consumed_up_to_prev_record
                 );
                 m_archive_writer->close();
@@ -507,7 +495,7 @@ bool JsonParser::parse() {
                 SPDLOG_ERROR(
                         "Encountered error - {} - while trying to parse {} after parsing {} bytes",
                         error.what(),
-                        file_path,
+                        path.path,
                         bytes_consumed_up_to_prev_record
                 );
                 m_archive_writer->close();
@@ -541,7 +529,7 @@ bool JsonParser::parse() {
             SPDLOG_ERROR(
                     "Encountered error - {} - while trying to parse {} after parsing {} bytes",
                     simdjson::error_message(json_file_iterator.get_error()),
-                    file_path,
+                    path.path,
                     bytes_consumed_up_to_prev_record
             );
             m_archive_writer->close();
@@ -551,7 +539,7 @@ bool JsonParser::parse() {
             SPDLOG_WARN(
                     "Truncated JSON  ({} bytes) at end of file {}",
                     json_file_iterator.truncated_bytes(),
-                    file_path.c_str()
+                    path.path
             );
         }
     }

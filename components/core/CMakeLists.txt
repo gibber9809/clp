@@ -243,6 +243,8 @@ add_subdirectory(src/reducer)
 set(SOURCE_FILES_clp_s_unitTest
     src/clp_s/ArchiveReader.cpp
     src/clp_s/ArchiveReader.hpp
+    src/clp_s/ArchiveReaderAdaptor.cpp
+    src/clp_s/ArchiveReaderAdaptor.hpp
     src/clp_s/ArchiveWriter.cpp
     src/clp_s/ArchiveWriter.hpp
     src/clp_s/ColumnReader.cpp
@@ -257,6 +259,8 @@ set(SOURCE_FILES_clp_s_unitTest
     src/clp_s/FileReader.hpp
     src/clp_s/FileWriter.cpp
     src/clp_s/FileWriter.hpp
+    src/clp_s/InputConfig.cpp
+    src/clp_s/InputConfig.hpp
     src/clp_s/JsonConstructor.cpp
     src/clp_s/JsonConstructor.hpp
     src/clp_s/JsonFileIterator.cpp

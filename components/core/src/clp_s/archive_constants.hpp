@@ -21,7 +21,6 @@ constexpr char cArchiveTablesFile[] = "/tables";
 // Dictionary files
 constexpr char cArchiveArrayDictFile[] = "/array.dict";
 constexpr char cArchiveLogDictFile[] = "/log.dict";
-constexpr char cArchiveTimestampDictFile[] = "/timestamp.dict";
 constexpr char cArchiveVarDictFile[] = "/var.dict";
 
 // Schema tree constants

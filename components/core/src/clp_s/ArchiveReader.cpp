@@ -4,38 +4,25 @@
 #include <string_view>
 
 #include "archive_constants.hpp"
+#include "InputConfig.hpp"
 #include "ReaderUtils.hpp"
 
 using std::string_view;
 
 namespace clp_s {
-void ArchiveReader::open(
-        string_view archives_dir,
-        string_view archive_id,
-        InputOption const& input_config
-) {
+void ArchiveReader::open(Path const& archive_path, NetworkAuthOption const& network_auth) {
     if (m_is_open) {
         throw OperationFailed(ErrorCodeNotReady, __FILENAME__, __LINE__);
     }
     m_is_open = true;
-    m_archive_id = archive_id;
-    std::string archive_path_str{archives_dir};
-    bool single_file_archive{true};
-    if (InputSource::Filesystem == input_config.source) {
-        std::filesystem::path archive_path{archives_dir};
-        archive_path /= m_archive_id;
-        single_file_archive = false == std::filesystem::is_directory(archive_path);
-        archive_path_str = archive_path.string();
+
+    if (false == get_archive_id_from_path(archive_path, m_archive_id)) {
+        throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
     }
 
-    m_archive_reader_adaptor = std::make_shared<ArchiveReaderAdaptor>(
-            archive_path_str,
-            input_config,
-            single_file_archive
-    );
+    m_archive_reader_adaptor = std::make_shared<ArchiveReaderAdaptor>(archive_path, network_auth);
 
-    auto rc = m_archive_reader_adaptor->load_archive_metadata();
-    if (ErrorCodeSuccess != rc) {
+    if (auto const rc = m_archive_reader_adaptor->load_archive_metadata(); ErrorCodeSuccess != rc) {
         throw OperationFailed(rc, __FILENAME__, __LINE__);
     }
 

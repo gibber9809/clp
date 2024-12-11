@@ -5,6 +5,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 #include <boost/filesystem.hpp>
 
@@ -17,14 +18,32 @@ public:
      * @param file_paths
      * @return true if successful, false otherwise
      */
-    static bool find_all_files(std::string const& path, std::vector<std::string>& file_paths);
+    static bool
+    find_all_files_in_directory(std::string const& path, std::vector<std::string>& file_paths);
 
     /**
-     * Validate if all paths exist
-     * @param paths
-     * @return true if all paths exist, false otherwise
+     * Find all archives in a directory, including the directory itself
+     * @param path
+     * @param archive_paths
+     * @return true if successful, false otherwise
      */
-    static bool validate_path(std::vector<std::string> const& paths);
+    static bool find_all_archives_in_directory(
+            std::string_view const path,
+            std::vector<std::string>& archive_paths
+    );
+
+    /**
+     * Gets the last component of a path, accounting for trailing forward slashes.
+     *
+     * For example:
+     * ./foo/bar.baz -> bar.baz
+     * ./foo/bar.baz/ -> bar.baz
+     *
+     * @param path
+     * @param stem Returned stem
+     * @return true on success, false otherwise
+     */
+    static bool get_real_stem(std::string_view const path, std::string& stem);
 };
 
 class StringUtils {

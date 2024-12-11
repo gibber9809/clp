@@ -8,7 +8,7 @@
 
 #include "../clp/BoundedReader.hpp"
 #include "../clp/ReaderInterface.hpp"
-#include "Defs.hpp"
+#include "InputConfig.hpp"
 #include "SingleFileArchiveDefs.hpp"
 #include "TimestampDictionaryReader.hpp"
 #include "TraceableException.hpp"
@@ -28,11 +28,7 @@ public:
                 : TraceableException(error_code, filename, line_number) {}
     };
 
-    explicit ArchiveReaderAdaptor(
-            std::string path,
-            InputOption const& input_config,
-            bool single_file_archive
-    );
+    explicit ArchiveReaderAdaptor(Path const& archive_path, NetworkAuthOption const& network_auth);
 
     ~ArchiveReaderAdaptor();
 
@@ -83,17 +79,16 @@ private:
 
     ErrorCode try_read_archive_metadata(ZstdDecompressor& reader);
 
+    Path m_archive_path{};
+    NetworkAuthOption m_network_auth{};
     bool m_single_file_archive{false};
-    std::string m_path;
     ArchiveFileInfoPacket m_archive_file_info{};
     ArchiveHeader m_archive_header{};
     ArchiveInfoPacket m_archive_info{};
     size_t m_files_section_offset{};
     std::optional<std::string> m_current_reader_holder;
     std::shared_ptr<TimestampDictionaryReader> m_timestamp_dictionary;
-
     std::shared_ptr<clp::ReaderInterface> m_reader;
-    InputOption m_input_config{};
 };
 
 }  // namespace clp_s

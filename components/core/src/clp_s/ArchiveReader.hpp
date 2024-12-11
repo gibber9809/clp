@@ -11,6 +11,7 @@
 
 #include "ArchiveReaderAdaptor.hpp"
 #include "DictionaryReader.hpp"
+#include "InputConfig.hpp"
 #include "PackedStreamReader.hpp"
 #include "ReaderUtils.hpp"
 #include "SchemaReader.hpp"
@@ -33,12 +34,10 @@ public:
 
     /**
      * Opens an archive for reading.
-     * @param archives_dir
-     * @param archive_id
+     * @param archive_path
+     * @param network_auth
      */
-    void
-    open(std::string_view archives_dir, std::string_view archive_id, InputOption const& input_config
-    );
+    void open(Path const& archive_path, NetworkAuthOption const& network_auth);
 
     /**
      * Reads the dictionaries and metadata.

@@ -75,14 +75,8 @@ public:
      */
     static std::vector<std::string> get_archives(std::string const& archives_dir);
 
-    static bool validate_and_populate_input_paths(
-            std::vector<std::string> const& input,
-            std::vector<std::string>& validated_input,
-            InputOption const& config
-    );
-
     static std::shared_ptr<clp::ReaderInterface>
-    try_create_reader(std::string const& path, InputOption const& config);
+    try_create_reader(Path const& path, NetworkAuthOption const& network_auth);
 
 private:
     /**

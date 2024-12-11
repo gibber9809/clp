@@ -2,6 +2,7 @@
 #define CLP_S_JSONPARSER_HPP
 
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -16,6 +17,7 @@
 #include "DictionaryWriter.hpp"
 #include "FileReader.hpp"
 #include "FileWriter.hpp"
+#include "InputConfig.hpp"
 #include "ParsedMessage.hpp"
 #include "ReaderUtils.hpp"
 #include "Schema.hpp"
@@ -30,7 +32,7 @@ using namespace simdjson;
 
 namespace clp_s {
 struct JsonParserOption {
-    std::vector<std::string> file_paths;
+    std::vector<Path> input_paths;
     std::string timestamp_key;
     std::string archives_dir;
     size_t target_encoded_size{};
@@ -42,7 +44,7 @@ struct JsonParserOption {
     bool record_log_order{true};
     bool single_file_archive{false};
     std::shared_ptr<clp::GlobalMySQLMetadataDB> metadata_db;
-    InputOption input_config;
+    NetworkAuthOption network_auth{};
 };
 
 class JsonParser {
@@ -109,7 +111,8 @@ private:
     int32_t add_metadata_field(std::string_view const field_name, NodeType type);
 
     int m_num_messages;
-    std::vector<std::string> m_file_paths;
+    std::vector<Path> m_input_paths;
+    NetworkAuthOption m_network_auth{};
 
     Schema m_current_schema;
     ParsedMessage m_current_parsed_message;
@@ -124,8 +127,6 @@ private:
     size_t m_max_document_size;
     bool m_structurize_arrays{false};
     bool m_record_log_order{true};
-
-    InputOption m_input_config{};
 };
 }  // namespace clp_s
 

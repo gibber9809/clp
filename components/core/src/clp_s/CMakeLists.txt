@@ -81,6 +81,8 @@ set(
         FileReader.hpp
         FileWriter.cpp
         FileWriter.hpp
+        InputConfig.cpp
+        InputConfig.hpp
         JsonConstructor.cpp
         JsonConstructor.hpp
         JsonFileIterator.cpp

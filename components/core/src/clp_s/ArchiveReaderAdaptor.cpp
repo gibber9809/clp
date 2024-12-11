@@ -1,32 +1,37 @@
 #include "ArchiveReaderAdaptor.hpp"
 
 #include <cstring>
+#include <filesystem>
+#include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <msgpack.hpp>
+#include <spdlog/spdlog.h>
 
 #include "../clp/BoundedReader.hpp"
 #include "../clp/FileReader.hpp"
 #include "archive_constants.hpp"
-#include "Defs.hpp"
+#include "InputConfig.hpp"
 #include "ReaderUtils.hpp"
 #include "SingleFileArchiveDefs.hpp"
 
 namespace clp_s {
 
 ArchiveReaderAdaptor::ArchiveReaderAdaptor(
-        std::string path,
-        InputOption const& input_config,
-        bool single_file_archive
+        Path const& archive_path,
+        NetworkAuthOption const& network_auth
 )
-        : m_path(path),
-          m_single_file_archive(single_file_archive),
-          m_timestamp_dictionary(std::make_shared<TimestampDictionaryReader>()),
-          m_input_config{input_config} {
-    if (false == m_single_file_archive && InputSource::Filesystem != m_input_config.source) {
-        throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
+        : m_archive_path{archive_path},
+          m_network_auth{network_auth},
+          m_timestamp_dictionary{std::make_shared<TimestampDictionaryReader>()},
+          m_single_file_archive{false} {
+    if (InputSource::Filesystem != archive_path.source
+        || std::filesystem::is_regular_file(archive_path.path))
+    {
+        m_single_file_archive = true;
     }
 }
 
@@ -196,7 +201,7 @@ std::unique_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::checkout_reader_for_
     if (m_single_file_archive) {
         return checkout_reader_for_sfa_section(section);
     } else {
-        return std::make_unique<clp::FileReader>(m_path + std::string{section});
+        return std::make_unique<clp::FileReader>(m_archive_path.path + std::string{section});
     }
 }
 
@@ -252,13 +257,17 @@ void ArchiveReaderAdaptor::checkin_reader_for_section(std::string_view section) 
 }
 
 std::shared_ptr<clp::ReaderInterface> ArchiveReaderAdaptor::try_create_reader_at_header() {
-    if (InputSource::Filesystem == m_input_config.source && false == m_single_file_archive) {
-        return ReaderUtils::try_create_reader(
-                m_path + constants::cArchiveHeaderFile,
-                m_input_config
-        );
+    if (InputSource::Filesystem == m_archive_path.source && false == m_single_file_archive) {
+        try {
+            return std::make_shared<clp::FileReader>(
+                    m_archive_path.path + constants::cArchiveHeaderFile
+            );
+        } catch (std::exception const& e) {
+            SPDLOG_ERROR("Failed to open archive header for reading - {}", e.what());
+            return nullptr;
+        }
     } else {
-        return ReaderUtils::try_create_reader(m_path, m_input_config);
+        return ReaderUtils::try_create_reader(m_archive_path, m_network_auth);
     }
 }
 }  // namespace clp_s

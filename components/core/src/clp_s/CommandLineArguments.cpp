@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <boost/program_options.hpp>
+#include <fmt/core.h>
 #include <spdlog/spdlog.h>
 
 #include "../clp/cli_utils.hpp"
@@ -133,6 +134,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
         if (Command::Compress == m_command) {
             po::options_description compression_positional_options;
+            std::vector<std::string> input_paths;
             // clang-format off
              compression_positional_options.add_options()(
                      "archives-dir",
@@ -140,7 +142,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                      "output directory"
              )(
                      "input-paths",
-                     po::value<std::vector<std::string>>(&m_file_paths)->value_name("PATHS"),
+                     po::value<std::vector<std::string>>(&input_paths)->value_name("PATHS"),
                      "input paths"
              );
             // clang-format on
@@ -148,7 +150,6 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             po::options_description compression_options("Compression options");
             std::string metadata_db_config_file_path;
             std::string input_path_list_file_path;
-            std::string input_source{"filesystem"};
             // clang-format off
             compression_options.add_options()(
                     "compression-level",
@@ -203,12 +204,6 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                     "disable-log-order",
                     po::bool_switch(&m_disable_log_order),
                     "Do not record log order at ingestion time."
-            )(
-                    "input-source",
-                    po::value<std::string>(&input_source)
-                            ->value_name("INPUT_SOURCE")
-                            ->default_value(input_source),
-                    "Input source for data (either \"filesystem\" or \"s3\")"
             );
             // clang-format on
 
@@ -252,22 +247,20 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             }
 
             if (false == input_path_list_file_path.empty()) {
-                if (false == read_paths_from_file(input_path_list_file_path, m_file_paths)) {
+                if (false == read_paths_from_file(input_path_list_file_path, input_paths)) {
                     SPDLOG_ERROR("Failed to read paths from {}", input_path_list_file_path);
                     return ParsingResult::Failure;
                 }
             }
 
-            if (m_file_paths.empty()) {
-                throw std::invalid_argument("No input paths specified.");
+            for (auto const& path : input_paths) {
+                if (false == get_input_files_for_raw_path(path, m_input_paths)) {
+                    throw std::invalid_argument(fmt::format("Invalid input path \"{}\".", path));
+                }
             }
 
-            if ("s3" == input_source) {
-                m_input_source = InputSource::S3;
-            } else if ("filesystem" == input_source) {
-                m_input_source = InputSource::Filesystem;
-            } else {
-                throw std::invalid_argument("Invalid input source: " + input_source);
+            if (m_input_paths.empty()) {
+                throw std::invalid_argument("No input paths specified.");
             }
 
             // Parse and validate global metadata DB config
@@ -294,34 +287,18 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             }
         } else if ((char)Command::Extract == command_input) {
             po::options_description extraction_options;
+            std::string archive_path;
             // clang-format off
             extraction_options.add_options()(
-                    "archives-dir",
-                    po::value<std::string>(&m_archives_dir),
-                    "The directory containing the archives"
+                    "archive-path",
+                    po::value<std::string>(&archive_path),
+                    "Path to a directory containing archives, or the path to a single archive"
             )(
                     "output-dir",
                     po::value<std::string>(&m_output_dir),
                     "The output directory for the decompressed file"
             );
             // clang-format on
-
-            po::options_description input_options("Input Options");
-            std::string input_source{"filesystem"};
-            // clang-format off
-            input_options.add_options()(
-                    "archive-id",
-                    po::value<std::string>(&m_archive_id)->value_name("ID"),
-                    "ID of the archive to decompress"
-            )(
-                    "input-source",
-                    po::value<std::string>(&input_source)
-                            ->value_name("INPUT_SOURCE")
-                            ->default_value(input_source),
-                    "Input source for data (either \"filesystem\" or \"s3\")"
-            );
-            // clang-format on
-            extraction_options.add(input_options);
 
             po::options_description decompression_options("Decompression Options");
             // clang-format off
@@ -355,7 +332,7 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             extraction_options.add(output_metadata_options);
 
             po::positional_options_description positional_options;
-            positional_options.add("archives-dir", 1);
+            positional_options.add("archive-path", 1);
             positional_options.add("output-dir", 1);
 
             std::vector<std::string> unrecognized_options
@@ -383,15 +360,22 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
                 po::options_description visible_options;
                 visible_options.add(general_options);
-                visible_options.add(input_options);
                 visible_options.add(decompression_options);
                 visible_options.add(output_metadata_options);
                 std::cerr << visible_options << std::endl;
                 return ParsingResult::InfoCommand;
             }
 
-            if (m_archives_dir.empty()) {
-                throw std::invalid_argument("No archives directory specified");
+            if (archive_path.empty()) {
+                throw std::invalid_argument("No archive path specified");
+            }
+
+            if (false == get_input_archives_for_raw_path(archive_path, m_input_paths)) {
+                throw std::invalid_argument("Invalid archive path");
+            }
+
+            if (m_input_paths.empty()) {
+                throw std::invalid_argument("No archive paths specified");
             }
 
             if (m_output_dir.empty()) {
@@ -401,19 +385,6 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             if (0 != m_target_ordered_chunk_size && false == m_ordered_decompression) {
                 throw std::invalid_argument(
                         "target-ordered-chunk-size must be used with ordered argument"
-                );
-            }
-
-            if ("s3" == input_source) {
-                m_input_source = InputSource::S3;
-            } else if ("filesystem" == input_source) {
-                m_input_source = InputSource::Filesystem;
-            } else {
-                throw std::invalid_argument("Invalid input source: " + input_source);
-            }
-
-            if (InputSource::S3 == m_input_source && m_archive_id.empty()) {
-                throw std::invalid_argument("Archive id must be specified for decompression from s3"
                 );
             }
 
@@ -436,11 +407,12 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
             po::options_description search_options;
             std::string output_handler_name;
+            std::string archive_path;
             // clang-format off
             search_options.add_options()(
-                    "archives-dir",
-                    po::value<std::string>(&m_archives_dir),
-                    "The directory containing the archives"
+                    "archive-path",
+                    po::value<std::string>(&archive_path),
+                    "Path to a directory containing archives, or the path to a single archive"
             )(
                     "query,q",
                     po::value<std::string>(&m_query),
@@ -454,23 +426,10 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
             );
             // clang-format on
             po::positional_options_description positional_options;
-            positional_options.add("archives-dir", 1);
+            positional_options.add("archive-path", 1);
             positional_options.add("query", 1);
             positional_options.add("output-handler", 1);
             positional_options.add("output-handler-args", -1);
-
-            po::options_description input_options("Input Options");
-            std::string input_source{"filesystem"};
-            // clang-format off
-            input_options.add_options()(
-                    "input-source",
-                    po::value<std::string>(&input_source)
-                            ->value_name("INPUT_SOURCE")
-                            ->default_value(input_source),
-                    "Input source for data (either \"filesystem\" or \"s3\")"
-            );
-            // clang-format on
-            search_options.add(input_options);
 
             po::options_description match_options("Match Controls");
             // clang-format off
@@ -486,10 +445,6 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 "ignore-case,i",
                 po::bool_switch(&m_ignore_case),
                 "Ignore case distinctions between values in the query and the compressed data"
-            )(
-                "archive-id",
-                po::value<std::string>(&m_archive_id)->value_name("ID"),
-                "Limit search to the archive with the given ID"
             )(
                 "projection",
                 po::value<std::vector<std::string>>(&m_projection_columns)
@@ -640,7 +595,6 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
 
                 po::options_description visible_options;
                 visible_options.add(general_options);
-                visible_options.add(input_options);
                 visible_options.add(match_options);
                 visible_options.add(aggregation_options);
                 visible_options.add(network_output_handler_options);
@@ -650,8 +604,16 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 return ParsingResult::InfoCommand;
             }
 
-            if (m_archives_dir.empty()) {
-                throw std::invalid_argument("No archives directory specified");
+            if (archive_path.empty()) {
+                throw std::invalid_argument("No archive path specified");
+            }
+
+            if (false == get_input_archives_for_raw_path(archive_path, m_input_paths)) {
+                throw std::invalid_argument("Invalid archive path");
+            }
+
+            if (m_input_paths.empty()) {
+                throw std::invalid_argument("No archive paths specified");
             }
 
             if (m_query.empty()) {
@@ -702,19 +664,6 @@ CommandLineArguments::parse_arguments(int argc, char const** argv) {
                 } else {
                     throw std::invalid_argument("Unknown OUTPUT_HANDLER: " + output_handler_name);
                 }
-            }
-
-            if ("s3" == input_source) {
-                m_input_source = InputSource::S3;
-            } else if ("filesystem" == input_source) {
-                m_input_source = InputSource::Filesystem;
-            } else {
-                throw std::invalid_argument("Invalid input source: " + input_source);
-            }
-
-            if (InputSource::S3 == m_input_source && m_archive_id.empty()) {
-                throw std::invalid_argument("Archive id must be specified for decompression from s3"
-                );
             }
 
             if (OutputHandlerType::Network == m_output_handler_type) {

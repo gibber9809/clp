@@ -12,6 +12,7 @@
 #include "../clp/GlobalMetadataDBConfig.hpp"
 #include "../reducer/types.hpp"
 #include "Defs.hpp"
+#include "InputConfig.hpp"
 
 namespace clp_s {
 class CommandLineArguments {
@@ -46,7 +47,9 @@ public:
 
     Command get_command() const { return m_command; }
 
-    std::vector<std::string> const& get_file_paths() const { return m_file_paths; }
+    std::vector<Path> const& get_input_paths() const { return m_input_paths; }
+
+    NetworkAuthOption const& get_network_auth() const { return m_network_auth; }
 
     std::string const& get_archives_dir() const { return m_archives_dir; }
 
@@ -82,8 +85,6 @@ public:
 
     bool get_ignore_case() const { return m_ignore_case; }
 
-    std::string const& get_archive_id() const { return m_archive_id; }
-
     std::optional<clp::GlobalMetadataDBConfig> const& get_metadata_db_config() const {
         return m_metadata_db_config;
     }
@@ -115,8 +116,6 @@ public:
     std::vector<std::string> const& get_projection_columns() const { return m_projection_columns; }
 
     bool get_record_log_order() const { return false == m_disable_log_order; }
-
-    InputSource get_input_source() const { return m_input_source; }
 
 private:
     // Methods
@@ -172,7 +171,8 @@ private:
     Command m_command;
 
     // Compression and decompression variables
-    std::vector<std::string> m_file_paths;
+    std::vector<Path> m_input_paths;
+    NetworkAuthOption m_network_auth{};
     std::string m_archives_dir;
     std::string m_output_dir;
     std::string m_timestamp_key;
@@ -207,9 +207,6 @@ private:
     bool m_ignore_case{false};
     std::vector<std::string> m_projection_columns;
 
-    // Decompression and search variables
-    std::string m_archive_id;
-
     // Search aggregation variables
     std::string m_reducer_host;
     int m_reducer_port{-1};
@@ -219,7 +216,6 @@ private:
     int64_t m_count_by_time_bucket_size{0};  // Milliseconds
 
     OutputHandlerType m_output_handler_type{OutputHandlerType::Stdout};
-    InputSource m_input_source{InputSource::Filesystem};
 };
 }  // namespace clp_s
 

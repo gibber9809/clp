@@ -8,10 +8,10 @@
 
 #include "ArchiveReader.hpp"
 #include "ColumnReader.hpp"
-#include "Defs.hpp"
 #include "DictionaryReader.hpp"
 #include "ErrorCode.hpp"
 #include "FileWriter.hpp"
+#include "InputConfig.hpp"
 #include "SchemaReader.hpp"
 #include "SchemaTree.hpp"
 #include "TraceableException.hpp"
@@ -27,13 +27,12 @@ struct MetadataDbOption {
 };
 
 struct JsonConstructorOption {
-    std::string archives_dir;
-    std::string archive_id;
+    Path archive_path{};
+    NetworkAuthOption network_auth{};
     std::string output_dir;
     bool ordered{false};
     size_t target_ordered_chunk_size{};
-    std::optional<MetadataDbOption> metadata_db;
-    InputOption input_config;
+    std::optional<MetadataDbOption> metadata_db{std::nullopt};
 };
 
 class JsonConstructor {
