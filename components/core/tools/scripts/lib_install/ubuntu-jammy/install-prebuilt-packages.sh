@@ -18,6 +18,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
   libboost-filesystem-dev \
   libboost-iostreams-dev \
   libboost-program-options-dev \
+  libboost-url-dev \
   libcurl4 \
   libcurl4-openssl-dev \
   libmariadb-dev \

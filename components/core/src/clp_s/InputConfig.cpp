@@ -76,8 +76,7 @@ auto get_input_archives_for_path(Path const& path, std::vector<Path>& archives) 
 auto get_archive_id_from_path(Path const& archive_path, std::string& archive_id) -> bool {
     switch (archive_path.source) {
         case InputSource::Network:
-            archive_id = archive_path.path;
-            break;
+            return UriUtils::get_last_uri_component(archive_path.path, archive_id);
         case InputSource::Filesystem:
             return FileUtils::get_last_non_empty_path_component(archive_path.path, archive_id);
         default:

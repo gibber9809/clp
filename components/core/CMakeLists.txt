@@ -98,7 +98,7 @@ endif()
 if(CLP_USE_STATIC_LIBS)
     set(Boost_USE_STATIC_LIBS ON)
 endif()
-find_package(Boost 1.74 REQUIRED iostreams program_options filesystem system regex)
+find_package(Boost 1.81 REQUIRED iostreams program_options filesystem system regex url)
 if(Boost_FOUND)
     message(STATUS "Found Boost ${Boost_VERSION}")
 else()
@@ -594,7 +594,7 @@ target_include_directories(unitTest
 target_link_libraries(unitTest
         PRIVATE
         absl::flat_hash_map
-        Boost::filesystem Boost::iostreams Boost::program_options Boost::regex
+        Boost::filesystem Boost::iostreams Boost::program_options Boost::regex Boost::url
         ${CURL_LIBRARIES}
         fmt::fmt
         kql

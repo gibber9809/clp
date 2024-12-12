@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <set>
 
-#include <boost/filesystem.hpp>
+#include <boost/url.hpp>
 #include <fmt/core.h>
 #include <spdlog/spdlog.h>
 
@@ -20,34 +20,34 @@ bool FileUtils::find_all_files_in_directory(
         std::vector<std::string>& file_paths
 ) {
     try {
-        if (false == boost::filesystem::is_directory(path)) {
+        if (false == std::filesystem::is_directory(path)) {
             // path is a file
             file_paths.push_back(path);
             return true;
         }
 
-        if (boost::filesystem::is_empty(path)) {
+        if (std::filesystem::is_empty(path)) {
             // path is an empty directory
             return true;
         }
 
         // Iterate directory
-        boost::filesystem::recursive_directory_iterator iter(
+        std::filesystem::recursive_directory_iterator iter(
                 path,
-                boost::filesystem::directory_options::follow_directory_symlink
+                std::filesystem::directory_options::follow_directory_symlink
         );
-        boost::filesystem::recursive_directory_iterator end;
+        std::filesystem::recursive_directory_iterator end;
         for (; iter != end; ++iter) {
             // Check if current entry is an empty directory or a file
-            if (boost::filesystem::is_directory(iter->path())) {
-                if (boost::filesystem::is_empty(iter->path())) {
+            if (std::filesystem::is_directory(iter->path())) {
+                if (std::filesystem::is_empty(iter->path())) {
                     iter.disable_recursion_pending();
                 }
             } else {
                 file_paths.push_back(iter->path().string());
             }
         }
-    } catch (boost::filesystem::filesystem_error& exception) {
+    } catch (std::exception const& exception) {
         SPDLOG_ERROR(
                 "Failed to find files/directories at '{}' - {}.",
                 path.c_str(),
@@ -145,6 +145,20 @@ bool FileUtils::get_last_non_empty_path_component(std::string_view const path, s
     }
 
     return false;
+}
+
+bool UriUtils::get_last_uri_component(std::string_view const uri, std::string& name) {
+    auto parsed_result = boost::urls::parse_uri(uri);
+    if (false == parsed_result.has_value()) {
+        return false;
+    }
+    auto parsed_uri = parsed_result.value();
+    auto path_segments_view = parsed_uri.segments();
+    if (path_segments_view.empty()) {
+        return false;
+    }
+    name = path_segments_view.back();
+    return true;
 }
 
 bool StringUtils::get_bounds_of_next_var(string const& msg, size_t& begin_pos, size_t& end_pos) {

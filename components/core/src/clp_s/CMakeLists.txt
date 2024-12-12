@@ -220,7 +220,7 @@ target_link_libraries(
         clp-s
         PRIVATE
         absl::flat_hash_map
-        Boost::filesystem Boost::iostreams Boost::program_options Boost::regex
+        Boost::iostreams Boost::program_options Boost::regex Boost::url
         ${CURL_LIBRARIES}
         clp::string_utils
         kql

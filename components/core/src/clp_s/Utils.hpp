@@ -6,8 +6,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-
-#include <boost/filesystem.hpp>
+#include <vector>
 
 namespace clp_s {
 class FileUtils {
@@ -44,6 +43,22 @@ public:
      * @return true on success, false otherwise
      */
     static bool get_last_non_empty_path_component(std::string_view const path, std::string& name);
+};
+
+class UriUtils {
+public:
+    /**
+     * Gets the last component of a uri.
+     *
+     * For example:
+     * https://www.something.org/abc-xyz -> abc-xyz
+     * https://www.something.org/aaa/bbb/abc-xyz?something=something -> abc-xyz
+     *
+     * @param uri
+     * @param name Returned component name
+     * @return true on success, false otherwise
+     */
+    static bool get_last_uri_component(std::string_view const uri, std::string& name);
 };
 
 class StringUtils {

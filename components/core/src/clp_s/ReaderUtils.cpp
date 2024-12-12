@@ -1,6 +1,7 @@
 #include "ReaderUtils.hpp"
 
 #include <exception>
+#include <filesystem>
 #include <string_view>
 
 #include <spdlog/spdlog.h>
@@ -146,14 +147,14 @@ std::shared_ptr<ReaderUtils::SchemaMap> ReaderUtils::read_schemas(ArchiveReaderA
 std::vector<std::string> ReaderUtils::get_archives(std::string const& archives_dir) {
     std::vector<std::string> archive_paths;
 
-    if (false == boost::filesystem::is_directory(archives_dir)) {
+    if (false == std::filesystem::is_directory(archives_dir)) {
         throw OperationFailed(ErrorCodeBadParam, __FILENAME__, __LINE__);
     }
 
-    boost::filesystem::directory_iterator iter(archives_dir);
-    boost::filesystem::directory_iterator end;
+    std::filesystem::directory_iterator iter(archives_dir);
+    std::filesystem::directory_iterator end;
     for (; iter != end; ++iter) {
-        if (boost::filesystem::is_directory(iter->path())) {
+        if (std::filesystem::is_directory(iter->path())) {
             archive_paths.push_back(iter->path().string());
         }
     }
