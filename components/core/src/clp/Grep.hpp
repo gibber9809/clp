@@ -32,7 +32,8 @@ public:
     // Methods
     /**
      * Processes a raw user query into a Query
-     * @param archive
+     * @param log_dict
+     * @param var_dict
      * @param search_string
      * @param search_begin_ts
      * @param search_end_ts
@@ -40,17 +41,21 @@ public:
      * @param forward_lexer DFA for determining if input is in the schema
      * @param reverse_lexer DFA for determining if reverse of input is in the schema
      * @param use_heuristic
+     * @param add_implicit_wildcards
      * @return Query if it may match a message, std::nullopt otherwise
      */
+    template <typename LogTypeDictionaryReaderT, typename VariableDictionaryReaderT>
     static std::optional<Query> process_raw_query(
-            streaming_archive::reader::Archive const& archive,
+            LogTypeDictionaryReaderT const& log_dict,
+            VariableDictionaryReaderT const& var_dict,
             std::string const& search_string,
             epochtime_t search_begin_ts,
             epochtime_t search_end_ts,
             bool ignore_case,
             log_surgeon::lexers::ByteLexer& forward_lexer,
             log_surgeon::lexers::ByteLexer& reverse_lexer,
-            bool use_heuristic
+            bool use_heuristic,
+            bool add_implicit_wildcards
     );
 
     /**

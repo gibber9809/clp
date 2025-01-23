@@ -209,6 +209,7 @@ static bool search(
         log_surgeon::lexers::ByteLexer& reverse_lexer,
         bool use_heuristic
 ) {
+    constexpr bool cAddImplicitWildcards{true};
     ErrorCode error_code;
     auto search_begin_ts = command_line_args.get_search_begin_ts();
     auto search_end_ts = command_line_args.get_search_end_ts();
@@ -220,14 +221,16 @@ static bool search(
         bool is_superseding_query = false;
         for (auto const& search_string : search_strings) {
             auto query_processing_result = Grep::process_raw_query(
-                    archive,
+                    archive.get_logtype_dictionary(),
+                    archive.get_var_dictionary(),
                     search_string,
                     search_begin_ts,
                     search_end_ts,
                     command_line_args.ignore_case(),
                     forward_lexer,
                     reverse_lexer,
-                    use_heuristic
+                    use_heuristic,
+                    cAddImplicitWildcards
             );
             if (query_processing_result.has_value()) {
                 auto& query = query_processing_result.value();
