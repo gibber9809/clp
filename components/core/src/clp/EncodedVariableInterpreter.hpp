@@ -83,10 +83,11 @@ public:
      * @param encoded_vars
      * @param var_ids
      */
+    template <typename VariableDictionaryWriterT>
     static void encode_and_add_to_dictionary(
             std::string const& message,
             LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            VariableDictionaryWriterT& var_dict,
             std::vector<encoded_variable_t>& encoded_vars,
             std::vector<variable_dictionary_id_t>& var_ids
     );
@@ -122,9 +123,10 @@ public:
      * @param decompressed_msg
      * @return true if successful, false otherwise
      */
+    template <typename VariableDictionaryReaderT>
     static bool decode_variables_into_message(
             LogTypeDictionaryEntry const& logtype_dict_entry,
-            VariableDictionaryReader const& var_dict,
+            VariableDictionaryReaderT const& var_dict,
             std::vector<encoded_variable_t> const& encoded_vars,
             std::string& decompressed_msg
     );
@@ -141,9 +143,10 @@ public:
      * dictionary
      * @return false otherwise
      */
+    template <typename VariableDictionaryReaderT>
     static bool encode_and_search_dictionary(
             std::string const& var_str,
-            VariableDictionaryReader const& var_dict,
+            VariableDictionaryReaderT const& var_dict,
             bool ignore_case,
             std::string& logtype,
             SubQuery& sub_query
@@ -157,9 +160,10 @@ public:
      * @param sub_query
      * @return true if any match found, false otherwise
      */
+    template <typename VariableDictionaryReaderT>
     static bool wildcard_search_dictionary_and_get_encoded_matches(
             std::string const& var_wildcard_str,
-            VariableDictionaryReader const& var_dict,
+            VariableDictionaryReaderT const& var_dict,
             bool ignore_case,
             SubQuery& sub_query
     );
@@ -175,10 +179,11 @@ private:
      * variable)
      * @return The encoded variable
      */
+    template <typename VariableDictionaryWriterT>
     static encoded_variable_t encode_var(
             std::string const& var,
             LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            VariableDictionaryWriterT& var_dict,
             std::vector<variable_dictionary_id_t>& var_ids
     );
 
@@ -191,10 +196,11 @@ private:
      * @param var_ids A container to add the dictionary ID to
      * @return The dictionary ID
      */
+    template <typename VariableDictionaryWriterT>
     static variable_dictionary_id_t add_dict_var(
             std::string const& var,
             LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            VariableDictionaryWriterT& var_dict,
             std::vector<variable_dictionary_id_t>& var_ids
     );
 };

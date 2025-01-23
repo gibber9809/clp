@@ -204,10 +204,11 @@ void EncodedVariableInterpreter::convert_encoded_float_to_string(
     value[value_length - 1 - decimal_pos] = '.';
 }
 
+template <typename VariableDictionaryWriterT>
 void EncodedVariableInterpreter::encode_and_add_to_dictionary(
         string const& message,
         LogTypeDictionaryEntry& logtype_dict_entry,
-        VariableDictionaryWriter& var_dict,
+        VariableDictionaryWriterT& var_dict,
         vector<encoded_variable_t>& encoded_vars,
         vector<variable_dictionary_id_t>& var_ids
 ) {
@@ -296,9 +297,10 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
     );
 }
 
+template <typename VariableDictionaryReaderT>
 bool EncodedVariableInterpreter::decode_variables_into_message(
         LogTypeDictionaryEntry const& logtype_dict_entry,
-        VariableDictionaryReader const& var_dict,
+        VariableDictionaryReaderT const& var_dict,
         vector<encoded_variable_t> const& encoded_vars,
         string& decompressed_msg
 ) {
@@ -367,9 +369,10 @@ bool EncodedVariableInterpreter::decode_variables_into_message(
     return true;
 }
 
+template <typename VariableDictionaryReaderT>
 bool EncodedVariableInterpreter::encode_and_search_dictionary(
         string const& var_str,
-        VariableDictionaryReader const& var_dict,
+        VariableDictionaryReaderT const& var_dict,
         bool ignore_case,
         string& logtype,
         SubQuery& sub_query
@@ -416,9 +419,10 @@ bool EncodedVariableInterpreter::encode_and_search_dictionary(
     return true;
 }
 
+template <typename VariableDictionaryReaderT>
 bool EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
         std::string const& var_wildcard_str,
-        VariableDictionaryReader const& var_dict,
+        VariableDictionaryReaderT const& var_dict,
         bool ignore_case,
         SubQuery& sub_query
 ) {
@@ -445,10 +449,11 @@ encoded_variable_t EncodedVariableInterpreter::encode_var_dict_id(variable_dicti
     return bit_cast<encoded_variable_t>(id);
 }
 
+template <typename VariableDictionaryWriterT>
 encoded_variable_t EncodedVariableInterpreter::encode_var(
         string const& var,
         LogTypeDictionaryEntry& logtype_dict_entry,
-        VariableDictionaryWriter& var_dict,
+        VariableDictionaryWriterT& var_dict,
         vector<variable_dictionary_id_t>& var_ids
 ) {
     encoded_variable_t encoded_var{0};
@@ -463,10 +468,11 @@ encoded_variable_t EncodedVariableInterpreter::encode_var(
     return encoded_var;
 }
 
+template <typename VariableDictionaryWriterT>
 variable_dictionary_id_t EncodedVariableInterpreter::add_dict_var(
         string const& var,
         LogTypeDictionaryEntry& logtype_dict_entry,
-        VariableDictionaryWriter& var_dict,
+        VariableDictionaryWriterT& var_dict,
         vector<variable_dictionary_id_t>& var_ids
 ) {
     variable_dictionary_id_t id{cVariableDictionaryIdMax};
@@ -498,5 +504,51 @@ EncodedVariableInterpreter::encode_and_add_to_dictionary<four_byte_encoded_varia
         std::vector<eight_byte_encoded_variable_t>& encoded_vars,
         std::vector<variable_dictionary_id_t>& var_ids,
         size_t& raw_num_bytes
+);
+
+template void EncodedVariableInterpreter::encode_and_add_to_dictionary<VariableDictionaryWriter>(
+        string const& message,
+        LogTypeDictionaryEntry& logtype_dict_entry,
+        VariableDictionaryWriter& var_dict,
+        vector<encoded_variable_t>& encoded_vars,
+        vector<variable_dictionary_id_t>& var_ids
+);
+
+template encoded_variable_t EncodedVariableInterpreter::encode_var<VariableDictionaryWriter>(
+        string const& var,
+        LogTypeDictionaryEntry& logtype_dict_entry,
+        VariableDictionaryWriter& var_dict,
+        vector<variable_dictionary_id_t>& var_ids
+);
+
+template variable_dictionary_id_t
+EncodedVariableInterpreter::add_dict_var<VariableDictionaryWriter>(
+        string const& var,
+        LogTypeDictionaryEntry& logtype_dict_entry,
+        VariableDictionaryWriter& var_dict,
+        vector<variable_dictionary_id_t>& var_ids
+);
+
+template bool EncodedVariableInterpreter::decode_variables_into_message<VariableDictionaryReader>(
+        LogTypeDictionaryEntry const& logtype_dict_entry,
+        VariableDictionaryReader const& var_dict,
+        vector<encoded_variable_t> const& encoded_vars,
+        string& decompressed_msg
+);
+
+template bool EncodedVariableInterpreter::encode_and_search_dictionary<VariableDictionaryReader>(
+        string const& var_str,
+        VariableDictionaryReader const& var_dict,
+        bool ignore_case,
+        string& logtype,
+        SubQuery& sub_query
+);
+
+template bool EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches<
+        VariableDictionaryReader>(
+        std::string const& var_wildcard_str,
+        VariableDictionaryReader const& var_dict,
+        bool ignore_case,
+        SubQuery& sub_query
 );
 }  // namespace clp

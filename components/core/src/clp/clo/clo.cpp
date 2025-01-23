@@ -469,6 +469,7 @@ static bool search_archive(
         CommandLineArguments const& command_line_args,
         std::unique_ptr<OutputHandler> output_handler
 ) {
+    constexpr bool cAddImplicitWildcards{true};
     std::filesystem::path const archive_path{command_line_args.get_archive_path()};
     if (false == validate_archive_path(archive_path)) {
         return false;
@@ -497,14 +498,16 @@ static bool search_archive(
     auto search_end_ts = command_line_args.get_search_end_ts();
 
     auto query_processing_result = Grep::process_raw_query(
-            archive_reader,
+            archive_reader.get_logtype_dictionary(),
+            archive_reader.get_var_dictionary(),
             command_line_args.get_search_string(),
             search_begin_ts,
             search_end_ts,
             command_line_args.ignore_case(),
             *forward_lexer,
             *reverse_lexer,
-            use_heuristic
+            use_heuristic,
+            cAddImplicitWildcards
     );
     if (false == query_processing_result.has_value()) {
         return true;
