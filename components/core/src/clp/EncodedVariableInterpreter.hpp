@@ -8,7 +8,6 @@
 #include "ir/types.hpp"
 #include "Query.hpp"
 #include "TraceableException.hpp"
-#include "VariableDictionaryReader.hpp"
 #include "VariableDictionaryWriter.hpp"
 
 namespace clp {
