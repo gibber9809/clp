@@ -12,6 +12,8 @@
 #include "ir/types.hpp"
 #include "spdlog_with_specializations.hpp"
 #include "type_utils.hpp"
+#include "VariableDictionaryReader.hpp"
+#include "VariableDictionaryWriter.hpp"
 
 using clp::ffi::cEightByteEncodedFloatDigitsBitMask;
 using clp::ir::eight_byte_encoded_variable_t;
