@@ -8,6 +8,7 @@
 #include "../../clp/EncodedVariableInterpreter.hpp"
 #include "../../clp/Grep.hpp"
 #include "../../clp/Query.hpp"
+#include "../../clp/string_utils/string_utils.hpp"
 #include "../../clp/type_utils.hpp"
 #include "../Utils.hpp"
 #include "AndExpr.hpp"
@@ -489,10 +490,10 @@ bool Output::evaluate_clp_string_filter(
             for (auto const& subquery : q->get_sub_queries()) {
                 if (subquery.matches_logtype(id) && subquery.matches_vars(vars)) {
                     if (subquery.wildcard_match_required()) {
-                        matched = StringUtils::wildcard_match_unsafe(
+                        matched = clp::string_utils::wildcard_match_unsafe(
                                 std::get<std::string>(reader->extract_value(m_cur_message)),
                                 q->get_search_string(),
-                                !q->get_ignore_case()
+                                false == q->get_ignore_case()
                         );
                     } else {
                         matched = true;
@@ -501,10 +502,10 @@ bool Output::evaluate_clp_string_filter(
                 }
             }
         } else {
-            matched = StringUtils::wildcard_match_unsafe(
+            matched = clp::string_utils::wildcard_match_unsafe(
                     std::get<std::string>(reader->extract_value(m_cur_message)),
                     q->get_search_string(),
-                    !q->get_ignore_case()
+                    false == q->get_ignore_case()
             );
         }
 

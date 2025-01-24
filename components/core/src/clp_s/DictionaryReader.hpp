@@ -9,9 +9,9 @@
 
 #include "../clp/LogTypeDictionaryEntry.hpp"
 #include "../clp/streaming_compression/zstd/Decompressor.hpp"
+#include "../clp/string_utils/string_utils.hpp"
 #include "../clp/VariableDictionaryEntry.hpp"
 #include "ArchiveReaderAdaptor.hpp"
-#include "Utils.hpp"
 
 namespace clp_s {
 template <typename DictionaryIdType, typename EntryType>
@@ -187,7 +187,12 @@ void DictionaryReader<DictionaryIdType, EntryType>::get_entries_matching_wildcar
         std::unordered_set<EntryType const*>& entries
 ) const {
     for (auto const& entry : m_entries) {
-        if (StringUtils::wildcard_match_unsafe(entry.get_value(), wildcard_string, !ignore_case)) {
+        if (clp::string_utils::wildcard_match_unsafe(
+                    entry.get_value(),
+                    wildcard_string,
+                    false == ignore_case
+            ))
+        {
             entries.insert(&entry);
         }
     }

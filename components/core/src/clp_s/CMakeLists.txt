@@ -118,6 +118,8 @@ set(
         ../clp/streaming_compression/zstd/Decompressor.hpp
         ../clp/StringReader.cpp
         ../clp/StringReader.hpp
+        ../clp/string_utils/string_utils.cpp
+        ../clp/string_utils/string_utils.hpp
         ../clp/TimestampPattern.cpp
         ../clp/TimestampPattern.hpp
         ../clp/Thread.cpp
