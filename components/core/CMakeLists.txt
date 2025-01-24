@@ -303,8 +303,6 @@ set(SOURCE_FILES_clp_s_unitTest
     src/clp_s/search/AndExpr.hpp
     src/clp_s/search/BooleanLiteral.cpp
     src/clp_s/search/BooleanLiteral.hpp
-    src/clp_s/search/clp_search/Query.cpp
-    src/clp_s/search/clp_search/Query.hpp
     src/clp_s/search/ColumnDescriptor.cpp
     src/clp_s/search/ColumnDescriptor.hpp
     src/clp_s/search/DateLiteral.cpp
@@ -341,10 +339,6 @@ set(SOURCE_FILES_clp_s_unitTest
     src/clp_s/TimestampPattern.hpp
     src/clp_s/Utils.cpp
     src/clp_s/Utils.hpp
-    src/clp_s/VariableDecoder.cpp
-    src/clp_s/VariableDecoder.hpp
-    src/clp_s/VariableEncoder.cpp
-    src/clp_s/VariableEncoder.hpp
     src/clp_s/ZstdCompressor.cpp
     src/clp_s/ZstdCompressor.hpp
     src/clp_s/ZstdDecompressor.cpp

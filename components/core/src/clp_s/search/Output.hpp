@@ -14,14 +14,13 @@
 #include "../ArchiveReader.hpp"
 #include "../SchemaReader.hpp"
 #include "../Utils.hpp"
-#include "clp_search/Query.hpp"
+#include "../clp/Query.hpp"
 #include "Expression.hpp"
 #include "OutputHandler.hpp"
 #include "SchemaMatch.hpp"
 #include "StringLiteral.hpp"
 
 using namespace simdjson;
-using namespace clp_s::search::clp_search;
 
 namespace clp_s::search {
 class Output : public FilterClass {
@@ -74,9 +73,9 @@ private:
 
     std::shared_ptr<ReaderUtils::SchemaMap> m_schemas;
 
-    std::map<std::string, std::optional<Query>> m_string_query_map;
+    std::map<std::string, std::optional<clp::Query>> m_string_query_map;
     std::map<std::string, std::unordered_set<int64_t>> m_string_var_match_map;
-    std::unordered_map<Expression*, Query*> m_expr_clp_query;
+    std::unordered_map<Expression*, clp::Query*> m_expr_clp_query;
     std::unordered_map<Expression*, std::unordered_set<int64_t>*> m_expr_var_match_map;
     std::unordered_map<int32_t, std::vector<ClpStringColumnReader*>> m_clp_string_readers;
     std::unordered_map<int32_t, std::vector<VariableStringColumnReader*>> m_var_string_readers;
@@ -190,7 +189,7 @@ private:
      */
     bool evaluate_clp_string_filter(
             FilterOperation op,
-            Query* q,
+            clp::Query* q,
             std::vector<ClpStringColumnReader*> const& readers
     ) const;
 

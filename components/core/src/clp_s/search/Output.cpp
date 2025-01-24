@@ -3,11 +3,14 @@
 #include <memory>
 #include <vector>
 
+#include <log_surgeon/Lexer.hpp>
+
+#include "../../clp/EncodedVariableInterpreter.hpp"
+#include "../../clp/Grep.hpp"
+#include "../../clp/Query.hpp"
 #include "../../clp/type_utils.hpp"
 #include "../Utils.hpp"
 #include "AndExpr.hpp"
-#include "clp_search/EncodedVariableInterpreter.hpp"
-#include "clp_search/Grep.hpp"
 #include "EvaluateTimestampIndex.hpp"
 #include "FilterExpr.hpp"
 #include "Literal.hpp"
@@ -268,7 +271,7 @@ bool Output::evaluate_wildcard_filter(FilterExpr* expr, int32_t schema) {
     auto* column = expr->get_column().get();
     auto op = expr->get_operation();
     if (column->matches_type(LiteralType::ClpStringT)) {
-        Query* q = m_expr_clp_query[expr];
+        clp::Query* q = m_expr_clp_query[expr];
         for (auto const& entry : m_clp_string_readers) {
             if (evaluate_clp_string_filter(op, q, entry.second)) {
                 return true;
@@ -329,7 +332,7 @@ bool Output::evaluate_filter(FilterExpr* expr, int32_t schema) {
     auto* column = expr->get_column().get();
     int32_t column_id = column->get_column_id();
     auto literal = expr->get_operand();
-    Query* q = nullptr;
+    clp::Query* q = nullptr;
     std::unordered_set<int64_t>* matching_vars = nullptr;
     switch (column->get_literal_type()) {
         case LiteralType::IntegerT:
@@ -459,7 +462,7 @@ bool Output::evaluate_float_filter_core(FilterOperation op, double value, double
 
 bool Output::evaluate_clp_string_filter(
         FilterOperation op,
-        Query* q,
+        clp::Query* q,
         std::vector<ClpStringColumnReader*> const& readers
 ) const {
     if (FilterOperation::EXISTS == op || FilterOperation::NEXISTS == op) {
@@ -897,19 +900,25 @@ void Output::populate_string_queries(std::shared_ptr<Expression> const& expr) {
                 return;
             }
 
+            log_surgeon::lexers::ByteLexer tmp{};
             // search on log type dictionary
             m_string_query_map.emplace(
                     query_string,
-                    Grep::process_raw_query(
-                            m_log_dict,
-                            m_var_dict,
+                    clp::Grep::process_raw_query(
+                            *m_log_dict,
+                            *m_var_dict,
                             query_string,
+                            0,  // search_begin_ts : unused
+                            0,  // search_end_ts : unused
                             m_ignore_case,
-                            false
+                            tmp,  // forward_lexer : unused
+                            tmp,  // reverse_lexer : unused
+                            true,  // use_heuristic
+                            false  // add_implicit_wildcards
                     )
             );
         }
-        SubQuery sub_query;
+        clp::SubQuery sub_query;
         if (filter->get_column()->matches_type(LiteralType::VarStringT)) {
             std::string query_string;
             filter->get_operand()->as_var_string(query_string, filter->get_operation());
@@ -940,7 +949,7 @@ void Output::populate_string_queries(std::shared_ptr<Expression> const& expr) {
                 if (entry != nullptr) {
                     matching_vars.insert(entry->get_id());
                 }
-            } else if (EncodedVariableInterpreter::
+            } else if (clp::EncodedVariableInterpreter::
                                wildcard_search_dictionary_and_get_encoded_matches(
                                        query_string,
                                        *m_var_dict,

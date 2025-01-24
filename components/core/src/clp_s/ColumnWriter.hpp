@@ -6,11 +6,11 @@
 
 #include <simdjson.h>
 
+#include "../clp/LogTypeDictionaryEntry.hpp"
 #include "DictionaryWriter.hpp"
 #include "FileWriter.hpp"
 #include "ParsedMessage.hpp"
 #include "TimestampDictionaryWriter.hpp"
-#include "VariableEncoder.hpp"
 #include "ZstdCompressor.hpp"
 
 using namespace simdjson;
@@ -156,7 +156,7 @@ private:
 
     std::shared_ptr<VariableDictionaryWriter> m_var_dict;
     std::shared_ptr<LogTypeDictionaryWriter> m_log_dict;
-    LogTypeDictionaryEntry m_logtype_entry;
+    clp::LogTypeDictionaryEntry m_logtype_entry;
 
     std::vector<int64_t> m_logtypes;
     std::vector<int64_t> m_encoded_vars;

@@ -122,11 +122,11 @@ public:
      * @param decompressed_msg
      * @return true if successful, false otherwise
      */
-    template <typename VariableDictionaryReaderT>
+    template <typename VariableDictionaryReaderT, typename EncodedVariableVectorT>
     static bool decode_variables_into_message(
             LogTypeDictionaryEntry const& logtype_dict_entry,
             VariableDictionaryReaderT const& var_dict,
-            std::vector<encoded_variable_t> const& encoded_vars,
+            EncodedVariableVectorT const& encoded_vars,
             std::string& decompressed_msg
     );
 
