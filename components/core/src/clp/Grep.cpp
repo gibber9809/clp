@@ -6,6 +6,7 @@
 #include <log_surgeon/Constants.hpp>
 #include <string_utils/string_utils.hpp>
 
+#include "../clp_s/DictionaryReader.hpp"
 #include "EncodedVariableInterpreter.hpp"
 #include "ir/parsing.hpp"
 #include "ir/types.hpp"
@@ -14,7 +15,6 @@
 #include "StringReader.hpp"
 #include "Utils.hpp"
 #include "VariableDictionaryReader.hpp"
-#include "../clp_s/DictionaryReader.hpp"
 
 using clp::ir::is_delim;
 using clp::streaming_archive::reader::Archive;
@@ -1135,8 +1135,9 @@ template bool process_var_token<clp_s::VariableDictionaryReader>(
         string& logtype
 );
 
-template SubQueryMatchabilityResult
-generate_logtypes_and_vars_for_subquery<clp_s::LogTypeDictionaryReader, clp_s::VariableDictionaryReader>(
+template SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery<
+        clp_s::LogTypeDictionaryReader,
+        clp_s::VariableDictionaryReader>(
         clp_s::LogTypeDictionaryReader const& log_dict,
         clp_s::VariableDictionaryReader const& var_dict,
         string& processed_search_string,

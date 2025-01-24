@@ -141,7 +141,7 @@ public:
      * @param vars
      * @return true if matched, false otherwise
      */
-    template<typename EncodedVariableVectorT>
+    template <typename EncodedVariableVectorT>
     bool matches_vars(EncodedVariableVectorT const& vars) const;
 
 private:

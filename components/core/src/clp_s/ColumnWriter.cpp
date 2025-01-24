@@ -37,7 +37,7 @@ size_t ClpStringColumnWriter::add_value(ParsedMessage::variable_t& value) {
     std::string string_var = std::get<std::string>(value);
     uint64_t id;
     uint64_t offset = m_encoded_vars.size();
-    std::vector<uint64_t> tmp; // FIXME
+    std::vector<uint64_t> tmp;  // FIXME
     clp::EncodedVariableInterpreter::encode_and_add_to_dictionary(
             string_var,
             m_logtype_entry,

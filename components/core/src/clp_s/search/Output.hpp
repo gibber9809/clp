@@ -12,9 +12,9 @@
 #include <simdjson.h>
 
 #include "../ArchiveReader.hpp"
+#include "../clp/Query.hpp"
 #include "../SchemaReader.hpp"
 #include "../Utils.hpp"
-#include "../clp/Query.hpp"
 #include "Expression.hpp"
 #include "OutputHandler.hpp"
 #include "SchemaMatch.hpp"

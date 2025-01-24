@@ -3,16 +3,15 @@
 #ifndef CLP_S_DICTIONARYWRITER_HPP
 #define CLP_S_DICTIONARYWRITER_HPP
 
-#include <unordered_map>
 #include <cstddef>
+#include <unordered_map>
 
-#include "../clp/LogTypeDictionaryEntry.hpp"
-#include "../clp/VariableDictionaryEntry.hpp"
-#include "../clp/streaming_compression/zstd/Compressor.hpp"
 #include "../clp/FileWriter.hpp"
+#include "../clp/LogTypeDictionaryEntry.hpp"
+#include "../clp/streaming_compression/zstd/Compressor.hpp"
+#include "../clp/VariableDictionaryEntry.hpp"
 #include "ErrorCode.hpp"
 #include "TraceableException.hpp"
-
 
 namespace clp_s {
 template <typename DictionaryIdType, typename EntryType>

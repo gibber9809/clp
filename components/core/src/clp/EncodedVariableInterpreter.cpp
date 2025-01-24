@@ -5,6 +5,9 @@
 
 #include <string_utils/string_utils.hpp>
 
+#include "../clp_s/DictionaryReader.hpp"
+#include "../clp_s/DictionaryWriter.hpp"
+#include "../clp_s/Utils.hpp"
 #include "Defs.h"
 #include "ffi/ir_stream/decoding_methods.hpp"
 #include "ir/LogEvent.hpp"
@@ -13,9 +16,6 @@
 #include "type_utils.hpp"
 #include "VariableDictionaryReader.hpp"
 #include "VariableDictionaryWriter.hpp"
-#include "../clp_s/DictionaryReader.hpp"
-#include "../clp_s/DictionaryWriter.hpp"
-#include "../clp_s/Utils.hpp"
 
 using clp::ffi::cEightByteEncodedFloatDigitsBitMask;
 using clp::ir::eight_byte_encoded_variable_t;
@@ -518,12 +518,13 @@ EncodedVariableInterpreter::add_dict_var<VariableDictionaryWriter>(
         vector<variable_dictionary_id_t>& var_ids
 );
 
-template bool EncodedVariableInterpreter::decode_variables_into_message<VariableDictionaryReader, std::vector<encoded_variable_t>>(
-        LogTypeDictionaryEntry const& logtype_dict_entry,
-        VariableDictionaryReader const& var_dict,
-        std::vector<encoded_variable_t> const& encoded_vars,
-        string& decompressed_msg
-);
+template bool EncodedVariableInterpreter::
+        decode_variables_into_message<VariableDictionaryReader, std::vector<encoded_variable_t>>(
+                LogTypeDictionaryEntry const& logtype_dict_entry,
+                VariableDictionaryReader const& var_dict,
+                std::vector<encoded_variable_t> const& encoded_vars,
+                string& decompressed_msg
+        );
 
 template bool EncodedVariableInterpreter::encode_and_search_dictionary<VariableDictionaryReader>(
         string const& var_str,
@@ -541,7 +542,8 @@ template bool EncodedVariableInterpreter::wildcard_search_dictionary_and_get_enc
         SubQuery& sub_query
 );
 
-template void EncodedVariableInterpreter::encode_and_add_to_dictionary<clp_s::VariableDictionaryWriter>(
+template void
+EncodedVariableInterpreter::encode_and_add_to_dictionary<clp_s::VariableDictionaryWriter>(
         string const& message,
         LogTypeDictionaryEntry& logtype_dict_entry,
         clp_s::VariableDictionaryWriter& var_dict,
@@ -564,14 +566,17 @@ EncodedVariableInterpreter::add_dict_var<clp_s::VariableDictionaryWriter>(
         vector<variable_dictionary_id_t>& var_ids
 );
 
-template bool EncodedVariableInterpreter::decode_variables_into_message<clp_s::VariableDictionaryReader, clp_s::UnalignedMemSpan<int64_t>>(
+template bool EncodedVariableInterpreter::decode_variables_into_message<
+        clp_s::VariableDictionaryReader,
+        clp_s::UnalignedMemSpan<int64_t>>(
         LogTypeDictionaryEntry const& logtype_dict_entry,
         clp_s::VariableDictionaryReader const& var_dict,
         clp_s::UnalignedMemSpan<int64_t> const& encoded_vars,
         string& decompressed_msg
 );
 
-template bool EncodedVariableInterpreter::encode_and_search_dictionary<clp_s::VariableDictionaryReader>(
+template bool
+EncodedVariableInterpreter::encode_and_search_dictionary<clp_s::VariableDictionaryReader>(
         string const& var_str,
         clp_s::VariableDictionaryReader const& var_dict,
         bool ignore_case,

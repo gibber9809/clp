@@ -7,11 +7,11 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include "../clp/LogTypeDictionaryEntry.hpp"
+#include "../clp/streaming_compression/zstd/Decompressor.hpp"
+#include "../clp/VariableDictionaryEntry.hpp"
 #include "ArchiveReaderAdaptor.hpp"
 #include "Utils.hpp"
-#include "../clp/streaming_compression/zstd/Decompressor.hpp"
-#include "../clp/LogTypeDictionaryEntry.hpp"
-#include "../clp/VariableDictionaryEntry.hpp"
 
 namespace clp_s {
 template <typename DictionaryIdType, typename EntryType>
@@ -129,7 +129,7 @@ void DictionaryReader<DictionaryIdType, EntryType>::read_entries(bool lazy) {
     m_entries.resize(num_dictionary_entries);
     for (size_t i = 0; i < num_dictionary_entries; ++i) {
         auto& entry = m_entries[i];
-        entry.read_from_file(m_dictionary_decompressor);// , i);// FIXME;, lazy);
+        entry.read_from_file(m_dictionary_decompressor);  // , i);// FIXME;, lazy);
     }
 
     m_dictionary_decompressor.close();
