@@ -17,7 +17,17 @@ set(
         ../clp/cli_utils.cpp
         ../clp/cli_utils.hpp
         ../clp/Defs.h
+        ../clp/DictionaryEntry.hpp
+        ../clp/DictionaryReader.hpp
+        ../clp/dictionary_utils.cpp
+        ../clp/dictionary_utils.hpp
+        ../clp/DictionaryWriter.hpp
         ../clp/ErrorCode.hpp
+        ../clp/EncodedVariableInterpreter.cpp
+        ../clp/EncodedVariableInterpreter.hpp
+        ../clp/ffi/encoding_methods.cpp
+        ../clp/ffi/encoding_methods.hpp
+        ../clp/ffi/encoding_methods.inc
         ../clp/ffi/ir_stream/decoding_methods.cpp
         ../clp/ffi/ir_stream/decoding_methods.hpp
         ../clp/ffi/ir_stream/Deserializer.hpp
@@ -48,27 +58,78 @@ set(
         ../clp/FileDescriptor.hpp
         ../clp/FileReader.cpp
         ../clp/FileReader.hpp
+        ../clp/FileWriter.cpp
+        ../clp/FileWriter.hpp
+        ../clp/GlobalMetadataDB.hpp
+        ../clp/GlobalMetadataDBConfig.cpp
+        ../clp/GlobalMetadataDBConfig.hpp
+        ../clp/GlobalMySQLMetadataDB.cpp
+        ../clp/GlobalMySQLMetadataDB.hpp
+        ../clp/Grep.cpp
+        ../clp/Grep.hpp
         ../clp/hash_utils.cpp
         ../clp/hash_utils.hpp
         ../clp/ir/constants.hpp
         ../clp/ir/EncodedTextAst.cpp
         ../clp/ir/EncodedTextAst.hpp
+        ../clp/ir/LogEvent.hpp
         ../clp/ir/parsing.cpp
         ../clp/ir/parsing.hpp
+        ../clp/ir/types.hpp
+        ../clp/LogSurgeonReader.cpp
+        ../clp/LogSurgeonReader.hpp
+        ../clp/LogTypeDictionaryEntry.cpp
+        ../clp/LogTypeDictionaryEntry.hpp
+        ../clp/MySQLDB.cpp
+        ../clp/MySQLDB.hpp
+        ../clp/MySQLParamBindings.cpp
+        ../clp/MySQLParamBindings.hpp
+        ../clp/MySQLPreparedStatement.cpp
+        ../clp/MySQLPreparedStatement.hpp
         ../clp/NetworkReader.cpp
         ../clp/NetworkReader.hpp
         ../clp/networking/socket_utils.cpp
         ../clp/networking/socket_utils.hpp
+        ../clp/Query.cpp
+        ../clp/Query.hpp
         ../clp/ReaderInterface.cpp
         ../clp/ReaderInterface.hpp
         ../clp/ReadOnlyMemoryMappedFile.cpp
         ../clp/ReadOnlyMemoryMappedFile.hpp
         ../clp/spdlog_with_specializations.hpp
+        ../clp/SQLiteDB.cpp
+        ../clp/SQLiteDB.hpp
+        ../clp/SQLitePreparedStatement.cpp
+        ../clp/SQLitePreparedStatement.hpp
         ../clp/streaming_archive/ArchiveMetadata.cpp
         ../clp/streaming_archive/ArchiveMetadata.hpp
         ../clp/streaming_archive/Constants.hpp
+        ../clp/streaming_compression/passthrough/Decompressor.cpp
+        ../clp/streaming_compression/passthrough/Decompressor.hpp
+        ../clp/streaming_archive/MetadataDB.cpp
+        ../clp/streaming_archive/MetadataDB.hpp
+        ../clp/streaming_archive/reader/Archive.cpp
+        ../clp/streaming_archive/reader/Archive.hpp
+        ../clp/streaming_archive/reader/File.cpp
+        ../clp/streaming_archive/reader/File.hpp
+        ../clp/streaming_archive/reader/Message.cpp
+        ../clp/streaming_archive/reader/Message.hpp
+        ../clp/streaming_archive/reader/Segment.cpp
+        ../clp/streaming_archive/reader/Segment.hpp
+        ../clp/streaming_archive/reader/SegmentManager.cpp
+        ../clp/streaming_archive/reader/SegmentManager.hpp
+        ../clp/streaming_archive/writer/File.cpp
+        ../clp/streaming_archive/writer/File.hpp
+        ../clp/streaming_archive/writer/Segment.cpp
+        ../clp/streaming_archive/writer/Segment.hpp
+        ../clp/streaming_compression/zstd/Compressor.cpp
+        ../clp/streaming_compression/zstd/Compressor.hpp
         ../clp/streaming_compression/zstd/Decompressor.cpp
         ../clp/streaming_compression/zstd/Decompressor.hpp
+        ../clp/StringReader.cpp
+        ../clp/StringReader.hpp
+        ../clp/TimestampPattern.cpp
+        ../clp/TimestampPattern.hpp
         ../clp/Thread.cpp
         ../clp/Thread.hpp
         ../clp/TraceableException.hpp
@@ -76,8 +137,17 @@ set(
         ../clp/type_utils.hpp
         ../clp/utf8_utils.cpp
         ../clp/utf8_utils.hpp
+        ../clp/Utils.cpp
+        ../clp/Utils.hpp
+        ../clp/VariableDictionaryEntry.cpp
+        ../clp/VariableDictionaryEntry.hpp
+        ../clp/VariableDictionaryReader.hpp
+        ../clp/VariableDictionaryWriter.cpp
+        ../clp/VariableDictionaryWriter.hpp
         ../clp/WriterInterface.cpp
         ../clp/WriterInterface.hpp
+        "${PROJECT_SOURCE_DIR}/submodules/sqlite3/sqlite3.c"
+        "${PROJECT_SOURCE_DIR}/submodules/sqlite3/sqlite3.h"
 )
 
 # This library is intended as a temporary stand-in until clp has been packaged into libraries.
@@ -97,6 +167,8 @@ target_link_libraries(
         ${CURL_LIBRARIES}
         fmt::fmt
         spdlog::spdlog
+        ${sqlite_LIBRARY_DEPENDENCIES}
+        MariaDBClient::MariaDBClient
         nlohmann_json::nlohmann_json
         OpenSSL::Crypto
         ystdlib::error_handling

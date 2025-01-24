@@ -1,5 +1,7 @@
 #include "Query.hpp"
 
+#include "../clp_s/Utils.hpp"
+
 using std::set;
 using std::string;
 using std::unordered_set;
@@ -147,7 +149,8 @@ bool SubQuery::matches_logtype(logtype_dictionary_id_t const logtype) const {
     return m_possible_logtype_ids.count(logtype) > 0;
 }
 
-bool SubQuery::matches_vars(std::vector<encoded_variable_t> const& vars) const {
+template <typename EncodedVariableVectorT>
+bool SubQuery::matches_vars(EncodedVariableVectorT const& vars) const {
     if (vars.size() < m_vars.size()) {
         // Not enough variables to satisfy query
         return false;
@@ -202,4 +205,14 @@ void Query::make_sub_queries_relevant_to_segment(segment_id_t segment_id) {
     }
     m_prev_segment_id = segment_id;
 }
+
+// Explicitly declare template specializations so that we can define the template methods in this
+// file
+template bool SubQuery::matches_vars<std::vector<encoded_variable_t>>(
+        std::vector<encoded_variable_t> const& vars
+) const;
+
+template bool SubQuery::matches_vars<clp_s::UnalignedMemSpan<int64_t>>(
+        clp_s::UnalignedMemSpan<int64_t> const& vars
+) const;
 }  // namespace clp

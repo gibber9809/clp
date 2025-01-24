@@ -19,8 +19,6 @@
 #include "QueryRunner.hpp"
 #include "SchemaMatch.hpp"
 
-using namespace clp_s::search::clp_search;
-
 namespace clp_s::search {
 /**
  * This class orchestrates the process of searching through a CLP archive,

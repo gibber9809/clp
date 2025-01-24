@@ -3,7 +3,15 @@
 #ifndef CLP_S_DICTIONARYWRITER_HPP
 #define CLP_S_DICTIONARYWRITER_HPP
 
-#include "DictionaryEntry.hpp"
+#include <cstddef>
+#include <unordered_map>
+
+#include "../clp/FileWriter.hpp"
+#include "../clp/LogTypeDictionaryEntry.hpp"
+#include "../clp/streaming_compression/zstd/Compressor.hpp"
+#include "../clp/VariableDictionaryEntry.hpp"
+#include "ErrorCode.hpp"
+#include "TraceableException.hpp"
 
 namespace clp_s {
 template <typename DictionaryIdType, typename EntryType>
@@ -56,8 +64,8 @@ protected:
     bool m_is_open;
 
     // Variables related to on-disk storage
-    FileWriter m_dictionary_file_writer;
-    ZstdCompressor m_dictionary_compressor;
+    clp::FileWriter m_dictionary_file_writer;
+    clp::streaming_compression::zstd::Compressor m_dictionary_compressor;
 
     value_to_id_t m_value_to_id;
     uint64_t m_next_id{};
@@ -67,7 +75,7 @@ protected:
     size_t m_data_size{};
 };
 
-class VariableDictionaryWriter : public DictionaryWriter<uint64_t, VariableDictionaryEntry> {
+class VariableDictionaryWriter : public DictionaryWriter<uint64_t, clp::VariableDictionaryEntry> {
 public:
     class OperationFailed : public TraceableException {
     public:
@@ -84,7 +92,7 @@ public:
     bool add_entry(std::string const& value, uint64_t& id);
 };
 
-class LogTypeDictionaryWriter : public DictionaryWriter<uint64_t, LogTypeDictionaryEntry> {
+class LogTypeDictionaryWriter : public DictionaryWriter<uint64_t, clp::LogTypeDictionaryEntry> {
 public:
     class OperationFailed : public TraceableException {
     public:
@@ -98,7 +106,7 @@ public:
      * @param logtype_entry
      * @param logtype_id ID of the logtype matching the given entry
      */
-    bool add_entry(LogTypeDictionaryEntry& logtype_entry, uint64_t& logtype_id);
+    bool add_entry(clp::LogTypeDictionaryEntry& logtype_entry, uint64_t& logtype_id);
 };
 
 template <typename DictionaryIdType, typename EntryType>
@@ -111,7 +119,7 @@ void DictionaryWriter<DictionaryIdType, EntryType>::open(
         throw OperationFailed(ErrorCodeNotReady, __FILENAME__, __LINE__);
     }
 
-    m_dictionary_file_writer.open(dictionary_path, FileWriter::OpenMode::CreateForWriting);
+    m_dictionary_file_writer.open(dictionary_path, clp::FileWriter::OpenMode::CREATE_FOR_WRITING);
     // Write header
     m_dictionary_file_writer.write_numeric_value<uint64_t>(0);
     // Open compressor

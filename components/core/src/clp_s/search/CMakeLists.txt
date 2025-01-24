@@ -5,16 +5,8 @@ add_subdirectory(sql)
 set(
         CLP_S_SEARCH_SOURCES
         ../Defs.hpp
-        ../VariableEncoder.cpp
-        ../VariableEncoder.hpp
         AddTimestampConditions.cpp
         AddTimestampConditions.hpp
-        clp_search/EncodedVariableInterpreter.cpp
-        clp_search/EncodedVariableInterpreter.hpp
-        clp_search/Grep.cpp
-        clp_search/Grep.hpp
-        clp_search/Query.cpp
-        clp_search/Query.hpp
         EvaluateTimestampIndex.cpp
         EvaluateTimestampIndex.hpp
         Output.cpp
@@ -43,5 +35,6 @@ target_link_libraries(
         clp_s::search::ast
         simdjson::simdjson
         PRIVATE
+        clp_s::clp_dependencies
         spdlog::spdlog
 )

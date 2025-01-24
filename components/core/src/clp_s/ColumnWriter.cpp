@@ -1,5 +1,7 @@
 #include "ColumnWriter.hpp"
 
+#include "../clp/EncodedVariableInterpreter.hpp"
+
 namespace clp_s {
 size_t Int64ColumnWriter::add_value(ParsedMessage::variable_t& value) {
     m_values.push_back(std::get<int64_t>(value));
@@ -35,11 +37,13 @@ size_t ClpStringColumnWriter::add_value(ParsedMessage::variable_t& value) {
     std::string string_var = std::get<std::string>(value);
     uint64_t id;
     uint64_t offset = m_encoded_vars.size();
-    VariableEncoder::encode_and_add_to_dictionary(
+    std::vector<uint64_t> tmp;  // FIXME
+    clp::EncodedVariableInterpreter::encode_and_add_to_dictionary(
             string_var,
             m_logtype_entry,
             *m_var_dict,
-            m_encoded_vars
+            m_encoded_vars,
+            tmp
     );
     m_log_dict->add_entry(m_logtype_entry, id);
     auto encoded_id = encode_log_dict_id(id, offset);

@@ -7,8 +7,10 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
+#include "../clp/LogTypeDictionaryEntry.hpp"
+#include "../clp/streaming_compression/zstd/Decompressor.hpp"
+#include "../clp/VariableDictionaryEntry.hpp"
 #include "ArchiveReaderAdaptor.hpp"
-#include "DictionaryEntry.hpp"
 #include "Utils.hpp"
 
 namespace clp_s {
@@ -85,12 +87,12 @@ protected:
     bool m_is_open;
     ArchiveReaderAdaptor& m_adaptor;
     std::string m_dictionary_path;
-    ZstdDecompressor m_dictionary_decompressor;
+    clp::streaming_compression::zstd::Decompressor m_dictionary_decompressor;
     std::vector<EntryType> m_entries;
 };
 
-using VariableDictionaryReader = DictionaryReader<uint64_t, VariableDictionaryEntry>;
-using LogTypeDictionaryReader = DictionaryReader<uint64_t, LogTypeDictionaryEntry>;
+using VariableDictionaryReader = DictionaryReader<uint64_t, clp::VariableDictionaryEntry>;
+using LogTypeDictionaryReader = DictionaryReader<uint64_t, clp::LogTypeDictionaryEntry>;
 
 template <typename DictionaryIdType, typename EntryType>
 void DictionaryReader<DictionaryIdType, EntryType>::open(std::string const& dictionary_path) {
@@ -127,7 +129,7 @@ void DictionaryReader<DictionaryIdType, EntryType>::read_entries(bool lazy) {
     m_entries.resize(num_dictionary_entries);
     for (size_t i = 0; i < num_dictionary_entries; ++i) {
         auto& entry = m_entries[i];
-        entry.read_from_file(m_dictionary_decompressor, i, lazy);
+        entry.read_from_file(m_dictionary_decompressor);  // , i);// FIXME;, lazy);
     }
 
     m_dictionary_decompressor.close();

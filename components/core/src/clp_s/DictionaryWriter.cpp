@@ -1,8 +1,9 @@
-// Code from CLP
-
 #include "DictionaryWriter.hpp"
 
 #include <spdlog/spdlog.h>
+
+#include "../clp/LogTypeDictionaryEntry.hpp"
+#include "../clp/VariableDictionaryEntry.hpp"
 
 namespace clp_s {
 bool VariableDictionaryWriter::add_entry(std::string const& value, uint64_t& id) {
@@ -24,12 +25,11 @@ bool VariableDictionaryWriter::add_entry(std::string const& value, uint64_t& id)
         ++m_next_id;
 
         // Insert the ID obtained from the database into the dictionary
-        auto entry = VariableDictionaryEntry(value, id);
-        m_value_to_id[value] = id;
+        clp::VariableDictionaryEntry entry{value, id};
+        m_value_to_id.emplace(value, id);
 
         new_entry = true;
 
-        // TODO: This doesn't account for the segment index that's constantly updated
         m_data_size += entry.get_data_size();
 
         entry.write_to_file(m_dictionary_compressor);
@@ -37,8 +37,10 @@ bool VariableDictionaryWriter::add_entry(std::string const& value, uint64_t& id)
     return new_entry;
 }
 
-bool
-LogTypeDictionaryWriter::add_entry(LogTypeDictionaryEntry& logtype_entry, uint64_t& logtype_id) {
+bool LogTypeDictionaryWriter::add_entry(
+        clp::LogTypeDictionaryEntry& logtype_entry,
+        uint64_t& logtype_id
+) {
     bool is_new_entry = false;
 
     std::string const& value = logtype_entry.get_value();
@@ -53,11 +55,10 @@ LogTypeDictionaryWriter::add_entry(LogTypeDictionaryEntry& logtype_entry, uint64
         logtype_entry.set_id(logtype_id);
 
         // Insert new entry into dictionary
-        m_value_to_id[value] = logtype_id;
+        m_value_to_id.emplace(value, logtype_id);
 
         is_new_entry = true;
 
-        // TODO: This doesn't account for the segment index that's constantly updated
         m_data_size += logtype_entry.get_data_size();
 
         logtype_entry.write_to_file(m_dictionary_compressor);
