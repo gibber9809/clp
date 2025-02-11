@@ -1,6 +1,6 @@
 add_subdirectory(indexer)
-add_subdirectory(search/kql)
-add_subdirectory(search/sql)
+#add_subdirectory(search/kql)
+#add_subdirectory(search/sql)
 
 set(
         CLP_SOURCES
@@ -236,40 +236,40 @@ set(
         ../reducer/types.hpp
 )
 
-add_executable(
-        clp-s
-        clp-s.cpp
-        CommandLineArguments.cpp
-        CommandLineArguments.hpp
-        ${CLP_SOURCES}
-        ${CLP_S_SOURCES}
-        ${CLP_S_SEARCH_SOURCES}
-        ${REDUCER_SOURCES}
-)
-target_compile_features(clp-s PRIVATE cxx_std_20)
-target_link_libraries(
-        clp-s
-        PRIVATE
-        absl::flat_hash_map
-        Boost::iostreams Boost::program_options Boost::regex Boost::url
-        ${CURL_LIBRARIES}
-        clp::string_utils
-        kql
-        MariaDBClient::MariaDBClient
-        ${MONGOCXX_TARGET}
-        msgpack-cxx
-        OpenSSL::Crypto
-        simdjson
-        spdlog::spdlog
-        yaml-cpp::yaml-cpp
-        ZStd::ZStd
-)
-target_include_directories(clp-s PRIVATE "${PROJECT_SOURCE_DIR}/submodules")
-set_target_properties(
-        clp-s
-        PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
-)
+#add_executable(
+#        clp-s
+#        clp-s.cpp
+#        CommandLineArguments.cpp
+#        CommandLineArguments.hpp
+#        ${CLP_SOURCES}
+#        ${CLP_S_SOURCES}
+#        ${CLP_S_SEARCH_SOURCES}
+#        ${REDUCER_SOURCES}
+#)
+#target_compile_features(clp-s PRIVATE cxx_std_20)
+#target_link_libraries(
+#        clp-s
+#        PRIVATE
+#        absl::flat_hash_map
+#        Boost::iostreams Boost::program_options Boost::regex Boost::url
+#        ${CURL_LIBRARIES}
+#        clp::string_utils
+#        kql
+#        MariaDBClient::MariaDBClient
+#        ${MONGOCXX_TARGET}
+#        msgpack-cxx
+#        OpenSSL::Crypto
+#        simdjson
+#        spdlog::spdlog
+#        yaml-cpp::yaml-cpp
+#        ZStd::ZStd
+#)
+#target_include_directories(clp-s PRIVATE "${PROJECT_SOURCE_DIR}/submodules")
+#set_target_properties(
+#        clp-s
+#        PROPERTIES
+#        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+#)
 
 # Add the tasks library
 add_library(
@@ -303,7 +303,6 @@ target_link_libraries(
         Boost::iostreams Boost::program_options Boost::regex Boost::url
         ${CURL_LIBRARIES}
         clp::string_utils
-        kql
         MariaDBClient::MariaDBClient
         ${MONGOCXX_TARGET}
         msgpack-cxx
@@ -316,12 +315,12 @@ target_link_libraries(
 )
 
 # Add the client
-#add_executable(client src/client.cpp)
+add_executable(compression_client spider_compression_client.cpp)
 
 # Link the Spider and tasks library to the client
-#target_link_libraries(
-#    client
-#    PRIVATE
-#        spider::spider
-#        tasks
-#)
+target_link_libraries(
+    compression_client
+    PRIVATE
+        spider::spider
+        tasks
+)
