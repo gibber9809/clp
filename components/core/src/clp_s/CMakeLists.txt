@@ -1,4 +1,4 @@
-add_subdirectory(indexer)
+#add_subdirectory(indexer)
 #add_subdirectory(search/kql)
 #add_subdirectory(search/sql)
 
@@ -273,7 +273,7 @@ set(
 
 # Add the tasks library
 add_library(
-    spider_tasks
+    compression_tasks
     SHARED
     spider_tasks.cpp
     spider_tasks.hpp
@@ -284,7 +284,7 @@ add_library(
 )
 
 set_target_properties(
-        spider_tasks
+        compression_tasks
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
 )
@@ -298,12 +298,12 @@ set_target_properties(
 #        ${REDUCER_SOURCES}
 #)
 
-target_include_directories(spider_tasks PRIVATE "${PROJECT_SOURCE_DIR}/submodules")
+target_include_directories(compression_tasks PRIVATE "${PROJECT_SOURCE_DIR}/submodules")
 
 
 # Link the Spider library to the tasks library
 target_link_libraries(
-        spider_tasks
+        compression_tasks
         PRIVATE
         absl::flat_hash_map
         Boost::iostreams Boost::program_options Boost::regex Boost::url
@@ -333,6 +333,6 @@ set_target_properties(
 target_link_libraries(
     compression_client
     PRIVATE
-        spider_tasks
+        compression_tasks
         spider::spider
 )
