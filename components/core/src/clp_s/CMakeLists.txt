@@ -97,8 +97,6 @@ set(
         ColumnReader.hpp
         ColumnWriter.cpp
         ColumnWriter.hpp
-        CommandLineArguments.cpp
-        CommandLineArguments.hpp
         Compressor.hpp
         Decompressor.hpp
         Defs.hpp
@@ -241,6 +239,8 @@ set(
 add_executable(
         clp-s
         clp-s.cpp
+        CommandLineArguments.cpp
+        CommandLineArguments.hpp
         ${CLP_SOURCES}
         ${CLP_S_SOURCES}
         ${CLP_S_SEARCH_SOURCES}
@@ -270,3 +270,58 @@ set_target_properties(
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
 )
+
+# Add the tasks library
+add_library(
+    spider_tasks
+    SHARED
+    spider_tasks.cpp
+    spider_tasks.hpp
+    ${CLP_SOURCES}
+    ${CLP_S_SOURCES}
+    ${CLP_S_SEARCH_SOURCES}
+    ${REDUCER_SOURCES}
+)
+
+#add_executable(
+#        spider_tasks
+#        spider_tasks.cpp
+#        ${CLP_SOURCES}
+#        ${CLP_S_SOURCES}
+#        ${CLP_S_SEARCH_SOURCES}
+#        ${REDUCER_SOURCES}
+#)
+
+target_include_directories(spider_tasks PRIVATE "${PROJECT_SOURCE_DIR}/submodules")
+
+
+# Link the Spider library to the tasks library
+target_link_libraries(
+        spider_tasks
+        PRIVATE
+        absl::flat_hash_map
+        Boost::iostreams Boost::program_options Boost::regex Boost::url
+        ${CURL_LIBRARIES}
+        clp::string_utils
+        kql
+        MariaDBClient::MariaDBClient
+        ${MONGOCXX_TARGET}
+        msgpack-cxx
+        OpenSSL::Crypto
+        simdjson
+        spdlog::spdlog
+        spider::spider
+        yaml-cpp::yaml-cpp
+        ZStd::ZStd
+)
+
+# Add the client
+#add_executable(client src/client.cpp)
+
+# Link the Spider and tasks library to the client
+#target_link_libraries(
+#    client
+#    PRIVATE
+#        spider::spider
+#        tasks
+#)

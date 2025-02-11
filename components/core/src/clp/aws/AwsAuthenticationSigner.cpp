@@ -6,9 +6,9 @@
 #include <vector>
 
 #include <boost/regex.hpp>
-#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <string_utils/string_utils.hpp>
+#include <date/include/date/date.h>
 
 #include "../ErrorCode.hpp"
 #include "../hash_utils.hpp"
@@ -81,9 +81,10 @@ namespace {
 /**
  * @param url
  * @param query_string
+ * @param method
  * @return Formatted canonical request string.
  */
-[[nodiscard]] auto get_canonical_request(S3Url const& url, string_view query_string) -> string;
+[[nodiscard]] auto get_canonical_request(S3Url const& url, string_view query_string, string_view method) -> string;
 
 auto is_unreserved_characters(char c) -> bool {
     return is_alphabet(c) || is_decimal_digit(c) || c == '-' || c == '_' || c == '.' || c == '~';
@@ -91,11 +92,16 @@ auto is_unreserved_characters(char c) -> bool {
 
 auto get_formatted_timestamp_string(std::chrono::system_clock::time_point const& timestamp)
         -> string {
-    return fmt::format("{:%Y%m%dT%H%M%SZ}", timestamp);
+    auto sys_days = date::floor<date::days>(timestamp);
+    auto ymd = date::year_month_day{sys_days};
+    auto time = date::make_time(std::chrono::duration_cast<std::chrono::milliseconds>(timestamp-sys_days));
+    return fmt::format("{}{:02}{:02}T{:02}{:02}{:02}Z", (int)ymd.year(), (unsigned)ymd.month(), (unsigned)ymd.day(), time.hours().count(), time.minutes().count(), time.seconds().count());
 }
 
 auto get_formatted_date_string(std::chrono::system_clock::time_point const& timestamp) -> string {
-    return fmt::format("{:%Y%m%d}", timestamp);
+    auto sys_days = date::floor<date::days>(timestamp);
+    auto ymd = date::year_month_day{sys_days};
+    return fmt::format("{}{:02}{:02}", (int)ymd.year(), (unsigned)ymd.month(), (unsigned)ymd.day());
 }
 
 auto get_string_to_sign(
@@ -145,11 +151,11 @@ auto get_scope(string_view date, string_view region) -> string {
     return fmt::format("{}/{}/{}/{}", date, region, cS3Service, cAws4Request);
 }
 
-auto get_canonical_request(S3Url const& url, string_view query_string) -> string {
+auto get_canonical_request(S3Url const& url, string_view query_string, string_view method) -> string {
     auto const uri_to_encode = fmt::format("/{}", url.get_key());
     return fmt::format(
             "{}\n{}\n{}\n{}:{}\n\n{}\n{}",
-            AwsAuthenticationSigner::cHttpGetMethod,
+            method,
             encode_uri(uri_to_encode, true),
             query_string,
             cDefaultSignedHeaders,
@@ -204,7 +210,7 @@ S3Url::S3Url(string const& url) {
 }
 
 auto
-AwsAuthenticationSigner::generate_presigned_url(S3Url const& s3_url, string& presigned_url) const
+AwsAuthenticationSigner::generate_presigned_url(S3Url const& s3_url, string& presigned_url, bool is_get) const
         -> ErrorCode {
     auto const s3_region = s3_url.get_region();
 
@@ -215,7 +221,12 @@ AwsAuthenticationSigner::generate_presigned_url(S3Url const& s3_url, string& pre
     auto const scope = get_scope(date, s3_region);
     auto const canonical_query_string = get_canonical_query_string(scope, timestamp);
 
-    auto const canonical_request = get_canonical_request(s3_url, canonical_query_string);
+    std::string_view method = AwsAuthenticationSigner::cHttpGetMethod;
+    if (false == is_get) {
+        method = AwsAuthenticationSigner::cHttpPutMethod;
+    }
+
+    auto const canonical_request = get_canonical_request(s3_url, canonical_query_string, method);
 
     string string_to_sign;
     if (auto const error_code
