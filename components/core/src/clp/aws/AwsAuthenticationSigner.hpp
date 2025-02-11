@@ -89,8 +89,11 @@ public:
      * @return ErrorCode_Success on success.
      * @return Same as `get_sha256_hash` and `AwsAuthenticationSigner::get_signature` on failure.
      */
-    [[nodiscard]] auto generate_presigned_url(S3Url const& s3_url, std::string& presigned_url, bool is_get=true) const
-            -> ErrorCode;
+    [[nodiscard]] auto generate_presigned_url(
+            S3Url const& s3_url,
+            std::string& presigned_url,
+            bool is_get = true
+    ) const -> ErrorCode;
 
 private:
     /**

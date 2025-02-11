@@ -1,27 +1,28 @@
 #include "spider_tasks.hpp"
 
-#include <vector>
-#include <string>
-#include <exception>
-#include <stdexcept>
-#include <filesystem>
-
-#include <fmt/format.h>
-#include <boost/uuid/random_generator.hpp>
-#include <curl/curl.h>
-#include <spider/client/spider.hpp>
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_sinks.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include "JsonParser.hpp"
-#include "InputConfig.hpp"
-#include "CommandLineArguments.hpp"
-#include "Utils.hpp"
 
-#include "../clp/CurlGlobalInstance.hpp"
-#include "../clp/CurlEasyHandle.hpp"
+#include <exception>
+#include <filesystem>
+#include <spider/client/spider.hpp>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <boost/uuid/random_generator.hpp>
+#include <curl/curl.h>
+#include <fmt/format.h>
+#include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/spdlog.h>
+
 #include "../clp/aws/AwsAuthenticationSigner.hpp"
+#include "../clp/CurlEasyHandle.hpp"
+#include "../clp/CurlGlobalInstance.hpp"
+#include "CommandLineArguments.hpp"
+#include "InputConfig.hpp"
+#include "JsonParser.hpp"
+#include "Utils.hpp"
 
 bool upload_all_files_in_directory(std::string const& directory, std::string const& destination) {
     std::vector<std::string> file_paths;
@@ -44,9 +45,13 @@ bool upload_all_files_in_directory(std::string const& directory, std::string con
     }
 
     clp_s::FileUtils::find_all_files_in_directory(directory, file_paths);
-    clp::aws::AwsAuthenticationSigner signer(aws_access_key, aws_secret_access_key, optional_aws_session_token);
+    clp::aws::AwsAuthenticationSigner signer(
+            aws_access_key,
+            aws_secret_access_key,
+            optional_aws_session_token
+    );
     for (auto const& path : file_paths) {
-        FILE *fd = fopen(path.c_str(), "rb");
+        FILE* fd = fopen(path.c_str(), "rb");
         struct stat file_info;
         if (nullptr == fd) {
             return false;
@@ -70,11 +75,13 @@ bool upload_all_files_in_directory(std::string const& directory, std::string con
         std::string presigned_url;
         try {
             clp::aws::S3Url s3_url(unsigned_url_str);
-            if (auto rc = signer.generate_presigned_url(s3_url, presigned_url, false); clp::ErrorCode_Success != rc) {
+            if (auto rc = signer.generate_presigned_url(s3_url, presigned_url, false);
+                clp::ErrorCode_Success != rc)
+            {
                 SPDLOG_ERROR("Failed to sign s3 url: rc={}", rc);
                 return false;
             }
-        } catch(std::exception const& e) {
+        } catch (std::exception const& e) {
             SPDLOG_ERROR(e.what());
             return false;
         }
@@ -104,7 +111,8 @@ void cleanup_generated_archives(std::string archives_path) {
 }
 
 // Task function implementation
-int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, std::string destination) {
+int
+compress(spider::TaskContext& context, std::vector<std::string> s3_paths, std::string destination) {
     auto stderr_logger = spdlog::stderr_logger_st("stderr");
     spdlog::set_default_logger(stderr_logger);
     spdlog::set_pattern("%Y-%m-%dT%H:%M:%S.%e%z [%l] %v");
@@ -112,15 +120,18 @@ int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, st
     clp::CurlGlobalInstance const curl_global_instance;
 
     clp_s::JsonParserOption option{};
-    for (auto &path : s3_paths) {
-        option.input_paths.emplace_back(clp_s::Path{.source = clp_s::InputSource::Network, .path = std::move(path)});
+    for (auto& path : s3_paths) {
+        option.input_paths.emplace_back(
+                clp_s::Path{.source = clp_s::InputSource::Network, .path = std::move(path)}
+        );
     }
 
     option.input_file_type = clp_s::FileType::KeyValueIr;
-    option.timestamp_key = ""; // Note: we don't support timestamp key for irv2 ingestion at the moment
+    option.timestamp_key
+            = "";  // Note: we don't support timestamp key for irv2 ingestion at the moment
     option.archives_dir = fmt::format("/tmp/{}/", boost::uuids::to_string(context.get_id()));
-    option.target_encoded_size = 512 * 1024 * 1024; // 512 MiB
-    option.max_document_size = 512 * 1024 * 1024; // 512 MiB
+    option.target_encoded_size = 512 * 1024 * 1024;  // 512 MiB
+    option.max_document_size = 512 * 1024 * 1024;  // 512 MiB
     option.min_table_size = 1 * 1024 * 1024;
     option.compression_level = 3;
     option.single_file_archive = true;
@@ -130,7 +141,7 @@ int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, st
         clp_s::JsonParser parser{option};
         if (false == parser.parse_from_ir()) {
             throw std::runtime_error("Encountered error during parsing.");
-            return 1;            
+            return 1;
         }
         parser.store();
         // trigger upload
@@ -138,7 +149,7 @@ int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, st
             throw std::runtime_error("Encountered error during upload.");
             return 1;
         }
-    } catch(std::exception const& e) {
+    } catch (std::exception const& e) {
         cleanup_generated_archives(option.archives_dir);
         throw e;
         return 1;

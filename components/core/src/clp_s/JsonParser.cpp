@@ -601,8 +601,7 @@ bool JsonParser::parse() {
             );
         }
 
-        if (check_and_log_curl_error(path, reader))
-        {
+        if (check_and_log_curl_error(path, reader)) {
             m_archive_writer->close();
             return false;
         }
@@ -806,7 +805,7 @@ void JsonParser::parse_kv_log_event(KeyValuePairLogEvent const& kv) {
 }
 
 auto JsonParser::parse_from_ir() -> bool {
-    constexpr size_t cDecompressorReadBufferCapacity{64 * 1024}; // 64 KB
+    constexpr size_t cDecompressorReadBufferCapacity{64 * 1024};  // 64 KB
     for (auto const& path : m_input_paths) {
         auto reader{ReaderUtils::try_create_reader(path, m_network_auth)};
         if (nullptr == reader) {

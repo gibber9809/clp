@@ -1,12 +1,11 @@
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <spider/client/spider.hpp>
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <fstream>
-#include <filesystem>
-#include <cstdlib>
-
-#include <spider/client/spider.hpp>
 
 #include "spider_tasks.hpp"
 
@@ -14,7 +13,7 @@ class InputFileIterator {
 public:
     explicit InputFileIterator(std::string const& path) : m_stream(path) {}
 
-    bool get_next_line(std::string &line) {
+    bool get_next_line(std::string& line) {
         if (false == m_stream.is_open()) {
             return false;
         }
@@ -29,7 +28,8 @@ public:
         return true;
     }
 
-    bool done() {return false == m_stream.is_open(); }
+    bool done() { return false == m_stream.is_open(); }
+
 private:
     std::ifstream m_stream;
 };
@@ -38,7 +38,8 @@ private:
 auto main(int argc, char const* argv[]) -> int {
     // Parse the storage backend URL from the command line arguments
     if (argc != 5) {
-        std::cerr << "Usage: ./client <storage-backend-url> <paths-file> <destination-url> <compression-batch-size>\n";
+        std::cerr << "Usage: ./client <storage-backend-url> <paths-file> <destination-url> "
+                     "<compression-batch-size>\n";
         return 1;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -69,7 +70,6 @@ auto main(int argc, char const* argv[]) -> int {
         std::cerr << "batch-size must be > 0\n";
         return 1;
     }
-    
 
     // Create a driver that connects to the Spider cluster
     spider::Driver driver{storage_url};
@@ -92,7 +92,7 @@ auto main(int argc, char const* argv[]) -> int {
 
     // Wait for the jobs to complete
     bool failed = false;
-    for (auto &job : jobs) {
+    for (auto& job : jobs) {
         job.wait_complete();
         // Handle the job's success/failure
         switch (auto job_status = job.get_status()) {
@@ -102,14 +102,14 @@ auto main(int argc, char const* argv[]) -> int {
             case spider::JobStatus::Failed: {
                 std::pair<std::string, std::string> const error_and_fn_name = job.get_error();
                 std::cerr << "Job failed in function " << error_and_fn_name.second << " - "
-                        << error_and_fn_name.first << '\n';
+                          << error_and_fn_name.first << '\n';
                 failed = true;
                 break;
             }
             default: {
                 std::cerr << "Job is in unexpected state - "
-                        << static_cast<std::underlying_type_t<decltype(job_status)>>(job_status)
-                        << '\n';
+                          << static_cast<std::underlying_type_t<decltype(job_status)>>(job_status)
+                          << '\n';
                 failed = true;
                 break;
             }
