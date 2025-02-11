@@ -22,6 +22,10 @@ public:
         if (!std::getline(m_stream, line)) {
             m_stream.close();
         }
+        if (line.empty()) {
+            m_stream.close();
+            return false;
+        }
         return true;
     }
 
@@ -80,6 +84,8 @@ auto main(int argc, char const* argv[]) -> int {
         while (ingestion_urls.size() < batch_size && it.get_next_line(ingestion_url)) {
             ingestion_urls.emplace_back(std::move(ingestion_url));
         }
+
+        std::cerr << ingestion_urls.size() << " " << destination_url << '\n';
 
         jobs.emplace_back(driver.start(&compress, ingestion_urls, destination_url));
     }
