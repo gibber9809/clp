@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <exception>
+#include <stdexcept>
 #include <filesystem>
 
 #include <fmt/format.h>
@@ -121,18 +122,19 @@ int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, st
     try {
         clp_s::JsonParser parser{option};
         if (false == parser.parse_from_ir()) {
-            cleanup_generated_archives(option.archives_dir);
-            context.abort("Parsing error.");
+            throw std::runtime_error("Encountered error during parsing.");
+            return 1;            
         }
         parser.store();
         // trigger upload
         if (false == upload_all_files_in_directory(option.archives_dir, destination)) {
-            cleanup_generated_archives(option.archives_dir);
-            context.abort("Upload failed.");
+            throw std::runtime_error("Encountered error during upload.");
+            return 1;
         }
     } catch(std::exception const& e) {
         cleanup_generated_archives(option.archives_dir);
-        context.abort(e.what());
+        throw e;
+        return 1;
     }
 
     cleanup_generated_archives(option.archives_dir);

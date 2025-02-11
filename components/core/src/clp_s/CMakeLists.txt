@@ -283,6 +283,12 @@ add_library(
     ${REDUCER_SOURCES}
 )
 
+set_target_properties(
+        spider_tasks
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+)
+
 #add_executable(
 #        spider_tasks
 #        spider_tasks.cpp
@@ -317,10 +323,16 @@ target_link_libraries(
 # Add the client
 add_executable(compression_client spider_compression_client.cpp)
 
+set_target_properties(
+        compression_client
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}"
+)
+
 # Link the Spider and tasks library to the client
 target_link_libraries(
     compression_client
     PRIVATE
+        spider_tasks
         spider::spider
-        tasks
 )

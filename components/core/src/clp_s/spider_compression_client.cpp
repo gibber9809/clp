@@ -19,7 +19,7 @@ public:
             return false;
         }
 
-        if (false == std::getline(ifstream, line)) {
+        if (!std::getline(m_stream, line)) {
             m_stream.close();
         }
         return true;
@@ -34,35 +34,35 @@ private:
 auto main(int argc, char const* argv[]) -> int {
     // Parse the storage backend URL from the command line arguments
     if (argc != 5) {
-        std::cerr << "Usage: ./client <storage-backend-url> <paths-file> <destination-url> <compression-batch-size>" << '\n';
+        std::cerr << "Usage: ./client <storage-backend-url> <paths-file> <destination-url> <compression-batch-size>\n";
         return 1;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     std::string const storage_url{argv[1]};
     if (storage_url.empty()) {
-        std::cerr << "storage-backend-url cannot be empty." << '\n';
+        std::cerr << "storage-backend-url cannot be empty.\n";
         return 1;
     }
 
     std::string const paths_file{argv[2]};
     if (paths_file.empty()) {
-        std::cerr << "paths-file cannot be empty." << '\n';
+        std::cerr << "paths-file cannot be empty.\n";
         return 1;
     }
     if (false == std::filesystem::exists(std::filesystem::path(paths_file))) {
-        std::cerr << "paths-file " << paths_file << " does not exist."
+        std::cerr << "paths-file " << paths_file << " does not exist.\n";
         return 1;
     }
 
     std::string const destination_url{argv[3]};
     if (destination_url.empty()) {
-        std::cerr << "destination-url cannot be empty." << '\n';
+        std::cerr << "destination-url cannot be empty.\n";
         return 1;
     }
 
     int const batch_size = std::atoi(argv[4]);
     if (batch_size <= 0) {
-        std::cerr << "batch-size must be > 0" << '\n';
+        std::cerr << "batch-size must be > 0\n";
         return 1;
     }
     
