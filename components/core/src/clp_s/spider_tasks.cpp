@@ -11,6 +11,7 @@
 #include <curl/curl.h>
 #include <spider/client/spider.hpp>
 #include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include "JsonParser.hpp"
@@ -104,7 +105,12 @@ void cleanup_generated_archives(std::string archives_path) {
 
 // Task function implementation
 int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, std::string destination) {
+    auto stderr_logger = spdlog::stderr_logger_st("stderr");
+    spdlog::set_default_logger(stderr_logger);
+    spdlog::set_pattern("%Y-%m-%dT%H:%M:%S.%e%z [%l] %v");
+
     clp::CurlGlobalInstance const curl_global_instance;
+
     clp_s::JsonParserOption option{};
     for (auto &path : s3_paths) {
         option.input_paths.emplace_back(clp_s::Path{.source = clp_s::InputSource::Network, .path = std::move(path)});
@@ -120,6 +126,7 @@ int compress(spider::TaskContext& context, std::vector<std::string> s3_paths, st
     option.single_file_archive = true;
     option.network_auth = clp_s::NetworkAuthOption{.method = clp_s::AuthMethod::S3PresignedUrlV4};
     try {
+        std::filesystem::create_directory(option.archives_dir);
         clp_s::JsonParser parser{option};
         if (false == parser.parse_from_ir()) {
             throw std::runtime_error("Encountered error during parsing.");
