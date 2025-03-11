@@ -24,6 +24,7 @@
 #include "Defs.hpp"
 #include "InputConfig.hpp"
 #include "JsonParser.hpp"
+#include "TimestampPattern.hpp"
 #include "Utils.hpp"
 
 namespace {
@@ -145,6 +146,7 @@ int compress(
     spdlog::set_pattern("%Y-%m-%dT%H:%M:%S.%e%z [%l] %v");
 
     clp::CurlGlobalInstance const curl_global_instance;
+    clp_s::TimestampPattern::init();
 
     clp_s::JsonParserOption option{};
     for (auto& path : s3_paths) {
