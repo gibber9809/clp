@@ -605,6 +605,7 @@ bool JsonParser::parse() {
             m_archive_writer->close();
             return false;
         }
+        m_successfully_compressed_paths.emplace_back(path.path);
     }
     return true;
 }
@@ -1005,6 +1006,7 @@ auto JsonParser::parse_from_ir() -> bool {
         curr_pos = decompressor.get_pos();
         m_archive_writer->increment_uncompressed_size(curr_pos - last_pos);
         decompressor.close();
+        m_successfully_compressed_paths.emplace_back(path.path);
     }
     return true;
 }

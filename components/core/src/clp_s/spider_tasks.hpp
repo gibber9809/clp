@@ -11,7 +11,7 @@
  * @param s3_paths vector of s3 object URLs
  * @param destination
  * @param timestamp_key
- * @return The sum of x and y.
+ * @return The list of paths that were ingested succesfully.
  */
 int compress(
         spider::TaskContext& context,

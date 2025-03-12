@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <set>
 
 #include <boost/uuid/random_generator.hpp>
 #include <curl/curl.h>
@@ -135,7 +136,7 @@ void cleanup_generated_archives(std::string archives_path) {
 }  // namespace
 
 // Task function implementation
-int compress(
+std::vector<std::string> compress(
         spider::TaskContext& context,
         std::vector<std::string> s3_paths,
         std::string destination,
@@ -144,6 +145,10 @@ int compress(
     auto stderr_logger = spdlog::stderr_logger_st("stderr");
     spdlog::set_default_logger(stderr_logger);
     spdlog::set_pattern("%Y-%m-%dT%H:%M:%S.%e%z [%l] %v");
+
+    if (s3_paths.empty()) {
+        return std::vector<std::string>{};
+    }
 
     clp::CurlGlobalInstance const curl_global_instance;
     clp_s::TimestampPattern::init();
@@ -165,29 +170,33 @@ int compress(
     option.compression_level = 3;
     option.single_file_archive = true;
     option.network_auth = clp_s::NetworkAuthOption{.method = clp_s::AuthMethod::S3PresignedUrlV4};
-    // TODO-4UBER: Can we add a new parameter in the compress(), then we can put the successfully ingested raw data in it
-    // This also needs modify the parse_from_ir() like we discussed before
+    std::vector<std::string> successful_paths;
     try {
         std::filesystem::create_directory(option.archives_dir);
         clp_s::JsonParser parser{option};
         if (false == parser.parse_from_ir()) {
-            throw std::runtime_error("Encountered error during parsing.");
-            return 1;
+            successful_paths = parser.get_successfully_compressed_paths();
+            if (successful_paths.empty()) {
+                cleanup_generated_archives(option.archives_dir);
+                SPDLOG_ERROR("Failed to compress all input paths.");
+                return std::vector<std::string>{};
+            }
         }
         parser.store();
         // trigger upload
         if (false == upload_all_files_in_directory(option.archives_dir, destination)) {
-            throw std::runtime_error("Encountered error during upload.");
-            return 1;
+            cleanup_generated_archives(option.archives_dir);
+            SPDLOG_ERROR("Encountered error during upload.");
+            return std::vector<std::string>{};
         }
     } catch (std::exception const& e) {
         cleanup_generated_archives(option.archives_dir);
-        throw e;
-        return 1;
+        SPDLOG_ERROR("Encountered exception during ingestion - {}", e.what());
+        return std::vector<std::string>{};
     }
 
     cleanup_generated_archives(option.archives_dir);
-    return 0;
+    return successful_paths;
 }
 
 // Register the task with Spider

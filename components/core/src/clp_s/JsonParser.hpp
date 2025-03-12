@@ -88,6 +88,12 @@ public:
      */
     void store();
 
+
+    /**
+     * Gets the list of all paths that were compressed without running into an error.
+     */
+    std::vector<std::string> const& get_successfully_compressed_paths() const { return m_successfully_compressed_paths; }
+
 private:
     /**
      * Parses a JSON line
@@ -230,6 +236,8 @@ private:
     bool m_structurize_arrays{false};
     bool m_record_log_order{true};
     bool m_no_archive_split{false};
+
+    std::vector<std::string> m_successfully_compressed_paths;
 
     absl::flat_hash_map<std::pair<uint32_t, NodeType>, std::pair<int32_t, bool>>
             m_ir_node_to_archive_node_id_mapping;
