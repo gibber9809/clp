@@ -164,6 +164,8 @@ int compress(
     option.compression_level = 3;
     option.single_file_archive = true;
     option.network_auth = clp_s::NetworkAuthOption{.method = clp_s::AuthMethod::S3PresignedUrlV4};
+    // TODO-4UBER: Can we add a new parameter in the compress(), then we can put the successfully ingested raw data in it
+    // This also needs modify the parse_from_ir() like we discussed before
     try {
         std::filesystem::create_directory(option.archives_dir);
         clp_s::JsonParser parser{option};

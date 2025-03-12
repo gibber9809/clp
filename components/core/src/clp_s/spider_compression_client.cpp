@@ -34,6 +34,10 @@ private:
     std::ifstream m_stream;
 };
 
+std::vector<std::string> get_ingestion_urls() {
+
+}
+
 // NOLINTBEGIN(bugprone-exception-escape)
 auto main(int argc, char const* argv[]) -> int {
     // Parse the storage backend URL from the command line arguments
@@ -84,6 +88,8 @@ auto main(int argc, char const* argv[]) -> int {
     std::vector<spider::Job<int>> jobs;
     InputFileIterator it{paths_file};
 
+    // TODO-4UBER: Can we use the get_ingestion_urls() defined above the main() to get the ingestion URLS
+    // I will replace it with some terrablob file listing logic later
     while (false == it.done()) {
         std::vector<std::string> ingestion_urls;
         std::string ingestion_url;
