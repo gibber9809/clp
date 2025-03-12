@@ -88,7 +88,8 @@ JsonParser::JsonParser(JsonParserOption const& option)
           m_structurize_arrays(option.structurize_arrays),
           m_record_log_order(option.record_log_order),
           m_input_paths(option.input_paths),
-          m_network_auth(option.network_auth) {
+          m_network_auth(option.network_auth),
+          m_no_archive_split(option.no_archive_split) {
     if (false == m_timestamp_key.empty()) {
         if (false
             == clp_s::StringUtils::tokenize_column_descriptor(
@@ -566,7 +567,7 @@ bool JsonParser::parse() {
                     ->append_message(current_schema_id, m_current_schema, m_current_parsed_message);
 
             bytes_consumed_up_to_prev_record = json_file_iterator.get_num_bytes_consumed();
-            if (m_archive_writer->get_data_size() >= m_target_encoded_size) {
+            if (false == m_no_archive_split && m_archive_writer->get_data_size() >= m_target_encoded_size) {
                 m_archive_writer->increment_uncompressed_size(
                         bytes_consumed_up_to_prev_record - bytes_consumed_up_to_prev_archive
                 );
@@ -972,7 +973,7 @@ auto JsonParser::parse_from_ir() -> bool {
                     return false;
                 }
 
-                if (m_archive_writer->get_data_size() >= m_target_encoded_size) {
+                if (false == m_no_archive_split && m_archive_writer->get_data_size() >= m_target_encoded_size) {
                     m_ir_node_to_archive_node_id_mapping.clear();
                     m_autogen_ir_node_to_archive_node_id_mapping.clear();
                     curr_pos = decompressor.get_pos();

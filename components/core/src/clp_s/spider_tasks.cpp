@@ -159,6 +159,7 @@ int compress(
     option.timestamp_key = timestamp_key;
     option.archives_dir = fmt::format("/tmp/{}/", boost::uuids::to_string(context.get_id()));
     option.target_encoded_size = 512 * 1024 * 1024;  // 512 MiB
+    option.no_archive_split = true;
     option.max_document_size = 512 * 1024 * 1024;  // 512 MiB
     option.min_table_size = 1 * 1024 * 1024;
     option.compression_level = 3;
