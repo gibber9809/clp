@@ -34,8 +34,14 @@ private:
     std::ifstream m_stream;
 };
 
-std::vector<std::string> get_ingestion_urls() {
-
+std::vector<std::string> get_ingestion_urls(std::string const& input_path) {
+    std::vector<std::string> ingestion_urls;
+    InputFileIterator it{input_path};
+    std::string url;
+    while (it.get_next_line(url)) {
+        ingestion_urls.emplace_back(std::move(url));
+    }
+    return ingestion_urls;
 }
 
 // NOLINTBEGIN(bugprone-exception-escape)
@@ -86,20 +92,16 @@ auto main(int argc, char const* argv[]) -> int {
 
     // Submit tasks for execution
     std::vector<spider::Job<int>> jobs;
-    InputFileIterator it{paths_file};
 
-    // TODO-4UBER: Can we use the get_ingestion_urls() defined above the main() to get the ingestion URLS
-    // I will replace it with some terrablob file listing logic later
-    while (false == it.done()) {
-        std::vector<std::string> ingestion_urls;
-        std::string ingestion_url;
-        while (ingestion_urls.size() < batch_size && it.get_next_line(ingestion_url)) {
-            ingestion_urls.emplace_back(std::move(ingestion_url));
+    auto const urls = get_ingestion_urls();
+    auto it = urls.begin();
+    while (it != urls.end()) {
+        std::vector<std::string> batched_urls;
+        while (batched_urls.size() < batch_size && it != urls.end()) {
+            batched_urls.emplace_back(std::move(*it));
+            ++it;
         }
-
-        std::cerr << ingestion_urls.size() << " " << destination_url << '\n';
-
-        jobs.emplace_back(driver.start(&compress, ingestion_urls, destination_url, timestamp_key));
+        jobs.emplace_back(driver.start(&compress, batched_urls, destination_url, timestamp_key));
     }
 
     // Wait for the jobs to complete
