@@ -31,8 +31,7 @@
 namespace {
 std::string get_upload_name_from_path(std::filesystem::path archive_path) {
     // Extract timestamp range metadata by simply reading archive metadata
-    std::string postfix = "_0_" + std::to_string(clp_s::cEpochTimeMax);
-    std::string archive_name = archive_path.stem().string();
+    std::string archive_name = "0-" + std::to_string(clp_s::cEpochTimeMax) + ".clps";
     clp_s::ArchiveReader reader;
     auto path
             = clp_s::Path{.source = clp_s::InputSource::Filesystem, .path = archive_path.string()};
@@ -41,11 +40,10 @@ std::string get_upload_name_from_path(std::filesystem::path archive_path) {
     auto it = timestamp_dict->tokenized_column_to_range_begin();
     if (timestamp_dict->tokenized_column_to_range_end() != it) {
         auto range = it->second;
-        postfix = "_" + std::to_string(range->get_begin_timestamp()) + "_"
-                  + std::to_string(range->get_end_timestamp());
+        archive_name = std::to_string(range->get_begin_timestamp()) + "-" + std::to_string(range->get_end_timestamp()) + ".clps";
     }
     reader.close();
-    return archive_name + postfix;
+    return archive_name;
 }
 
 bool upload_all_files_in_directory(std::string const& directory, std::string const& destination) {
