@@ -91,9 +91,9 @@ auto main(int argc, char const* argv[]) -> int {
     spider::Driver driver{storage_url};
 
     // Submit tasks for execution
-    std::vector<spider::Job<int>> jobs;
+    std::vector<spider::Job<std::vector<std::string>>> jobs;
 
-    auto const urls = get_ingestion_urls();
+    auto const urls = get_ingestion_urls(paths_file);
     auto it = urls.begin();
     while (it != urls.end()) {
         std::vector<std::string> batched_urls;

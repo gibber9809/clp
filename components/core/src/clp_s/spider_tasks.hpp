@@ -13,7 +13,7 @@
  * @param timestamp_key
  * @return The list of paths that were ingested succesfully.
  */
-int compress(
+std::vector<std::string> compress(
         spider::TaskContext& context,
         std::vector<std::string> s3_paths,
         std::string destination,
