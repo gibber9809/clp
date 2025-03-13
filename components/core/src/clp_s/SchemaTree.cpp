@@ -118,5 +118,4 @@ int32_t SchemaTree::find_matching_subtree_root_in_subtree(
     }
     return earliest_match;
 }
-
 }  // namespace clp_s
