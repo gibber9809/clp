@@ -8,8 +8,8 @@
 #include <string>
 #include <system_error>
 #include <tuple>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include <json/single_include/nlohmann/json.hpp>
 #include <outcome/single-header/outcome.hpp>
@@ -533,7 +533,9 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
             auto const literal_type = node_and_value_to_literal_type(node_type, pair.second);
             if (col->matches_type(literal_type)) {
                 matched_any = true;
-                if (EvaluatedValue::True == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second)) {
+                if (EvaluatedValue::True
+                    == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second))
+                {
                     return EvaluatedValue::True;
                 }
             }
@@ -544,7 +546,9 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
             auto const literal_type = node_and_value_to_literal_type(node_type, pair.second);
             if (col->matches_type(literal_type)) {
                 matched_any = true;
-                if (EvaluatedValue::True == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second)) {
+                if (EvaluatedValue::True
+                    == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second))
+                {
                     return EvaluatedValue::True;
                 }
             }
@@ -562,7 +566,8 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
     }
 
     bool autogen{clp_s::constants::cAutogenNamespace == col->get_namespace()};
-    KeyValuePairLogEvent::NodeIdValuePairs const& relevant_field_pairs = autogen ? node_id_value_pairs.first : node_id_value_pairs.second;
+    KeyValuePairLogEvent::NodeIdValuePairs const& relevant_field_pairs
+            = autogen ? node_id_value_pairs.first : node_id_value_pairs.second;
     for (SchemaTree::Node::id_t id : matching_nodes_it->second) {
         auto it = relevant_field_pairs.find(id);
         if (relevant_field_pairs.end() != it) {
@@ -574,8 +579,9 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
     if (false == matched_node_id.has_value()) {
         return EvaluatedValue::Prune;
     }
-    
-    std::shared_ptr<SchemaTree> const& relevant_schema_tree = autogen ? m_auto_gen_keys_schema_tree : m_user_gen_keys_schema_tree;
+
+    std::shared_ptr<SchemaTree> const& relevant_schema_tree
+            = autogen ? m_auto_gen_keys_schema_tree : m_user_gen_keys_schema_tree;
     auto const node_type = relevant_schema_tree->get_node(matched_node_id.value()).get_type();
     auto const& value = relevant_field_pairs.at(matched_node_id.value());
     auto const literal_type = node_and_value_to_literal_type(node_type, value);
@@ -585,8 +591,6 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
 
     return clp::ffi::ir_stream::evaluate(expr, literal_type, value);
 }
-
-
 }  // namespace clp::ffi::ir_stream
 
 #endif  // CLP_FFI_IR_STREAM_DESERIALIZER_HPP
