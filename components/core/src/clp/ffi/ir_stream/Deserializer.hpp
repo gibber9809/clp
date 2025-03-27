@@ -18,6 +18,7 @@
 #include "../../../clp_s/search/AndExpr.hpp"
 #include "../../../clp_s/search/Expression.hpp"
 #include "../../../clp_s/search/FilterExpr.hpp"
+#include "../../../clp_s/search/EmptyExpr.hpp"
 #include "../../../clp_s/search/FilterOperation.hpp"
 #include "../../../clp_s/search/OrExpr.hpp"
 #include "../../ReaderInterface.hpp"
@@ -459,8 +460,10 @@ auto Deserializer<IrUnitHandler>::evaluate(
                 KeyValuePairLogEvent::NodeIdValuePairs,
                 KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
 ) -> EvaluatedValue {
-    if (nullptr == m_query) {
+    if (nullptr == m_query.get()) {
         return EvaluatedValue::True;
+    } else if (nullptr != dynamic_cast<clp_s::search::EmptyExpr*>(m_query.get())) {
+        return EvaluatedValue::False;
     }
 
     return evaluate_recursive(m_query.get(), node_id_value_pairs);
@@ -474,7 +477,6 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
                 KeyValuePairLogEvent::NodeIdValuePairs,
                 KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
 ) -> EvaluatedValue {
-    // TODO: EmptyExpr?
     if (auto and_expr = dynamic_cast<clp_s::search::AndExpr*>(expr); nullptr != and_expr) {
         bool encountered_unknown{false};
         for (auto it = and_expr->op_begin(); it != and_expr->op_end(); ++it) {
