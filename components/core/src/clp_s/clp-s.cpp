@@ -486,13 +486,14 @@ int main(int argc, char const* argv[]) {
                     // SPDLOG_INFO("MATCHED");
                     auto result = kv_log_event.serialize_to_json();
                     if (result.has_error()) {
-                        SPDLOG_INFO("MATCHED BUT DESER ERROR");
+                        std::cout << "MATCHED BUT DESER ERROR" << '\n';
                         continue;
                     }
                     auto const& [autogen, usergen] = result.value();
-                    SPDLOG_INFO("{}{}", autogen.dump(), usergen.dump());
+                    std::cout << autogen.dump() << usergen.dump() << '\n';
                 }
             }
+            std::cout << std::flush;
             decompressor.close();
 
             /*try {
