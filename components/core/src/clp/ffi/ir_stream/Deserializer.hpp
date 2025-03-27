@@ -1,7 +1,6 @@
 #ifndef CLP_FFI_IR_STREAM_DESERIALIZER_HPP
 #define CLP_FFI_IR_STREAM_DESERIALIZER_HPP
 
-#include <algorithm>
 #include <concepts>
 #include <cstdint>
 #include <map>
@@ -10,6 +9,7 @@
 #include <system_error>
 #include <tuple>
 #include <vector>
+#include <utility>
 
 #include <json/single_include/nlohmann/json.hpp>
 #include <outcome/single-header/outcome.hpp>
@@ -170,6 +170,13 @@ private:
                     KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
     ) -> EvaluatedValue;
 
+    auto evaluate_filter(
+            clp_s::search::FilterExpr* expr,
+            std::pair<
+                    KeyValuePairLogEvent::NodeIdValuePairs,
+                    KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
+    ) -> EvaluatedValue;
+
     // Variables
     std::shared_ptr<SchemaTree> m_auto_gen_keys_schema_tree{std::make_shared<SchemaTree>()};
     std::shared_ptr<SchemaTree> m_user_gen_keys_schema_tree{std::make_shared<SchemaTree>()};
@@ -271,18 +278,19 @@ auto Deserializer<IrUnitHandler>::deserialize_next_ir_unit(ReaderInterface& read
                 return node_id_value_pairs_result.error();
             }
 
-            auto& [auto_gen_node_id_value_pairs,
-                   user_gen_node_id_value_pairs]{node_id_value_pairs_result.value()};
+            auto& node_id_value_pairs{node_id_value_pairs_result.value()};
 
-            // TODO: Schema Resolution
-            // matches_schema(autogen, usergen, m_query, m_resolutions)
-            // TODO: Filter and conditionally continue
+            auto evaluated_value = evaluate(node_id_value_pairs);
+            if (EvaluatedValue::True != evaluated_value) {
+                // TODO: decide what to do
+                return std::errc::no_message;
+            }
 
             auto result{KeyValuePairLogEvent::create(
                     m_auto_gen_keys_schema_tree,
                     m_user_gen_keys_schema_tree,
-                    std::move(auto_gen_node_id_value_pairs),
-                    std::move(user_gen_node_id_value_pairs),
+                    std::move(node_id_value_pairs.first),
+                    std::move(node_id_value_pairs.second),
                     m_utc_offset
             )};
             if (result.has_error()) {
@@ -435,7 +443,7 @@ void Deserializer<IrUnitHandler>::handle_resolution_update_step(
                 );
             }
         } else if (is_last_token && SchemaTree::Node::Type::Obj != node_locator.get_type()) {
-            if (col->matches_any(node_to_literal_type(node_locator.get_type()))
+            if (col->matches_any(node_to_literal_types(node_locator.get_type()))
                 && (cur_token->wildcard() || cur_token->get_token() == node_locator.get_key_name()))
             {
                 m_resolutions[col].push_back(node_id);
@@ -466,6 +474,7 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
                 KeyValuePairLogEvent::NodeIdValuePairs,
                 KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
 ) -> EvaluatedValue {
+    // TODO: EmptyExpr?
     if (auto and_expr = dynamic_cast<clp_s::search::AndExpr*>(expr); nullptr != and_expr) {
         bool encountered_unknown{false};
         for (auto it = and_expr->op_begin(); it != and_expr->op_end(); ++it) {
@@ -475,17 +484,11 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
                 return result;
             } else if (EvaluatedValue::False == result) {
                 return and_expr->is_inverted() ? EvaluatedValue::True : EvaluatedValue::False;
-            } else if (EvaluatedValue::Unknown == result) {
-                encountered_unknown = true;
             }
-        }
-        if (encountered_unknown) {
-            return EvaluatedValue::Unknown;
         }
         return and_expr->is_inverted() ? EvaluatedValue::False : EvaluatedValue::True;
     } else if (auto or_expr = dynamic_cast<clp_s::search::OrExpr*>(expr); nullptr != or_expr) {
         bool all_prune = true;
-        bool all_false = true;
         for (auto it = or_expr->op_begin(); it != or_expr->op_end(); ++it) {
             auto nested_expr = static_cast<clp_s::search::Expression*>(it->get());
             auto result = evaluate_recursive(nested_expr, node_id_value_pairs);
@@ -493,41 +496,97 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
                 return or_expr->is_inverted() ? EvaluatedValue::False : EvaluatedValue::True;
             } else if (EvaluatedValue::False == result) {
                 all_prune = false;
-            } else if (EvaluatedValue::Unknown == result) {
-                all_false = false;
-                all_prune = false;
             }
         }
-        if (all_false) {
-            return or_expr->is_inverted() ? EvaluatedValue::True : EvaluatedValue::False;
-        } else if (all_prune) {
+        if (all_prune) {
             return EvaluatedValue::Prune;
         }
-        return EvaluatedValue::Unknown;
+        return or_expr->is_inverted() ? EvaluatedValue::True : EvaluatedValue::False;
     } else {
-        auto filter_expr = static_cast<clp_s::search::FilterExpr*>(expr);
-        auto col = filter_expr->get_column().get();
-        auto op = filter_expr->get_operation();
-
-        if (col->is_pure_wildcard()) {
-            return EvaluatedValue::Unknown;
-        }
-        return EvaluatedValue::Unknown;
-
-        /*std::optional<SchemaTree::Node::id_t> node = std::nullopt;
-        if (clp_s::constants::cAutogenNamespace == col->get_namespace()) {
-            auto it = // lookup
-            if (it == end) {
-                return
-            }
-            for id in *it
-                auto col_it = auto_gen_node_id_value_pairs.find(id)
-                if (col_it != end)
+        auto const filter_expr = static_cast<clp_s::search::FilterExpr*>(expr);
+        auto const result = evaluate_filter(filter_expr, node_id_value_pairs);
+        if (EvaluatedValue::Prune == result) {
+            return EvaluatedValue::Prune;
+        } else if (false == filter_expr->is_inverted()) {
+            return result;
         } else {
-
-        }*/
+            return EvaluatedValue::True == result ? EvaluatedValue::False : EvaluatedValue::True;
+        }
     }
 }
+
+template <IrUnitHandlerInterface IrUnitHandler>
+requires(std::move_constructible<IrUnitHandler>)
+auto Deserializer<IrUnitHandler>::evaluate_filter(
+        clp_s::search::FilterExpr* expr,
+        std::pair<
+                KeyValuePairLogEvent::NodeIdValuePairs,
+                KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
+) -> EvaluatedValue {
+    auto const col = expr->get_column().get();
+
+    // Mimic clp-s behaviour of ignoring namespace on pure wildcard columns
+    if (col->is_pure_wildcard()) {
+        bool matched_any = false;
+        for (auto const& pair : node_id_value_pairs.first) {
+            auto const node_type = m_auto_gen_keys_schema_tree->get_node(pair.first).get_type();
+            auto const literal_type = node_and_value_to_literal_type(node_type, pair.second);
+            if (col->matches_type(literal_type)) {
+                matched_any = true;
+                if (EvaluatedValue::True == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second)) {
+                    return EvaluatedValue::True;
+                }
+            }
+        }
+
+        for (auto const& pair : node_id_value_pairs.second) {
+            auto const node_type = m_user_gen_keys_schema_tree->get_node(pair.first).get_type();
+            auto const literal_type = node_and_value_to_literal_type(node_type, pair.second);
+            if (col->matches_type(literal_type)) {
+                matched_any = true;
+                if (EvaluatedValue::True == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second)) {
+                    return EvaluatedValue::True;
+                }
+            }
+        }
+        if (false == matched_any) {
+            return EvaluatedValue::Prune;
+        }
+        return EvaluatedValue::False;
+    }
+
+    std::optional<SchemaTree::Node::id_t> matched_node_id{std::nullopt};
+    auto matching_nodes_it = m_resolutions.find(col);
+    if (m_resolutions.end() == matching_nodes_it) {
+        return EvaluatedValue::Prune;
+    }
+
+    bool autogen{clp_s::constants::cAutogenNamespace == col->get_namespace()};
+    KeyValuePairLogEvent::NodeIdValuePairs const& relevant_field_pairs = autogen ? node_id_value_pairs.first : node_id_value_pairs.second;
+    for (SchemaTree::Node::id_t id : matching_nodes_it->second) {
+        auto it = relevant_field_pairs.find(id);
+        if (relevant_field_pairs.end() != it) {
+            matched_node_id = id;
+            break;
+        }
+    }
+
+    if (false == matched_node_id.has_value()) {
+        return EvaluatedValue::Prune;
+    }
+    
+    std::shared_ptr<SchemaTree> const& relevant_schema_tree = autogen ? m_auto_gen_keys_schema_tree : m_user_gen_keys_schema_tree;
+    auto const node_type = relevant_schema_tree->get_node(matched_node_id.value()).get_type();
+    auto const& value = relevant_field_pairs.at(matched_node_id.value());
+    auto const literal_type = node_and_value_to_literal_type(node_type, value);
+    if (false == col->matches_type(literal_type)) {
+        return EvaluatedValue::Prune;
+    }
+
+    return clp::ffi::ir_stream::evaluate(expr, literal_type, value);
+}
+
+
 }  // namespace clp::ffi::ir_stream
 
 #endif  // CLP_FFI_IR_STREAM_DESERIALIZER_HPP
