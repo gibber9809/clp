@@ -65,12 +65,12 @@ auto preprocess_query(std::shared_ptr<Expression> expr) -> std::shared_ptr<Expre
     }
 
     OrOfAndForm standardize_pass;
-    if (expr = standardize_pass.run(expr); nullptr == std::dynamic_pointer_cast<EmptyExpr>(expr)) {
+    if (expr = standardize_pass.run(expr); nullptr != std::dynamic_pointer_cast<EmptyExpr>(expr)) {
         return expr;
     }
 
     NarrowTypes narrow_pass;
-    if (expr = narrow_pass.run(expr); nullptr == std::dynamic_pointer_cast<EmptyExpr>(expr)) {
+    if (expr = narrow_pass.run(expr); nullptr != std::dynamic_pointer_cast<EmptyExpr>(expr)) {
         return expr;
     }
 
