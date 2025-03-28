@@ -403,9 +403,14 @@ void Deserializer<IrUnitHandler>::initialize_partial_resolutions() {
                         clp_s::constants::cAutogenNamespace == col->get_namespace()
                 );
                 auto value = std::make_tuple(col, col->descriptor_begin());
-                if (false == col->get_descriptor_list().empty()) {
-                    // TODO clean up
-                    m_partial_resolutions[key].push_back(value);
+                if (col->get_descriptor_list().empty()) {
+                    continue;
+                }
+                m_partial_resolutions[key].push_back(value);
+                // Handle edgecase where prefix wildcard matches nothing
+                if (col->descriptor_begin()->wildcard()) {
+                    auto next_value = std::make_tuple(col, ++col->descriptor_begin());
+                    m_partial_resolutions.at(key).emplace_back(std::move(next_value));
                 }
             }
         }
