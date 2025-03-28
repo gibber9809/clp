@@ -15,12 +15,12 @@
 #include <outcome/single-header/outcome.hpp>
 
 #include "../../../clp_s/archive_constants.hpp"
-#include "../../../clp_s/search/AndExpr.hpp"
-#include "../../../clp_s/search/EmptyExpr.hpp"
-#include "../../../clp_s/search/Expression.hpp"
-#include "../../../clp_s/search/FilterExpr.hpp"
-#include "../../../clp_s/search/FilterOperation.hpp"
-#include "../../../clp_s/search/OrExpr.hpp"
+#include "../../../clp_s/search/ast/AndExpr.hpp"
+#include "../../../clp_s/search/ast/EmptyExpr.hpp"
+#include "../../../clp_s/search/ast/Expression.hpp"
+#include "../../../clp_s/search/ast/FilterExpr.hpp"
+#include "../../../clp_s/search/ast/FilterOperation.hpp"
+#include "../../../clp_s/search/ast/OrExpr.hpp"
 #include "../../ReaderInterface.hpp"
 #include "../../time_types.hpp"
 #include "../SchemaTree.hpp"
@@ -62,7 +62,7 @@ public:
     [[nodiscard]] static auto create(
             ReaderInterface& reader,
             IrUnitHandler ir_unit_handler,
-            std::shared_ptr<clp_s::search::Expression> query,
+            std::shared_ptr<clp_s::search::ast::Expression> query,
             std::vector<std::string> projection
     ) -> OUTCOME_V2_NAMESPACE::std_result<Deserializer>;
 
@@ -140,7 +140,7 @@ private:
     Deserializer(
             IrUnitHandler ir_unit_handler,
             nlohmann::json metadata,
-            std::shared_ptr<clp_s::search::Expression> query
+            std::shared_ptr<clp_s::search::ast::Expression> query
     )
             : m_ir_unit_handler{std::move(ir_unit_handler)},
               m_metadata(std::move(metadata)),
@@ -165,14 +165,14 @@ private:
     ) -> EvaluatedValue;
 
     auto evaluate_recursive(
-            clp_s::search::Expression* expr,
+            clp_s::search::ast::Expression* expr,
             std::pair<
                     KeyValuePairLogEvent::NodeIdValuePairs,
                     KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
     ) -> EvaluatedValue;
 
     auto evaluate_filter(
-            clp_s::search::FilterExpr* expr,
+            clp_s::search::ast::FilterExpr* expr,
             std::pair<
                     KeyValuePairLogEvent::NodeIdValuePairs,
                     KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
@@ -187,14 +187,15 @@ private:
     bool m_is_complete{false};
 
     // Search variables
-    std::shared_ptr<clp_s::search::Expression> m_query;
+    std::shared_ptr<clp_s::search::ast::Expression> m_query;
     std::map<
             std::tuple<SchemaTree::Node::id_t, bool>,
             std::vector<std::tuple<
-                    clp_s::search::ColumnDescriptor*,
-                    clp_s::search::DescriptorList::iterator>>>
+                    clp_s::search::ast::ColumnDescriptor*,
+                    clp_s::search::ast::DescriptorList::iterator>>>
             m_partial_resolutions;
-    std::map<clp_s::search::ColumnDescriptor*, std::vector<SchemaTree::Node::id_t>> m_resolutions;
+    std::map<clp_s::search::ast::ColumnDescriptor*, std::vector<SchemaTree::Node::id_t>>
+            m_resolutions;
     std::vector<SchemaTree::Node::id_t> m_schema_buffer;
 };
 
@@ -203,7 +204,7 @@ requires(std::move_constructible<IrUnitHandler>)
 auto Deserializer<IrUnitHandler>::create(
         ReaderInterface& reader,
         IrUnitHandler ir_unit_handler,
-        std::shared_ptr<clp_s::search::Expression> query,
+        std::shared_ptr<clp_s::search::ast::Expression> query,
         std::vector<std::string> projection
 ) -> OUTCOME_V2_NAMESPACE::std_result<Deserializer> {
     bool is_four_byte_encoded{};
@@ -383,16 +384,17 @@ void Deserializer<IrUnitHandler>::initialize_partial_resolutions() {
         return;
     }
 
-    std::vector<clp_s::search::Expression*> work_list;
+    std::vector<clp_s::search::ast::Expression*> work_list;
     work_list.push_back(m_query.get());
     while (false == work_list.empty()) {
         auto expr = work_list.back();
         work_list.pop_back();
         if (expr->has_only_expression_operands()) {
             for (auto it = expr->op_begin(); it != expr->op_end(); ++it) {
-                work_list.push_back(static_cast<clp_s::search::Expression*>(it->get()));
+                work_list.push_back(static_cast<clp_s::search::ast::Expression*>(it->get()));
             }
-        } else if (auto filter = dynamic_cast<clp_s::search::FilterExpr*>(expr); nullptr != filter)
+        } else if (auto filter = dynamic_cast<clp_s::search::ast::FilterExpr*>(expr);
+                   nullptr != filter)
         {
             auto col = filter->get_column().get();
             if (false == col->is_pure_wildcard()) {
@@ -470,16 +472,16 @@ auto Deserializer<IrUnitHandler>::evaluate(
 template <IrUnitHandlerInterface IrUnitHandler>
 requires(std::move_constructible<IrUnitHandler>)
 auto Deserializer<IrUnitHandler>::evaluate_recursive(
-        clp_s::search::Expression* expr,
+        clp_s::search::ast::Expression* expr,
         std::pair<
                 KeyValuePairLogEvent::NodeIdValuePairs,
                 KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
 ) -> EvaluatedValue {
     // TODO: EmptyExpr?
-    if (auto and_expr = dynamic_cast<clp_s::search::AndExpr*>(expr); nullptr != and_expr) {
+    if (auto and_expr = dynamic_cast<clp_s::search::ast::AndExpr*>(expr); nullptr != and_expr) {
         bool encountered_unknown{false};
         for (auto it = and_expr->op_begin(); it != and_expr->op_end(); ++it) {
-            auto nested_expr = static_cast<clp_s::search::Expression*>(it->get());
+            auto nested_expr = static_cast<clp_s::search::ast::Expression*>(it->get());
             auto result = evaluate_recursive(nested_expr, node_id_value_pairs);
             if (EvaluatedValue::Prune == result) {
                 return result;
@@ -488,10 +490,10 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
             }
         }
         return and_expr->is_inverted() ? EvaluatedValue::False : EvaluatedValue::True;
-    } else if (auto or_expr = dynamic_cast<clp_s::search::OrExpr*>(expr); nullptr != or_expr) {
+    } else if (auto or_expr = dynamic_cast<clp_s::search::ast::OrExpr*>(expr); nullptr != or_expr) {
         bool all_prune = true;
         for (auto it = or_expr->op_begin(); it != or_expr->op_end(); ++it) {
-            auto nested_expr = static_cast<clp_s::search::Expression*>(it->get());
+            auto nested_expr = static_cast<clp_s::search::ast::Expression*>(it->get());
             auto result = evaluate_recursive(nested_expr, node_id_value_pairs);
             if (EvaluatedValue::True == result) {
                 return or_expr->is_inverted() ? EvaluatedValue::False : EvaluatedValue::True;
@@ -504,7 +506,7 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
         }
         return or_expr->is_inverted() ? EvaluatedValue::True : EvaluatedValue::False;
     } else {
-        auto const filter_expr = static_cast<clp_s::search::FilterExpr*>(expr);
+        auto const filter_expr = static_cast<clp_s::search::ast::FilterExpr*>(expr);
         auto const result = evaluate_filter(filter_expr, node_id_value_pairs);
         if (EvaluatedValue::Prune == result) {
             return EvaluatedValue::Prune;
@@ -519,7 +521,7 @@ auto Deserializer<IrUnitHandler>::evaluate_recursive(
 template <IrUnitHandlerInterface IrUnitHandler>
 requires(std::move_constructible<IrUnitHandler>)
 auto Deserializer<IrUnitHandler>::evaluate_filter(
-        clp_s::search::FilterExpr* expr,
+        clp_s::search::ast::FilterExpr* expr,
         std::pair<
                 KeyValuePairLogEvent::NodeIdValuePairs,
                 KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs

@@ -8,27 +8,27 @@
 
 #include <string_utils/string_utils.hpp>
 
-#include "../../../clp_s/search/ConvertToExists.hpp"
-#include "../../../clp_s/search/EmptyExpr.hpp"
-#include "../../../clp_s/search/Expression.hpp"
-#include "../../../clp_s/search/FilterExpr.hpp"
-#include "../../../clp_s/search/FilterOperation.hpp"
-#include "../../../clp_s/search/Literal.hpp"
-#include "../../../clp_s/search/NarrowTypes.hpp"
-#include "../../../clp_s/search/OrOfAndForm.hpp"
+#include "../../../clp_s/search/ast/ConvertToExists.hpp"
+#include "../../../clp_s/search/ast/EmptyExpr.hpp"
+#include "../../../clp_s/search/ast/Expression.hpp"
+#include "../../../clp_s/search/ast/FilterExpr.hpp"
+#include "../../../clp_s/search/ast/FilterOperation.hpp"
+#include "../../../clp_s/search/ast/Literal.hpp"
+#include "../../../clp_s/search/ast/NarrowTypes.hpp"
+#include "../../../clp_s/search/ast/OrOfAndForm.hpp"
 #include "../SchemaTree.hpp"
 #include "../Value.hpp"
 
-using clp_s::search::ConvertToExists;
-using clp_s::search::EmptyExpr;
-using clp_s::search::Expression;
-using clp_s::search::FilterExpr;
-using clp_s::search::FilterOperation;
-using clp_s::search::Literal;
-using clp_s::search::LiteralType;
-using clp_s::search::LiteralTypeBitmask;
-using clp_s::search::NarrowTypes;
-using clp_s::search::OrOfAndForm;
+using clp_s::search::ast::ConvertToExists;
+using clp_s::search::ast::EmptyExpr;
+using clp_s::search::ast::Expression;
+using clp_s::search::ast::FilterExpr;
+using clp_s::search::ast::FilterOperation;
+using clp_s::search::ast::Literal;
+using clp_s::search::ast::LiteralType;
+using clp_s::search::ast::LiteralTypeBitmask;
+using clp_s::search::ast::NarrowTypes;
+using clp_s::search::ast::OrOfAndForm;
 
 namespace clp::ffi::ir_stream {
 namespace {
@@ -99,7 +99,7 @@ auto node_to_literal_types(SchemaTree::Node::Type node_type) -> LiteralTypeBitma
 
 auto
 node_and_value_to_literal_type(SchemaTree::Node::Type node_type, std::optional<Value> const& value)
-        -> clp_s::search::LiteralType {
+        -> LiteralType {
     switch (node_type) {
         case clp::ffi::SchemaTree::Node::Type::Int:
             return LiteralType::IntegerT;
