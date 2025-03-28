@@ -16,9 +16,9 @@
 
 #include "../../../clp_s/archive_constants.hpp"
 #include "../../../clp_s/search/AndExpr.hpp"
+#include "../../../clp_s/search/EmptyExpr.hpp"
 #include "../../../clp_s/search/Expression.hpp"
 #include "../../../clp_s/search/FilterExpr.hpp"
-#include "../../../clp_s/search/EmptyExpr.hpp"
 #include "../../../clp_s/search/FilterOperation.hpp"
 #include "../../../clp_s/search/OrExpr.hpp"
 #include "../../ReaderInterface.hpp"
@@ -443,7 +443,7 @@ void Deserializer<IrUnitHandler>::handle_resolution_update_step(
                         std::make_tuple(col, token_it)
                 );
             }
-        } else if (is_last_token && SchemaTree::Node::Type::Obj != node_locator.get_type()) {
+        } else if (is_last_token) {
             if (col->matches_any(node_to_literal_types(node_locator.get_type()))
                 && (cur_token->wildcard() || cur_token->get_token() == node_locator.get_key_name()))
             {
