@@ -450,7 +450,10 @@ void Deserializer<IrUnitHandler>::handle_resolution_update_step(
                         std::make_tuple(col, token_it)
                 );
             }
-        } else if (is_last_token) {
+        } else if (is_last_token
+                   || (false == is_last_token && token_it->wildcard()
+                       && col->descriptor_end() == ++token_it))
+        {
             if (col->matches_any(node_to_literal_types(node_locator.get_type()))
                 && (cur_token->wildcard() || cur_token->get_token() == node_locator.get_key_name()))
             {
