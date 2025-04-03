@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <memory>
+#include <string_view>
 #include <utility>
 
 #include "../../time_types.hpp"
@@ -22,7 +23,9 @@ concept IrUnitHandlerInterface = requires(
         UtcOffset utc_offset_old,
         UtcOffset utc_offset_new,
         SchemaTree::NodeLocator schema_tree_node_locator,
-        std::shared_ptr<SchemaTree const> schema_tree
+        std::shared_ptr<SchemaTree const> schema_tree,
+        SchemaTree::Node::id_t node_id,
+        std::string const& key_name
 ) {
     /**
      * Handles a log event IR unit.
@@ -56,6 +59,16 @@ concept IrUnitHandlerInterface = requires(
                 schema_tree_node_locator,
                 schema_tree
         )
+    } -> std::same_as<IRErrorCode>;
+
+    /**
+     * Handles projection resolution on a schema tree node insertion IR unit.
+     * @param is_auto_generated Whether the node is from the auto-gen keys schema tree.
+     * @param node_id The Id of the resolved node.
+     * @param key_name The full key name that has been resolved.
+     */
+    {
+        handler.handle_projection_resolution(is_auto_generated, node_id, key_name)
     } -> std::same_as<IRErrorCode>;
 
     /**
