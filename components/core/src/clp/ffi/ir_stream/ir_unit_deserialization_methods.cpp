@@ -598,13 +598,13 @@ auto deserialize_ir_unit_utc_offset_change(ReaderInterface& reader)
     return utc_offset;
 }
 
-auto deserialize_ir_unit_kv_pair_log_event(
+auto deserialize_ir_unit_kv_pair_log_event_node_id_value_pairs(
         ReaderInterface& reader,
-        encoded_tag_t tag,
-        std::shared_ptr<SchemaTree> auto_gen_keys_schema_tree,
-        std::shared_ptr<SchemaTree> user_gen_keys_schema_tree,
-        UtcOffset utc_offset
-) -> OUTCOME_V2_NAMESPACE::std_result<KeyValuePairLogEvent> {
+        encoded_tag_t tag
+)
+        -> OUTCOME_V2_NAMESPACE::std_result<std::pair<
+                KeyValuePairLogEvent::NodeIdValuePairs,
+                KeyValuePairLogEvent::NodeIdValuePairs>> {
     auto auto_gen_node_id_value_pairs_and_user_gen_schema_result{
             deserialize_auto_gen_node_id_value_pairs_and_user_gen_schema(reader, tag)
     };
@@ -632,12 +632,9 @@ auto deserialize_ir_unit_kv_pair_log_event(
         }
     }
 
-    return KeyValuePairLogEvent::create(
-            std::move(auto_gen_keys_schema_tree),
-            std::move(user_gen_keys_schema_tree),
+    return std::make_pair(
             std::move(auto_gen_node_id_value_pairs),
-            std::move(user_gen_node_id_value_pairs),
-            utc_offset
+            std::move(user_gen_node_id_value_pairs)
     );
 }
 }  // namespace clp::ffi::ir_stream
