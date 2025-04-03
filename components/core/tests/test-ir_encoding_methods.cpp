@@ -136,6 +136,15 @@ public:
         return IRErrorCode::IRErrorCode_Success;
     }
 
+    [[nodiscard]] auto handle_projection_resolution(
+            [[maybe_unused]] bool is_auto_generated,
+            [[maybe_unused]] clp::ffi::SchemaTree::Node::id_t node_id,
+            [[maybe_unused]] std::string const& key_name
+    ) -> IRErrorCode {
+        // TODO
+        return IRErrorCode::IRErrorCode_Success;
+    }
+
     [[nodiscard]] auto handle_end_of_stream() -> IRErrorCode {
         m_is_complete = true;
         return IRErrorCode::IRErrorCode_Success;
@@ -1326,7 +1335,9 @@ TEMPLATE_TEST_CASE(
 
     // Deserialize the results
     BufferReader reader{size_checked_pointer_cast<char>(ir_buf.data()), ir_buf.size()};
-    auto deserializer_result{Deserializer<IrUnitHandler>::create(reader, IrUnitHandler{})};
+    auto deserializer_result{
+            Deserializer<IrUnitHandler>::create(reader, IrUnitHandler{}, nullptr, {})
+    };
     REQUIRE_FALSE(deserializer_result.has_error());
     auto& deserializer = deserializer_result.value();
 
