@@ -1,7 +1,6 @@
 #ifndef CLP_FFI_IR_STREAM_IR_UNIT_DESERIALIZATION_METHODS_HPP
 #define CLP_FFI_IR_STREAM_IR_UNIT_DESERIALIZATION_METHODS_HPP
 
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>

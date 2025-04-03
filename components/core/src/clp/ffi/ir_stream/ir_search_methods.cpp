@@ -1,10 +1,8 @@
 #include "ir_search_methods.hpp"
 
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <optional>
-#include <tuple>
 
 #include <string_utils/string_utils.hpp>
 
@@ -32,30 +30,28 @@ using clp_s::search::ast::OrOfAndForm;
 
 namespace clp::ffi::ir_stream {
 namespace {
-auto evaluate_int_filter(
-        FilterOperation op,
-        std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
-) -> bool;
+auto
+evaluate_int_filter(FilterOperation op, std::shared_ptr<Literal> const& operand, Value const& value)
+        -> bool;
 auto evaluate_float_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool;
 auto evaluate_bool_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool;
 auto evaluate_var_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool;
 auto evaluate_clp_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool;
 }  // namespace
 
@@ -110,6 +106,9 @@ node_and_value_to_literal_type(SchemaTree::Node::Type node_type, std::optional<V
         case clp::ffi::SchemaTree::Node::Type::UnstructuredArray:
             return LiteralType::ArrayT;
         case clp::ffi::SchemaTree::Node::Type::Str:
+            if (false == value.has_value()) {
+                return LiteralType::UnknownT;
+            }
             if (value.value().is<std::string>()) {
                 return LiteralType::VarStringT;
             }
@@ -130,49 +129,51 @@ auto evaluate(FilterExpr* expr, LiteralType literal_type, std::optional<Value> c
     auto const op = expr->get_operation();
     if (FilterOperation::EXISTS == op) {
         return EvaluatedValue::True;
-    } else if (FilterOperation::NEXISTS == op) {
+    }
+    if (FilterOperation::NEXISTS == op) {
         return EvaluatedValue::False;
     }
 
     bool rval{false};
-    switch (literal_type) {
-        case LiteralType::IntegerT:
-            rval = evaluate_int_filter(op, expr->get_operand(), value);
-            break;
-        case LiteralType::FloatT:
-            rval = evaluate_float_filter(op, expr->get_operand(), value);
-            break;
-        case LiteralType::BooleanT:
-            rval = evaluate_bool_filter(op, expr->get_operand(), value);
-            break;
-        case LiteralType::VarStringT:
-            rval = evaluate_var_string_filter(op, expr->get_operand(), value);
-            break;
-        case LiteralType::ClpStringT:
-            rval = evaluate_clp_string_filter(op, expr->get_operand(), value);
-            break;
-        case LiteralType::ArrayT:
-        case LiteralType::NullT:
-        case LiteralType::EpochDateT:
-        case LiteralType::UnknownT:
-        default:
-            rval = false;
-            break;
+    if (value.has_value()) {
+        auto& internal_value = value.value();
+        switch (literal_type) {
+            case LiteralType::IntegerT:
+                rval = evaluate_int_filter(op, expr->get_operand(), internal_value);
+                break;
+            case LiteralType::FloatT:
+                rval = evaluate_float_filter(op, expr->get_operand(), internal_value);
+                break;
+            case LiteralType::BooleanT:
+                rval = evaluate_bool_filter(op, expr->get_operand(), internal_value);
+                break;
+            case LiteralType::VarStringT:
+                rval = evaluate_var_string_filter(op, expr->get_operand(), internal_value);
+                break;
+            case LiteralType::ClpStringT:
+                rval = evaluate_clp_string_filter(op, expr->get_operand(), internal_value);
+                break;
+            case LiteralType::ArrayT:
+            case LiteralType::NullT:
+            case LiteralType::EpochDateT:
+            case LiteralType::UnknownT:
+            default:
+                rval = false;
+                break;
+        }
     }
     return rval ? EvaluatedValue::True : EvaluatedValue::False;
 }
 
 namespace {
-auto evaluate_int_filter(
-        FilterOperation op,
-        std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
-) -> bool {
-    int64_t op_value;
+auto
+evaluate_int_filter(FilterOperation op, std::shared_ptr<Literal> const& operand, Value const& value)
+        -> bool {
+    int64_t op_value{};
     if (false == operand->as_int(op_value, op)) {
         return false;
     }
-    auto const extracted_value = value.value().get_immutable_view<clp::ffi::value_int_t>();
+    auto const extracted_value = value.get_immutable_view<clp::ffi::value_int_t>();
 
     switch (op) {
         case FilterOperation::EQ:
@@ -195,13 +196,13 @@ auto evaluate_int_filter(
 auto evaluate_float_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool {
-    double op_value;
+    double op_value{};
     if (false == operand->as_float(op_value, op)) {
         return false;
     }
-    auto const extracted_value = value.value().get_immutable_view<clp::ffi::value_float_t>();
+    auto const extracted_value = value.get_immutable_view<clp::ffi::value_float_t>();
 
     switch (op) {
         case FilterOperation::EQ:
@@ -224,13 +225,13 @@ auto evaluate_float_filter(
 auto evaluate_bool_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool {
-    bool op_value;
+    bool op_value{};
     if (false == operand->as_bool(op_value, op)) {
         return false;
     }
-    auto const extracted_value = value.value().get_immutable_view<clp::ffi::value_bool_t>();
+    auto const extracted_value = value.get_immutable_view<clp::ffi::value_bool_t>();
 
     switch (op) {
         case FilterOperation::EQ:
@@ -245,13 +246,13 @@ auto evaluate_bool_filter(
 auto evaluate_var_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool {
     std::string op_value;
     if (false == operand->as_var_string(op_value, op)) {
         return false;
     }
-    auto const extracted_value = value.value().get_immutable_view<std::string>();
+    auto const extracted_value = value.get_immutable_view<std::string>();
 
     switch (op) {
         case FilterOperation::EQ:
@@ -267,21 +268,19 @@ auto evaluate_var_string_filter(
 auto evaluate_clp_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        std::optional<Value> const& value
+        Value const& value
 ) -> bool {
     std::string op_value;
     if (false == operand->as_clp_string(op_value, op)) {
         return false;
     }
     std::string extracted_value;
-    if (value.value().is<clp::ir::EightByteEncodedTextAst>()) {
-        extracted_value = value.value()
-                                  .get_immutable_view<clp::ir::EightByteEncodedTextAst>()
+    if (value.is<clp::ir::EightByteEncodedTextAst>()) {
+        extracted_value = value.get_immutable_view<clp::ir::EightByteEncodedTextAst>()
                                   .decode_and_unparse()
                                   .value();
     } else {
-        extracted_value = value.value()
-                                  .get_immutable_view<clp::ir::FourByteEncodedTextAst>()
+        extracted_value = value.get_immutable_view<clp::ir::FourByteEncodedTextAst>()
                                   .decode_and_unparse()
                                   .value();
     }

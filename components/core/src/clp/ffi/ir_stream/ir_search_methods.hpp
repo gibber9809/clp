@@ -2,22 +2,16 @@
 #define CLP_FFI_IR_STREAM_SEARCH_METHODS_HPP
 
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <optional>
-#include <tuple>
 
 #include "../../../clp_s/search/ast/Expression.hpp"
 #include "../../../clp_s/search/ast/FilterExpr.hpp"
 #include "../../../clp_s/search/ast/Literal.hpp"
-#include "../KeyValuePairLogEvent.hpp"
 #include "../SchemaTree.hpp"
 #include "../Value.hpp"
 
 namespace clp::ffi::ir_stream {
-namespace {
-}
-
 enum class EvaluatedValue : uint8_t {
     True,
     False,
