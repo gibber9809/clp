@@ -62,6 +62,14 @@ public:
         return IRErrorCode::IRErrorCode_Success;
     }
 
+    [[nodiscard]] auto handle_projection_resolution(
+            [[maybe_unused]] bool is_auto_generated,
+            [[maybe_unused]] clp::ffi::SchemaTree::Node::id_t node_id,
+            [[maybe_unused]] std::string const& key_name
+    ) -> IRErrorCode {
+        return IRErrorCode::IRErrorCode_Success;
+    }
+
     [[nodiscard]] auto handle_end_of_stream() -> IRErrorCode {
         m_is_complete = true;
         return IRErrorCode::IRErrorCode_Success;
@@ -900,7 +908,7 @@ auto JsonParser::parse_from_ir() -> bool {
         decompressor.open(*reader, cDecompressorReadBufferCapacity);
 
         auto deserializer_result{
-                Deserializer<IrUnitHandler>::create(decompressor, IrUnitHandler{})
+                Deserializer<IrUnitHandler>::create(decompressor, IrUnitHandler{}, nullptr, {})
         };
         if (deserializer_result.has_error()) {
             auto err = deserializer_result.error();
