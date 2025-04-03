@@ -3,7 +3,7 @@
 
 #include <concepts>
 #include <memory>
-#include <string_view>
+#include <string>
 #include <utility>
 
 #include "../../time_types.hpp"
