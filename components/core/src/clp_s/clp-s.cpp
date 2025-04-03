@@ -13,7 +13,14 @@
 #include <spdlog/spdlog.h>
 
 #include "../clp/CurlGlobalInstance.hpp"
+#include "../clp/ffi/ir_stream/decoding_methods.hpp"
+#include "../clp/ffi/ir_stream/Deserializer.hpp"
+#include "../clp/ffi/ir_stream/IrUnitType.hpp"
+#include "../clp/ffi/KeyValuePairLogEvent.hpp"
+#include "../clp/ffi/SchemaTree.hpp"
+#include "../clp/ffi/Value.hpp"
 #include "../clp/GlobalMySQLMetadataDB.hpp"
+#include "../clp/ir/EncodedTextAst.hpp"
 #include "../clp/streaming_archive/ArchiveMetadata.hpp"
 #include "../reducer/network_utils.hpp"
 #include "CommandLineArguments.hpp"
@@ -43,7 +50,64 @@ using clp_s::cEpochTimeMin;
 using clp_s::CommandLineArguments;
 using clp_s::StringUtils;
 
+using clp::ffi::ir_stream::Deserializer;
+using clp::ffi::ir_stream::IRErrorCode;
+using clp::ffi::KeyValuePairLogEvent;
+using clp::UtcOffset;
+
 namespace {
+/**
+ * Class that implements `clp::ffi::ir_stream::IrUnitHandlerInterface` for Key-Value IR compression.
+ */
+class IrUnitHandler {
+public:
+    [[nodiscard]] auto handle_log_event(KeyValuePairLogEvent&& log_event) -> IRErrorCode {
+        m_deserialized_log_event.emplace(std::move(log_event));
+        return IRErrorCode::IRErrorCode_Success;
+    }
+
+    [[nodiscard]] static auto handle_utc_offset_change(
+            [[maybe_unused]] UtcOffset utc_offset_old,
+            [[maybe_unused]] UtcOffset utc_offset_new
+    ) -> IRErrorCode {
+        return IRErrorCode::IRErrorCode_Decode_Error;
+    }
+
+    [[nodiscard]] auto handle_schema_tree_node_insertion(
+            [[maybe_unused]] bool is_auto_generated,
+            [[maybe_unused]] clp::ffi::SchemaTree::NodeLocator schema_tree_node_locator,
+            [[maybe_unused]] std::shared_ptr<clp::ffi::SchemaTree const> const& schema_tree
+    ) -> IRErrorCode {
+        return IRErrorCode::IRErrorCode_Success;
+    }
+
+    [[nodiscard]] auto handle_projection_resolution(
+            [[maybe_unused]] bool is_auto_generated,
+            [[maybe_unused]] clp::ffi::SchemaTree::Node::id_t node_id,
+            [[maybe_unused]] std::string const& key_name
+    ) -> IRErrorCode {
+        return IRErrorCode::IRErrorCode_Success;
+    }
+
+    [[nodiscard]] auto handle_end_of_stream() -> IRErrorCode {
+        m_is_complete = true;
+        return IRErrorCode::IRErrorCode_Success;
+    }
+
+    [[nodiscard]] auto get_deserialized_log_event() const
+            -> std::optional<KeyValuePairLogEvent> const& {
+        return m_deserialized_log_event;
+    }
+
+    void clear() { m_is_complete = false; }
+
+    [[nodiscard]] auto is_complete() const -> bool { return m_is_complete; }
+
+private:
+    std::optional<KeyValuePairLogEvent> m_deserialized_log_event;
+    bool m_is_complete{false};
+};
+
 /**
  * Compresses the input files specified by the command line arguments into an archive.
  * @param command_line_arguments
@@ -354,6 +418,7 @@ int main(int argc, char const* argv[]) {
             return 1;
         }
 
+        /*
         int reducer_socket_fd{-1};
         if (command_line_arguments.get_output_handler_type()
             == CommandLineArguments::OutputHandlerType::Reducer)
@@ -367,11 +432,74 @@ int main(int argc, char const* argv[]) {
                 SPDLOG_ERROR("Failed to connect to reducer");
                 return 1;
             }
-        }
+        }*/
 
-        auto archive_reader = std::make_shared<clp_s::ArchiveReader>();
+        // auto archive_reader = std::make_shared<clp_s::ArchiveReader>();
         for (auto const& archive_path : command_line_arguments.get_input_paths()) {
-            try {
+            auto reader = clp_s::ReaderUtils::try_create_reader(
+                    archive_path,
+                    command_line_arguments.get_network_auth()
+            );
+            if (nullptr == reader) {
+                SPDLOG_ERROR("Failed to open IR stream");
+                return 1;
+            }
+
+            clp::streaming_compression::zstd::Decompressor decompressor;
+            decompressor.open(*reader, 64 * 1024);
+            auto deserializer_result{Deserializer<IrUnitHandler>::create(
+                    decompressor,
+                    IrUnitHandler{},
+                    expr,
+                    command_line_arguments.get_projection_columns()
+            )};
+            if (deserializer_result.has_error()) {
+                auto err = deserializer_result.error();
+                SPDLOG_ERROR(
+                        "Encountered error while creating IR stream {} {}",
+                        err.value(),
+                        err.message()
+                );
+                decompressor.close();
+                return 1;
+            }
+
+            auto& deserializer = deserializer_result.value();
+            auto& ir_unit_handler{deserializer.get_ir_unit_handler()};
+            while (true) {
+                auto const ir_unit_result{deserializer.deserialize_next_ir_unit(decompressor)};
+
+                if (ir_unit_result.has_error()) {
+                    auto err = ir_unit_result.error();
+                    if (err == std::errc::no_message) {
+                        continue;
+                    }
+                    SPDLOG_WARN(
+                            "Encountered error while deserializing {} {}",
+                            err.value(),
+                            err.message()
+                    );
+                    break;
+                }
+
+                if (ir_unit_result.value() == clp::ffi::ir_stream::IrUnitType::EndOfStream) {
+                    break;
+                } else if (ir_unit_result.value() == clp::ffi::ir_stream::IrUnitType::LogEvent) {
+                    auto const& kv_log_event = ir_unit_handler.get_deserialized_log_event().value();
+                    // SPDLOG_INFO("MATCHED");
+                    auto result = kv_log_event.serialize_to_json();
+                    if (result.has_error()) {
+                        std::cout << "MATCHED BUT DESER ERROR" << '\n';
+                        continue;
+                    }
+                    auto const& [autogen, usergen] = result.value();
+                    std::cout << autogen.dump() << usergen.dump() << '\n';
+                }
+            }
+            std::cout << std::flush;
+            decompressor.close();
+
+            /*try {
                 archive_reader->open(archive_path, command_line_arguments.get_network_auth());
             } catch (std::exception const& e) {
                 SPDLOG_ERROR("Failed to open archive - {}", e.what());
@@ -387,7 +515,7 @@ int main(int argc, char const* argv[]) {
             {
                 return 1;
             }
-            archive_reader->close();
+            archive_reader->close();*/
         }
     }
 
