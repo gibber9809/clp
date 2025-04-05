@@ -30,24 +30,60 @@ using clp_s::search::ast::OrOfAndForm;
 
 namespace clp::ffi::ir_stream {
 namespace {
+/**
+ * Evaluates an integer filter by comparing an operand and value according to a FilterOperation.
+ * @param op
+ * @param operand
+ * @param value
+ * @return The evaluated result.
+ */
 auto
 evaluate_int_filter(FilterOperation op, std::shared_ptr<Literal> const& operand, Value const& value)
         -> bool;
+/**
+ * Evaluates a floating point filter by comparing an operand and value according to a
+ * FilterOperation.
+ * @param op
+ * @param operand
+ * @param value
+ * @return The evaluated result.
+ */
 auto evaluate_float_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
         Value const& value
 ) -> bool;
+/**
+ * Evaluates a boolean filter by comparing an operand and value according to a FilterOperation.
+ * @param op
+ * @param operand
+ * @param value
+ * @return The evaluated result.
+ */
 auto evaluate_bool_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
         Value const& value
 ) -> bool;
+/**
+ * Evaluates a VarString filter by comparing an operand and value according to a FilterOperation.
+ * @param op
+ * @param operand
+ * @param value
+ * @return The evaluated result.
+ */
 auto evaluate_var_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
         Value const& value
 ) -> bool;
+/**
+ * Evaluates ClpString filter by comparing an operand and value according to a FilterOperation.
+ * @param op
+ * @param operand
+ * @param value
+ * @return The evaluated result.
+ */
 auto evaluate_clp_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,

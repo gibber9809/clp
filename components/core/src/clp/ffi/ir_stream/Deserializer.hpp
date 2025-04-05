@@ -155,22 +155,42 @@ private:
         initialize_partial_resolutions();
     }
 
-    // TODO
+    /**
+     * Initializes state necessary for column resolution.
+     */
     void initialize_partial_resolutions();
 
-    // TODO
+    /**
+     * Handles a step of column resolution for a newly added Node to the Schema Tree.
+     * @param is_auto_generated
+     * @param node_locator
+     * @param node_id
+     * @return Forwards `handle_projection_resolution`'s return values from the user-defined handler
+     * on failure.
+     */
     auto handle_resolution_update_step(
             bool is_auto_generated,
             SchemaTree::NodeLocator const& node_locator,
             SchemaTree::Node::id_t node_id
     ) -> IRErrorCode;
 
+    /**
+     * Evaluates a given log event against the query stored in `m_query`.
+     * @param node_id_value_pairs
+     * @return The evaluated result.
+     */
     auto evaluate(
             std::pair<
                     KeyValuePairLogEvent::NodeIdValuePairs,
                     KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
     ) -> EvaluatedValue;
 
+    /**
+     * Evaluates a given log event against an Expression recursively.
+     * @param expr
+     * @param node_id_value_pairs
+     * @return The evaluated result.
+     */
     auto evaluate_recursive(
             clp_s::search::ast::Expression* expr,
             std::pair<
@@ -178,6 +198,12 @@ private:
                     KeyValuePairLogEvent::NodeIdValuePairs> const& node_id_value_pairs
     ) -> EvaluatedValue;
 
+    /**
+     * Evaluates a given log event against a Filter Expression.
+     * @param expr
+     * @param node_id_value_pairs
+     * @return The evaluated result.
+     */
     auto evaluate_filter(
             clp_s::search::ast::FilterExpr* expr,
             std::pair<
