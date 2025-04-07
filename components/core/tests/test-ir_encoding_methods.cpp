@@ -1335,9 +1335,7 @@ TEMPLATE_TEST_CASE(
 
     // Deserialize the results
     BufferReader reader{size_checked_pointer_cast<char>(ir_buf.data()), ir_buf.size()};
-    auto deserializer_result{
-            Deserializer<IrUnitHandler>::create(reader, IrUnitHandler{}, nullptr, {})
-    };
+    auto deserializer_result{Deserializer<IrUnitHandler>::create(reader, IrUnitHandler{})};
     REQUIRE_FALSE(deserializer_result.has_error());
     auto& deserializer = deserializer_result.value();
 

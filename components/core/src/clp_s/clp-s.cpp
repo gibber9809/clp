@@ -451,7 +451,8 @@ int main(int argc, char const* argv[]) {
                     decompressor,
                     IrUnitHandler{},
                     expr,
-                    command_line_arguments.get_projection_columns()
+                    command_line_arguments.get_projection_columns(),
+                    false == command_line_arguments.get_ignore_case()
             )};
             if (deserializer_result.has_error()) {
                 auto err = deserializer_result.error();

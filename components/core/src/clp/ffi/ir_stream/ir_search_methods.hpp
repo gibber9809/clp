@@ -49,13 +49,15 @@ node_and_value_to_literal_type(SchemaTree::Node::Type node_type, std::optional<V
  * @param expr
  * @param literal_type
  * @param value
+ * @param case_sensitive_match
  * @return The result of the expression evalution -- either EvaluatedValue::True or
  * EvaluatedValue::False.
  */
 auto evaluate(
         clp_s::search::ast::FilterExpr* expr,
         clp_s::search::ast::LiteralType literal_type,
-        std::optional<Value> const& value
+        std::optional<Value> const& value,
+        bool case_sensitive_match
 ) -> EvaluatedValue;
 }  // namespace clp::ffi::ir_stream
 

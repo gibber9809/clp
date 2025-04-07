@@ -63,11 +63,33 @@ public:
      *   - the IR stream's version is unsupported;
      *   - or the IR stream's user-defined metadata is not a JSON object.
      */
+    [[nodiscard]] static auto create(ReaderInterface& reader, IrUnitHandler ir_unit_handler)
+            -> OUTCOME_V2_NAMESPACE::std_result<Deserializer>;
+
+    /**
+     * Creates a deserializer by reading the stream's preamble from the given reader.
+     * @param reader
+     * @param ir_unit_handler
+     * @param query
+     * @param projection
+     * @param case_sensitive
+     * @return A result containing the deserializer or an error code indicating the failure:
+     * - std::errc::result_out_of_range if the IR stream is truncated
+     * - std::errc::protocol_error if the IR stream is corrupted
+     * - std::errc::protocol_not_supported if either:
+     *   - the IR stream contains an unsupported metadata format;
+     *   - the IR stream's version is unsupported;
+     *   - or the IR stream's user-defined metadata is not a JSON object.
+     * - std::errc::invalid_argument if either:
+     *   - the projection contains repeated keys;
+     *   - or the projection contains any malformed keys.
+     */
     [[nodiscard]] static auto create(
             ReaderInterface& reader,
             IrUnitHandler ir_unit_handler,
             std::shared_ptr<clp_s::search::ast::Expression> query,
-            std::vector<std::string> projection
+            std::vector<std::string> projection,
+            bool case_sensitive_match
     ) -> OUTCOME_V2_NAMESPACE::std_result<Deserializer>;
 
     // Delete copy constructor and assignment
@@ -146,12 +168,14 @@ private:
             nlohmann::json metadata,
             std::shared_ptr<clp_s::search::ast::Expression> query,
             std::map<std::shared_ptr<clp_s::search::ast::ColumnDescriptor>, std::string>
-                    projected_column_to_original_key
+                    projected_column_to_original_key,
+            bool case_sensitive_match
     )
             : m_ir_unit_handler{std::move(ir_unit_handler)},
               m_metadata(std::move(metadata)),
               m_query(std::move(query)),
-              m_projected_column_to_original_key(std::move(projected_column_to_original_key)) {
+              m_projected_column_to_original_key(std::move(projected_column_to_original_key)),
+              m_case_sensitive_match(case_sensitive_match) {
         initialize_partial_resolutions();
     }
 
@@ -234,7 +258,21 @@ private:
     std::vector<SchemaTree::Node::id_t> m_schema_buffer;
     std::map<std::shared_ptr<clp_s::search::ast::ColumnDescriptor>, std::string>
             m_projected_column_to_original_key;
+    bool m_case_sensitive_match{false};
 };
+
+template <IrUnitHandlerInterface IrUnitHandler>
+requires(std::move_constructible<IrUnitHandler>)
+auto Deserializer<IrUnitHandler>::create(ReaderInterface& reader, IrUnitHandler ir_unit_handler)
+        -> OUTCOME_V2_NAMESPACE::std_result<Deserializer> {
+    return Deserializer<IrUnitHandler>::create(
+            reader,
+            std::move(ir_unit_handler),
+            nullptr,
+            {},
+            false
+    );
+}
 
 template <IrUnitHandlerInterface IrUnitHandler>
 requires(std::move_constructible<IrUnitHandler>)
@@ -242,7 +280,8 @@ auto Deserializer<IrUnitHandler>::create(
         ReaderInterface& reader,
         IrUnitHandler ir_unit_handler,
         std::shared_ptr<clp_s::search::ast::Expression> query,
-        std::vector<std::string> projection
+        std::vector<std::string> projection,
+        bool case_sensitive_match
 ) -> OUTCOME_V2_NAMESPACE::std_result<Deserializer> {
     bool is_four_byte_encoded{};
     if (auto const err{get_encoding_type(reader, is_four_byte_encoded)};
@@ -331,7 +370,8 @@ auto Deserializer<IrUnitHandler>::create(
             std::move(ir_unit_handler),
             std::move(metadata_json),
             std::move(query),
-            std::move(projected_column_to_original_key)
+            std::move(projected_column_to_original_key),
+            case_sensitive_match
     };
 }
 
@@ -665,7 +705,12 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
             if (col->matches_type(literal_type)) {
                 matched_any = true;
                 if (EvaluatedValue::True
-                    == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second))
+                    == clp::ffi::ir_stream::evaluate(
+                            expr,
+                            literal_type,
+                            pair.second,
+                            m_case_sensitive_match
+                    ))
                 {
                     return EvaluatedValue::True;
                 }
@@ -678,7 +723,12 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
             if (col->matches_type(literal_type)) {
                 matched_any = true;
                 if (EvaluatedValue::True
-                    == clp::ffi::ir_stream::evaluate(expr, literal_type, pair.second))
+                    == clp::ffi::ir_stream::evaluate(
+                            expr,
+                            literal_type,
+                            pair.second,
+                            m_case_sensitive_match
+                    ))
                 {
                     return EvaluatedValue::True;
                 }
@@ -720,7 +770,7 @@ auto Deserializer<IrUnitHandler>::evaluate_filter(
         return EvaluatedValue::Prune;
     }
 
-    return clp::ffi::ir_stream::evaluate(expr, literal_type, value);
+    return clp::ffi::ir_stream::evaluate(expr, literal_type, value, m_case_sensitive_match);
 }
 }  // namespace clp::ffi::ir_stream
 

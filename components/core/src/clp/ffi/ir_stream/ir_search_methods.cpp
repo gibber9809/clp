@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
+#include <utility>
 
 #include <string_utils/string_utils.hpp>
 
@@ -14,6 +16,7 @@
 #include "../../../clp_s/search/ast/Literal.hpp"
 #include "../../../clp_s/search/ast/NarrowTypes.hpp"
 #include "../../../clp_s/search/ast/OrOfAndForm.hpp"
+#include "../../ir/EncodedTextAst.hpp"
 #include "../SchemaTree.hpp"
 #include "../Value.hpp"
 
@@ -75,7 +78,8 @@ auto evaluate_bool_filter(
 auto evaluate_var_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        Value const& value
+        Value const& value,
+        bool case_sensitive_match
 ) -> bool;
 /**
  * Evaluates ClpString filter by comparing an operand and value according to a FilterOperation.
@@ -87,7 +91,8 @@ auto evaluate_var_string_filter(
 auto evaluate_clp_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        Value const& value
+        Value const& value,
+        bool case_sensitive_match
 ) -> bool;
 }  // namespace
 
@@ -160,8 +165,12 @@ node_and_value_to_literal_type(SchemaTree::Node::Type node_type, std::optional<V
     }
 }
 
-auto evaluate(FilterExpr* expr, LiteralType literal_type, std::optional<Value> const& value)
-        -> EvaluatedValue {
+auto evaluate(
+        FilterExpr* expr,
+        LiteralType literal_type,
+        std::optional<Value> const& value,
+        bool case_sensitive_match
+) -> EvaluatedValue {
     auto const op = expr->get_operation();
     if (FilterOperation::EXISTS == op) {
         return EvaluatedValue::True;
@@ -172,7 +181,7 @@ auto evaluate(FilterExpr* expr, LiteralType literal_type, std::optional<Value> c
 
     bool rval{false};
     if (value.has_value()) {
-        auto& internal_value = value.value();
+        auto const& internal_value = value.value();
         switch (literal_type) {
             case LiteralType::IntegerT:
                 rval = evaluate_int_filter(op, expr->get_operand(), internal_value);
@@ -184,10 +193,20 @@ auto evaluate(FilterExpr* expr, LiteralType literal_type, std::optional<Value> c
                 rval = evaluate_bool_filter(op, expr->get_operand(), internal_value);
                 break;
             case LiteralType::VarStringT:
-                rval = evaluate_var_string_filter(op, expr->get_operand(), internal_value);
+                rval = evaluate_var_string_filter(
+                        op,
+                        expr->get_operand(),
+                        internal_value,
+                        case_sensitive_match
+                );
                 break;
             case LiteralType::ClpStringT:
-                rval = evaluate_clp_string_filter(op, expr->get_operand(), internal_value);
+                rval = evaluate_clp_string_filter(
+                        op,
+                        expr->get_operand(),
+                        internal_value,
+                        case_sensitive_match
+                );
                 break;
             case LiteralType::ArrayT:
             case LiteralType::NullT:
@@ -282,7 +301,8 @@ auto evaluate_bool_filter(
 auto evaluate_var_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        Value const& value
+        Value const& value,
+        bool case_sensitive_match
 ) -> bool {
     std::string op_value;
     if (false == operand->as_var_string(op_value, op)) {
@@ -292,10 +312,18 @@ auto evaluate_var_string_filter(
 
     switch (op) {
         case FilterOperation::EQ:
-            return clp::string_utils::wildcard_match_unsafe(extracted_value, op_value, false);
+            return clp::string_utils::wildcard_match_unsafe(
+                    extracted_value,
+                    op_value,
+                    case_sensitive_match
+            );
         case FilterOperation::NEQ:
             return false
-                   == clp::string_utils::wildcard_match_unsafe(extracted_value, op_value, false);
+                   == clp::string_utils::wildcard_match_unsafe(
+                           extracted_value,
+                           op_value,
+                           case_sensitive_match
+                   );
         default:
             return false;
     }
@@ -304,7 +332,8 @@ auto evaluate_var_string_filter(
 auto evaluate_clp_string_filter(
         FilterOperation op,
         std::shared_ptr<Literal> const& operand,
-        Value const& value
+        Value const& value,
+        bool case_sensitive_match
 ) -> bool {
     std::string op_value;
     if (false == operand->as_clp_string(op_value, op)) {
@@ -312,21 +341,35 @@ auto evaluate_clp_string_filter(
     }
     std::string extracted_value;
     if (value.is<clp::ir::EightByteEncodedTextAst>()) {
-        extracted_value = value.get_immutable_view<clp::ir::EightByteEncodedTextAst>()
-                                  .decode_and_unparse()
-                                  .value();
+        auto optional_value{
+                value.get_immutable_view<clp::ir::EightByteEncodedTextAst>().decode_and_unparse()
+        };
+        if (optional_value.has_value()) {
+            extracted_value = std::move(optional_value.value());
+        }
     } else {
-        extracted_value = value.get_immutable_view<clp::ir::FourByteEncodedTextAst>()
-                                  .decode_and_unparse()
-                                  .value();
+        auto optional_value{
+                value.get_immutable_view<clp::ir::FourByteEncodedTextAst>().decode_and_unparse()
+        };
+        if (optional_value.has_value()) {
+            extracted_value = std::move(optional_value.value());
+        }
     }
 
     switch (op) {
         case FilterOperation::EQ:
-            return clp::string_utils::wildcard_match_unsafe(extracted_value, op_value, false);
+            return clp::string_utils::wildcard_match_unsafe(
+                    extracted_value,
+                    op_value,
+                    case_sensitive_match
+            );
         case FilterOperation::NEQ:
             return false
-                   == clp::string_utils::wildcard_match_unsafe(extracted_value, op_value, false);
+                   == clp::string_utils::wildcard_match_unsafe(
+                           extracted_value,
+                           op_value,
+                           case_sensitive_match
+                   );
         default:
             return false;
     }

@@ -908,7 +908,7 @@ auto JsonParser::parse_from_ir() -> bool {
         decompressor.open(*reader, cDecompressorReadBufferCapacity);
 
         auto deserializer_result{
-                Deserializer<IrUnitHandler>::create(decompressor, IrUnitHandler{}, nullptr, {})
+                Deserializer<IrUnitHandler>::create(decompressor, IrUnitHandler{})
         };
         if (deserializer_result.has_error()) {
             auto err = deserializer_result.error();
