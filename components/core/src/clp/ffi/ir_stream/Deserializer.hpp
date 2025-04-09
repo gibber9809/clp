@@ -236,11 +236,11 @@ private:
     ) -> EvaluatedValue;
 
     // Variables
+    IrUnitHandler m_ir_unit_handler;
     std::shared_ptr<SchemaTree> m_auto_gen_keys_schema_tree{std::make_shared<SchemaTree>()};
     std::shared_ptr<SchemaTree> m_user_gen_keys_schema_tree{std::make_shared<SchemaTree>()};
     nlohmann::json m_metadata;
     UtcOffset m_utc_offset{0};
-    IrUnitHandler m_ir_unit_handler;
     bool m_is_complete{false};
 
     // Search variables
