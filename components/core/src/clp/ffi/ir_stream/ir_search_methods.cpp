@@ -118,12 +118,13 @@ auto preprocess_query(std::shared_ptr<Expression> expr) -> std::shared_ptr<Expre
 auto node_to_literal_types(SchemaTree::Node::Type node_type) -> LiteralTypeBitmask {
     switch (node_type) {
         case SchemaTree::Node::Type::Int:
+            return LiteralType::IntegerT;
         case SchemaTree::Node::Type::Float:
-            return LiteralType::IntegerT | LiteralType::FloatT;
+            return LiteralType::FloatT;
         case SchemaTree::Node::Type::Bool:
             return LiteralType::BooleanT;
         case SchemaTree::Node::Type::Str:
-            return LiteralType::ClpStringT | LiteralType::VarStringT;
+            return LiteralType::ClpStringT | LiteralType::VarStringT | LiteralType::EpochDateT;
         case SchemaTree::Node::Type::UnstructuredArray:
             return LiteralType::ArrayT;
         case SchemaTree::Node::Type::Obj:
