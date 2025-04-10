@@ -31,6 +31,7 @@
 #include "search/ast/ConvertToExists.hpp"
 #include "search/ast/EmptyExpr.hpp"
 #include "search/ast/Expression.hpp"
+#include "search/ast/Literal.hpp"
 #include "search/ast/NarrowTypes.hpp"
 #include "search/ast/OrOfAndForm.hpp"
 #include "search/ast/SearchUtils.hpp"
@@ -445,13 +446,18 @@ int main(int argc, char const* argv[]) {
                 return 1;
             }
 
+            std::vector<std::pair<std::string, clp_s::search::ast::LiteralTypeBitmask>> projection;
+            for (auto const& column : command_line_arguments.get_projection_columns()) {
+                projection.emplace_back(std::make_pair(column, clp_s::search::ast::cAllTypes));
+            }
+
             clp::streaming_compression::zstd::Decompressor decompressor;
             decompressor.open(*reader, 64 * 1024);
             auto deserializer_result{Deserializer<IrUnitHandler>::create(
                     decompressor,
                     IrUnitHandler{},
                     expr,
-                    command_line_arguments.get_projection_columns(),
+                    projection,
                     false == command_line_arguments.get_ignore_case()
             )};
             if (deserializer_result.has_error()) {

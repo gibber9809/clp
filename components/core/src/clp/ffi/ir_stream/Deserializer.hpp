@@ -23,6 +23,7 @@
 #include "../../../clp_s/search/ast/Expression.hpp"
 #include "../../../clp_s/search/ast/FilterExpr.hpp"
 #include "../../../clp_s/search/ast/FilterOperation.hpp"
+#include "../../../clp_s/search/ast/Literal.hpp"
 #include "../../../clp_s/search/ast/OrExpr.hpp"
 #include "../../../clp_s/search/ast/SearchUtils.hpp"
 #include "../../ReaderInterface.hpp"
@@ -88,7 +89,7 @@ public:
             ReaderInterface& reader,
             IrUnitHandler ir_unit_handler,
             std::shared_ptr<clp_s::search::ast::Expression> query,
-            std::vector<std::string> projection,
+            std::vector<std::pair<std::string, clp_s::search::ast::LiteralTypeBitmask>> projection,
             bool case_sensitive_match
     ) -> OUTCOME_V2_NAMESPACE::std_result<Deserializer>;
 
@@ -280,7 +281,7 @@ auto Deserializer<IrUnitHandler>::create(
         ReaderInterface& reader,
         IrUnitHandler ir_unit_handler,
         std::shared_ptr<clp_s::search::ast::Expression> query,
-        std::vector<std::string> projection,
+        std::vector<std::pair<std::string, clp_s::search::ast::LiteralTypeBitmask>> projection,
         bool case_sensitive_match
 ) -> OUTCOME_V2_NAMESPACE::std_result<Deserializer> {
     bool is_four_byte_encoded{};
@@ -329,17 +330,17 @@ auto Deserializer<IrUnitHandler>::create(
     std::map<std::shared_ptr<clp_s::search::ast::ColumnDescriptor>, std::string>
             projected_column_to_original_key;
     for (auto& column : projection) {
-        if (unique_projected_columns.count(column)) {
+        if (unique_projected_columns.count(column.first)) {
             return std::errc::invalid_argument;
         }
 
-        unique_projected_columns.emplace(column);
+        unique_projected_columns.emplace(column.first);
 
         std::vector<std::string> descriptor_tokens;
         std::string descriptor_namespace;
         if (false
             == clp_s::search::ast::tokenize_column_descriptor(
-                    column,
+                    column.first,
                     descriptor_tokens,
                     descriptor_namespace
             ))
@@ -352,6 +353,7 @@ auto Deserializer<IrUnitHandler>::create(
                             descriptor_tokens,
                             descriptor_namespace
                     );
+            column_descriptor->set_matching_types(column.second);
             if (column_descriptor->is_unresolved_descriptor()
                 || column_descriptor->get_descriptor_list().empty())
             {
@@ -359,7 +361,7 @@ auto Deserializer<IrUnitHandler>::create(
             }
             projected_column_to_original_key.emplace(
                     std::move(column_descriptor),
-                    std::move(column)
+                    std::move(column.first)
             );
         } catch (std::exception const& e) {
             return std::errc::invalid_argument;
