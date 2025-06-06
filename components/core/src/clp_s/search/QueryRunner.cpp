@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 
+#include <string_utils/string_utils.h>
+
 #include "../../clp/EncodedVariableInterpreter.hpp"
 #include "../../clp/Grep.hpp"
 #include "../../clp/Query.hpp"
@@ -431,7 +433,7 @@ bool QueryRunner::evaluate_clp_string_filter(
             for (auto const& subquery : q->get_sub_queries()) {
                 if (subquery.matches_logtype(id) && subquery.matches_vars(vars)) {
                     if (subquery.wildcard_match_required()) {
-                        matched = StringUtils::wildcard_match_unsafe(
+                        matched = clp::string_utils::wildcard_match_unsafe(
                                 std::get<std::string>(reader->extract_value(m_cur_message)),
                                 q->get_search_string(),
                                 !q->get_ignore_case()
@@ -443,7 +445,7 @@ bool QueryRunner::evaluate_clp_string_filter(
                 }
             }
         } else {
-            matched = StringUtils::wildcard_match_unsafe(
+            matched = clp::string_utils::wildcard_match_unsafe(
                     std::get<std::string>(reader->extract_value(m_cur_message)),
                     q->get_search_string(),
                     !q->get_ignore_case()
@@ -537,7 +539,7 @@ bool QueryRunner::evaluate_array_filter_value(
         } break;
         case ondemand::json_type::string: {
             if (true == m_maybe_string && unresolved_tokens.size() == cur_idx
-                && StringUtils::wildcard_match_unsafe(
+                && clp::string_utils::wildcard_match_unsafe(
                         item.get_string().value(),
                         m_array_search_string,
                         false == m_ignore_case
@@ -677,7 +679,7 @@ bool QueryRunner::evaluate_wildcard_array_filter(
                 if (false == m_maybe_string) {
                     break;
                 }
-                if (StringUtils::wildcard_match_unsafe(
+                if (clp::string_utils::wildcard_match_unsafe(
                             item.get_string().value(),
                             m_array_search_string,
                             false == m_ignore_case
@@ -751,7 +753,7 @@ bool QueryRunner::evaluate_wildcard_array_filter(
                 if (false == m_maybe_string) {
                     break;
                 }
-                if (StringUtils::wildcard_match_unsafe(
+                if (clp::string_utils::wildcard_match_unsafe(
                             item.get_string().value(),
                             m_array_search_string,
                             false == m_ignore_case

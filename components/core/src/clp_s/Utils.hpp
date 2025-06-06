@@ -185,42 +185,6 @@ public:
     static bool is_wildcard(char c);
 
     /**
-     * Same as ``wildcard_match_unsafe_case_sensitive`` except this method
-     * allows the caller to specify whether the match should be case sensitive.
-     *
-     * @param tame The literal string
-     * @param wild The wildcard string
-     * @param case_sensitive_match Whether to consider case when matching
-     * @return Whether the two strings match
-     */
-    static bool wildcard_match_unsafe(
-            std::string_view tame,
-            std::string_view wild,
-            bool case_sensitive_match = true
-    );
-
-    /**
-     * Checks if a string matches a wildcard string. Two wildcards are currently
-     * supported: '*' to match 0 or more characters, and '?' to match any single
-     * character. Each can be escaped using a preceding '\'. Other characters which
-     * are escaped are treated as normal characters.
-     * <br/>
-     * This method is optimized for performance by omitting some checks on the
-     * wildcard string that are unnecessary if the caller cleans up the wildcard
-     * string as follows:
-     * <ul>
-     *   <li>The wildcard string should not contain consecutive '*'.</li>
-     *   <li>The wildcard string should not contain an escape character without a
-     *   character following it.</li>
-     * </ul>
-     *
-     * @param tame The literal string
-     * @param wild The wildcard string
-     * @return Whether the two strings match
-     */
-    static bool wildcard_match_unsafe_case_sensitive(std::string_view tame, std::string_view wild);
-
-    /**
      * Converts the given string to a 64-bit integer if possible
      * @param raw
      * @param converted
@@ -253,25 +217,6 @@ public:
     static void escape_json_string(std::string& destination, std::string_view const source);
 
 private:
-    /**
-     * Helper for ``wildcard_match_unsafe_case_sensitive`` to advance the
-     * pointer in tame to the next character which matches wild. This method
-     * should be inlined for performance.
-     * @param tame_current
-     * @param tame_bookmark
-     * @param tame_end
-     * @param wild_current
-     * @param wild_bookmark
-     * @return true on success, false if wild cannot match tame
-     */
-    static inline bool advance_tame_to_next_match(
-            char const*& tame_current,
-            char const*& tame_bookmark,
-            char const* tame_end,
-            char const*& wild_current,
-            char const*& wild_bookmark
-    );
-
     /**
      * Converts a character into its two byte hexadecimal representation.
      * @param c
