@@ -33,7 +33,6 @@
 #include "SchemaMatch.hpp"
 
 using namespace simdjson;
-using namespace clp_s::search::clp_search;
 
 namespace clp_s::search {
 /**
