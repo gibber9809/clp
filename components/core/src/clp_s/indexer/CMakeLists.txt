@@ -65,8 +65,6 @@ set(
         ../TimestampPattern.hpp
         ../Utils.cpp
         ../Utils.hpp
-        ../VariableDecoder.cpp
-        ../VariableDecoder.hpp
         ../ZstdCompressor.cpp
         ../ZstdCompressor.hpp
         ../ZstdDecompressor.cpp
