@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include <string_utils/string_utils.h>
+#include <string_utils/string_utils.hpp>
 
 #include "../../clp/EncodedVariableInterpreter.hpp"
 #include "../../clp/Grep.hpp"

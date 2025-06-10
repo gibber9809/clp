@@ -4,8 +4,6 @@
 #include <utility>
 #include <variant>
 
-#include <simdjson.h>
-
 #include "../clp/LogTypeDictionaryEntry.hpp"
 #include "DictionaryWriter.hpp"
 #include "FileWriter.hpp"

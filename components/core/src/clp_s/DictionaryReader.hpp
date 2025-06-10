@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 #include <boost/algorithm/string/case_conv.hpp>
-#include <string_utils/string_utils.h>
+#include <string_utils/string_utils.hpp>
 
 #include "../clp/LogTypeDictionaryEntry.hpp"
 #include "../clp/streaming_compression/zstd/Decompressor.hpp"

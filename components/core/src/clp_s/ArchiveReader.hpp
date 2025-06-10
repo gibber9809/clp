@@ -9,6 +9,7 @@
 
 #include "ArchiveReaderAdaptor.hpp"
 #include "DictionaryReader.hpp"
+#include "FileWriter.hpp"
 #include "InputConfig.hpp"
 #include "PackedStreamReader.hpp"
 #include "ReaderUtils.hpp"

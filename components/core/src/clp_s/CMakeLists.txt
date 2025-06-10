@@ -16,6 +16,8 @@ set(
         ../clp/CurlStringList.hpp
         ../clp/cli_utils.cpp
         ../clp/cli_utils.hpp
+        ../clp/database_utils.cpp
+        ../clp/database_utils.hpp
         ../clp/Defs.h
         ../clp/DictionaryEntry.hpp
         ../clp/DictionaryReader.hpp
@@ -146,8 +148,7 @@ set(
         ../clp/VariableDictionaryWriter.hpp
         ../clp/WriterInterface.cpp
         ../clp/WriterInterface.hpp
-        "${PROJECT_SOURCE_DIR}/submodules/sqlite3/sqlite3.c"
-        "${PROJECT_SOURCE_DIR}/submodules/sqlite3/sqlite3.h"
+        "${CLP_SQLITE3_SOURCE_DIRECTORY}/sqlite3.c"
 )
 
 # This library is intended as a temporary stand-in until clp has been packaged into libraries.
@@ -157,20 +158,28 @@ add_library(
 )
 add_library(clp_s::clp_dependencies ALIAS clp_s_clp_dependencies)
 target_compile_features(clp_s_clp_dependencies PRIVATE cxx_std_20)
+target_include_directories(
+        clp_s_clp_dependencies
+        PUBLIC
+        "${CLP_SQLITE3_INCLUDE_DIRECTORY}"
+)
 target_link_libraries(
         clp_s_clp_dependencies
         PUBLIC
         clp::string_utils
+        log_surgeon::log_surgeon
         ystdlib::containers
         PRIVATE
-        Boost::regex
+        Boost::filesystem Boost::regex
         ${CURL_LIBRARIES}
+        date::date
         fmt::fmt
         spdlog::spdlog
         ${sqlite_LIBRARY_DEPENDENCIES}
         MariaDBClient::MariaDBClient
         nlohmann_json::nlohmann_json
         OpenSSL::Crypto
+        yaml-cpp
         ystdlib::error_handling
         ZStd::ZStd
 )
@@ -288,8 +297,6 @@ set(
         TraceableException.hpp
         Utils.cpp
         Utils.hpp
-        VariableEncoder.cpp
-        VariableEncoder.hpp
 )
 
 add_library(
@@ -349,8 +356,6 @@ set(
         TraceableException.hpp
         Utils.cpp
         Utils.hpp
-        VariableDecoder.cpp
-        VariableDecoder.hpp
 )
 
 add_library(
@@ -364,11 +369,12 @@ target_link_libraries(
         clp_s_archive_reader
         PUBLIC
         absl::flat_hash_map
+        clp_s::clp_dependencies
         clp_s::io
+        clp::string_utils
         nlohmann_json::nlohmann_json
         PRIVATE
         Boost::url
-        clp_s::clp_dependencies
         clp_s::timestamp_pattern
         ${CURL_LIBRARIES}
         fmt::fmt
