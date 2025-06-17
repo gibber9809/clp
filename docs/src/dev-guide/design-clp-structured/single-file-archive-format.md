@@ -95,10 +95,11 @@ Header {
 The value in `compressed_archive_size` indicates the total size of the archive, including the size
 of the header. The `original_uncompressed_size` field indicates the total size of the data that was
 compressed into the archive. The interpretation of `original_uncompressed_size` changes somewhat
-based on what data was ingested into the archive. For example, when ingesting `ndjson`, the field
-records the number of bytes of raw JSON data ingested into the archive --- however, when ingesting
-KV-IR streams, the field records the number of decompressed bytes of KV-IR ingested into the archive
-(since KV-IR streams are typically compressed by a general purposed compressor before being stored).
+based on what data was ingested into the archive. For example, when ingesting newline-delimited
+JSON, the field records the number of bytes of raw JSON data ingested into the archive --- however,
+when ingesting KV-IR streams, the field records the number of decompressed bytes of KV-IR ingested
+into the archive (since KV-IR streams are typically compressed by a general purposed compressor
+before being stored).
 
 The `metadata_section_size` field indicates the _compressed_ size of the metadata section in bytes.
 This field can be used in combination with the `original_uncompressed_size` field and known header
@@ -106,6 +107,7 @@ size to determine the size and offset of both the `metadata` and `files` section
 
 The compression type for an archive indicates the general-purpose compressor used to compress each
 section of the archive, and is currently one of:
+
 * `0x0000` - ZStandard
 
 All `reserved_padding` fields are reserved for use in future versions of the single-file archive
@@ -143,6 +145,7 @@ unfamiliar with by simply skipping the corresponding content. Generally, this me
 design is intended to allow for some degree of forwards-compatibility and extensibility.
 
 Archives currently support the following metadata packet types, some of which are optional:
+
 * `0x00` - ArchiveInfo
 * `0x01` - ArchiveFileInfo
 * `0x02` - TimestampDictionary (optional)
@@ -200,7 +203,8 @@ for each file in the `files` section, ordered by their offset. Each file is desc
 ::::
 
 The ArchiveFileInfo packet has entries with the following names in order:
-* `"/schema_tree"` - the Merged Parse Tree
+
+* `"/schema_tree"` - the Merged Parse Tree (MPT)
 * `"/schema_ids"` - the Schema Map
 * `"/table_metadata"` - metadata describing the contents of the tables segments
 * `"/var.dict"` - the Variable Dictionary
@@ -278,6 +282,7 @@ archive size, and that in these cases the properties become associated with each
 ingestion unit in each archive.
 
 By default, we automatically store the following properties about each ingestion unit:
+
 * `"_filename"` - the original filename of the ingestion unit as it was passed to `clp-s` during
 compression
 * `"_file_split_number"` - incremented each time this ingestion-unit is split across another archive
