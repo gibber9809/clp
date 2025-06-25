@@ -5,7 +5,7 @@ dynamically-structured log data such as JSON logs. This format is optimized for 
 order to enable high performance for archives stored on object storage systems such as
 [S3][amazon-s3].
 
-This documentation records the details of the single-file archive (v0.3.1) format and what it
+This documentation records the details of the single-file archive (v0.3.2) format and what it
 enables, with minimal discussion of design rationale. For more information about the design
 decisions behind `clp-s`, please refer to [our paper on `clp-s`][μSlope], or our [blog][s3-blog] on
 optimizing `clp-s` for object storage.
@@ -327,17 +327,164 @@ with this prefix.
 
 ### Merged parse tree
 
+(figure-8)=
+::::{card}
+```
+enum NodeType : uint8_t {
+  Integer = 0x00,
+  Float = 0x01,
+  ClpString = 0x02,
+  VarString = 0x03,
+  Boolean = 0x04,
+  Object = 0x05,
+  UnstructuredArray = 0x06,
+  NullValue = 0x07,
+  DateString = 0x08,
+  StructuredArray = 0x09,
+  Metadata = 0x0A,
+  DeltaEncodedInteger = 0x0B,
+  Unknown = 0xFF // Maybe don't include in format spec since it isn't valid for storage?
+}
+
+Node {
+  parent_node_id: int32_t
+  key_len: uint64_t
+  key: char[key_len]
+  node_type: NodeType
+}
+
+MergedParseTree {
+  num_nodes: uint64_t
+  nodes: Node[num_nodes]
+}
+```
++++
+**Figure 8**: Merged Parse Tree binary format. The Merged Parse Tree is equivalent to a single
+instance of "MergedParseTree" compressed by the archive's configured general purpose compressor.
+::::
+
 ### Schema map
+
+(figure-9)=
+::::{card}
+```
+Schema {
+  schema_id: int32_t
+  num_nodes: uint32_t
+  num_unordered_nodes: uint32_t // Terminology in codebase is currently "num_ordered_nodes"; change?
+  node_ids: int32_t[num_nodes]
+}
+
+SchemaMap {
+  num_schemas: uint64_t
+  schemas: Schema[num_nodes]
+}
+```
++++
+**Figure 9**: Schema Map binary format. The Schema Map is equivalent to a single instance of
+"SchemaMap" compressed by the archive's configured general purpose compressor.
+::::
 
 ### Table metadata
 
+(figure-10)=
+::::{card}
+```
+CompressionStreamMetadata {
+  file_offset: uint64_t
+  uncompressed_size: uint64_t
+}
+
+PackedSchemaTableMetadata {
+  compression_stream_id: uint64_t
+  stream_offset: uint64_t
+  schema_id: int32_t
+  num_messages: uint64_t
+}
+
+TableMetadata {
+  num_compression_streams: uint64_t
+  compression_streams: CompressionStreamMetadata[num_compression_streams]
+  num_multiple_compression_stream_schema_tables: uint64_t = 0
+  num_packed_schema_tables: uint64_t
+  packed_schema_tables: PackedSchemaTableMetadata[num_packed_schema_tables]
+}
+```
++++
+**Figure 10**: Table Metadata binary format. The Table Metadata section is equivalent to a single
+instance of "TableMetadata" compressed by the archive's configured general purpose compressor.
+::::
+
+### Dictionaries
+
+(figure-11)=
+::::{card}
+```
+DictionaryEntry {
+  entry_len: uint64_t
+  entry: char[entry_entry]
+}
+
+Dictionary {
+  num_entries: uint64_t
+  // Compression stream begins
+  entries: DictionaryEntry[num_entries]
+}
+```
++++
+**Figure 11**: All dictionaries share the same underlying binary format. Every dictionary
+corresponds to a single instance of "Dictionary" --- the "entries" array is compressed by the
+archive's general purpose compressor, but the number of entries is recorded outside of the
+compression stream.
+::::
+
 ### Variable dictionary
+
+The variable dictionary is the simplest compression dictionary; it contains strings that represent
+"variable values" in the original log messages.
 
 ### Log-type dictionary
 
+The log-type dictionary contains static log-text identified by clp's parsing algorithm.
+
 ### Array log-type dictionary
 
+The array log-type dictionary also contains string data parsed and encoded by clp, but instead of
+parsed log-text the array log-type dictionary contains parsed JSON arrays.
+
 ### Table segments
+
+The tables segment contains the compression streams and tables collectively described by the Table
+Metadata section and Schema Map.
+
+Each packed table is encoded as a sequence of all of its encoded columns, where columns appear in
+the same order as they do in the schema for the table.
+
+Each column is encoded differently depending on its `NodeType`.
+
+#### NodeType::Integer columns
+
+#### NodeType::Float columns
+
+#### NodeType::ClpString columns
+
+#### NodeType::VarString columns
+
+#### NodeType::Boolean columns
+
+#### NodeType::Object columns
+
+#### NodeType::UnstructuredArray columns
+
+#### NodeType::NullValue columns
+
+#### NodeType::DateString columns
+
+#### NodeType::StructuredArray columns
+
+#### NodeType::Metadata columns
+
+#### NodeType::DeltaEncodedInteger columns
 
 :::{warning}
 🚧 This section is still under construction.
