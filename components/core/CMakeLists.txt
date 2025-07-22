@@ -505,14 +505,8 @@ set(SOURCE_FILES_unitTest
         src/clp/EncodedVariableInterpreter.cpp
         src/clp/EncodedVariableInterpreter.hpp
         src/clp/ErrorCode.hpp
-        src/clp/ffi/encoding_methods.cpp
-        src/clp/ffi/encoding_methods.hpp
-        src/clp/ffi/encoding_methods.inc
         src/clp/ffi/ir_stream/byteswap.hpp
         src/clp/ffi/ir_stream/Deserializer.hpp
-        src/clp/ffi/ir_stream/decoding_methods.cpp
-        src/clp/ffi/ir_stream/decoding_methods.hpp
-        src/clp/ffi/ir_stream/decoding_methods.inc
         src/clp/ffi/ir_stream/encoding_methods.cpp
         src/clp/ffi/ir_stream/encoding_methods.hpp
         src/clp/ffi/ir_stream/IrErrorCode.cpp
@@ -545,20 +539,6 @@ set(SOURCE_FILES_unitTest
         src/clp/ffi/KeyValuePairLogEvent.hpp
         src/clp/ffi/SchemaTree.cpp
         src/clp/ffi/SchemaTree.hpp
-        src/clp/ffi/search/CompositeWildcardToken.cpp
-        src/clp/ffi/search/CompositeWildcardToken.hpp
-        src/clp/ffi/search/ExactVariableToken.cpp
-        src/clp/ffi/search/ExactVariableToken.hpp
-        src/clp/ffi/search/query_methods.cpp
-        src/clp/ffi/search/query_methods.hpp
-        src/clp/ffi/search/QueryMethodFailed.hpp
-        src/clp/ffi/search/QueryToken.hpp
-        src/clp/ffi/search/QueryWildcard.cpp
-        src/clp/ffi/search/QueryWildcard.hpp
-        src/clp/ffi/search/Subquery.cpp
-        src/clp/ffi/search/Subquery.hpp
-        src/clp/ffi/search/WildcardToken.cpp
-        src/clp/ffi/search/WildcardToken.hpp
         src/clp/ffi/utils.cpp
         src/clp/ffi/utils.hpp
         src/clp/ffi/Value.hpp
@@ -756,6 +736,9 @@ if(CLP_BUILD_TESTING)
             Boost::filesystem Boost::iostreams Boost::program_options Boost::regex Boost::url
             Catch2::Catch2
             ${CURL_LIBRARIES}
+            clp::ffi::encoding
+            clp::ffi::ir_stream::decoding
+            clp::ffi::search
             clp_s::search::ast
             clp_s::search::kql
             clp_s::search::sql

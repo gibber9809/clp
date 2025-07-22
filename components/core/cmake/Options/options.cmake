@@ -12,6 +12,24 @@ option(
 )
 
 option(
+    CLP_BUILD_CLP_FFI_ENCODING
+    "Build clp::ffi::encoding."
+    ON
+)
+
+option(
+    CLP_BUILD_CLP_FFI_IR_STREAM_DECODING
+    "Build clp::ffi::ir_stream::decoding."
+    ON
+)
+
+option(
+    CLP_BUILD_CLP_FFI_SEARCH
+    "Build clp::ffi::search."
+    ON
+)
+
+option(
     CLP_BUILD_CLP_REGEX_UTILS
     "Build clp::regex_utils."
     ON
@@ -183,6 +201,32 @@ function(set_clp_tests_dependencies)
         CLP_NEED_YAMLCPP
         CLP_NEED_YSTDLIB
         CLP_NEED_ZSTD
+    )
+endfunction()
+
+function(validate_clp_ffi_encoding_dependencies)
+    validate_clp_dependencies_for_target(CLP_BUILD_CLP_FFI_ENCODING
+        CLP_BUILD_CLP_STRING_UTILS
+    )
+endfunction()
+
+function(validate_clp_ffi_ir_stream_decoding_dependencies)
+    validate_clp_dependencies_for_target(CLP_BUILD_CLP_FFI_IR_STREAM_DECODING
+        CLP_BUILD_CLP_FFI_ENCODING
+    )
+endfunction()
+
+function(set_clp_ffi_ir_stream_decoding_dependencies)
+    set_clp_need_flags(
+        CLP_NEED_NLOHMANN_JSON
+        CLP_NEED_YSTDLIB
+    )
+endfunction()
+
+function(validate_clp_ffi_search_dependencies)
+    validate_clp_dependencies_for_target(CLP_BUILD_CLP_FFI_SEARCH
+        CLP_BUILD_CLP_FFI_ENCODING
+        CLP_BUILD_CLP_STRING_UTILS
     )
 endfunction()
 
@@ -380,6 +424,20 @@ function(validate_and_setup_all_clp_dependency_flags)
     if (CLP_BUILD_TESTING)
         validate_clp_tests_dependencies()
         set_clp_tests_dependencies()
+    endif()
+
+    if (CLP_BUILD_CLP_FFI_ENCODING)
+        validate_clp_ffi_encoding_dependencies()
+
+    endif()
+
+    if (CLP_BUILD_CLP_FFI_IR_STREAM_DECODING)
+        validate_clp_ffi_ir_stream_decoding_dependencies()
+        set_clp_ffi_ir_stream_decoding_dependencies()
+    endif()
+
+    if (CLP_BUILD_CLP_FFI_SEARCH)
+        validate_clp_ffi_search_dependencies()
     endif()
 
     if (CLP_BUILD_CLP_REGEX_UTILS)
