@@ -10,7 +10,6 @@
 #include "ir/types.hpp"
 #include "LogSurgeonReader.hpp"
 #include "StringReader.hpp"
-#include "Utils.hpp"
 
 using clp::ir::is_delim;
 using clp::streaming_archive::reader::Archive;
