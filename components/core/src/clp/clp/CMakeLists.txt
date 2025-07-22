@@ -28,7 +28,7 @@ target_link_libraries(
 )
 
 set(
-        CLP_FFI_IRSTREAM_DECODING_SOURCES
+        CLP_FFI_IR_STREAM_DECODING_SOURCES
         ../Defs.h
         ../ErrorCode.hpp
         ../ffi/ir_stream/byteswap.hpp
@@ -49,7 +49,7 @@ set(
 
 add_library(
         clp_ffi_ir_stream_decoding
-        ${CLP_FFI_IRSTREAM_DECODING_SOURCES}
+        ${CLP_FFI_IR_STREAM_DECODING_SOURCES}
 )
 add_library(clp::ffi::ir_stream::decoding ALIAS clp_ffi_ir_stream_decoding)
 target_compile_features(clp_ffi_ir_stream_decoding PRIVATE cxx_std_20)
