@@ -5,13 +5,13 @@
 #include <unordered_set>
 #include <vector>
 
+#include "DictionaryConcepts.hpp"
+#include "ffi/ir_stream/decoding_methods.hpp"
 #include "ir/LogEvent.hpp"
 #include "ir/types.hpp"
 #include "Query.hpp"
-#include "TraceableException.hpp"
-#include "DictionaryConcepts.hpp"
-#include "ffi/ir_stream/decoding_methods.hpp"
 #include "spdlog_with_specializations.hpp"
+#include "TraceableException.hpp"
 
 namespace clp {
 /**

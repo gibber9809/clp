@@ -10,6 +10,7 @@
 #include "../GlobalMySQLMetadataDB.hpp"
 #include "../GlobalSQLiteMetadataDB.hpp"
 #include "../Grep.hpp"
+#include "../GrepCore.hpp"
 #include "../Profiler.hpp"
 #include "../spdlog_with_specializations.hpp"
 #include "../streaming_archive/Constants.hpp"
@@ -25,6 +26,7 @@ using clp::FileReader;
 using clp::GlobalMetadataDB;
 using clp::GlobalMetadataDBConfig;
 using clp::Grep;
+using clp::GrepCore;
 using clp::load_lexer_from_file;
 using clp::Profiler;
 using clp::Query;
@@ -205,7 +207,7 @@ static bool search(
         std::set<segment_id_t> ids_of_segments_to_search;
         bool is_superseding_query = false;
         for (auto const& search_string : search_strings) {
-            auto query_processing_result = Grep::process_raw_query(
+            auto query_processing_result = GrepCore::process_raw_query(
                     archive,
                     search_string,
                     search_begin_ts,

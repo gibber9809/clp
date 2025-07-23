@@ -27,6 +27,8 @@ set(
         ../GlobalSQLiteMetadataDB.hpp
         ../Grep.cpp
         ../Grep.hpp
+        ../GrepCore.cpp
+        ../GrepCore.hpp
         ../ir/EncodedTextAst.cpp
         ../ir/EncodedTextAst.hpp
         ../ir/LogEvent.hpp

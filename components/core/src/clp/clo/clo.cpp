@@ -11,6 +11,7 @@
 #include "../clp/FileDecompressor.hpp"
 #include "../Defs.h"
 #include "../Grep.hpp"
+#include "../GrepCore.hpp"
 #include "../ir/constants.hpp"
 #include "../Profiler.hpp"
 #include "../spdlog_with_specializations.hpp"
@@ -35,6 +36,7 @@ using clp::ErrorCode_errno;
 using clp::ErrorCode_FileExists;
 using clp::ErrorCode_Success;
 using clp::Grep;
+using clp::GrepCore;
 using clp::ir::cIrFileExtension;
 using clp::load_lexer_from_file;
 using clp::Query;
@@ -490,7 +492,7 @@ static bool search_archive(
     auto search_begin_ts = command_line_args.get_search_begin_ts();
     auto search_end_ts = command_line_args.get_search_end_ts();
 
-    auto query_processing_result = Grep::process_raw_query(
+    auto query_processing_result = GrepCore::process_raw_query(
             archive_reader,
             command_line_args.get_search_string(),
             search_begin_ts,
