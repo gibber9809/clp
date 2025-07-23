@@ -93,9 +93,7 @@ concept VariableDictionaryEntryReq = requires(VariableDictionaryEntryType entry)
     } -> std::same_as<variable_dictionary_id_t>;
 };
 
-template <
-        typename LogTypeDictionaryReaderType,
-        LogTypeDictionaryEntryReq LogTypeDictionaryEntryType>
+template <typename LogTypeDictionaryReaderType, typename LogTypeDictionaryEntryType>
 concept LogTypeDictionaryReaderReq = requires(
         LogTypeDictionaryReaderType reader,
         std::string_view logtype,
@@ -122,9 +120,7 @@ concept VariableDictionaryWriterReq = requires(
     } -> std::same_as<bool>;
 };
 
-template <
-        typename VariableDictionaryReaderType,
-        VariableDictionaryEntryReq VariableDictionaryEntryType>
+template <typename VariableDictionaryReaderType, typename VariableDictionaryEntryType>
 concept VariableDictionaryReaderReq = requires(
         VariableDictionaryReaderType reader,
         variable_dictionary_id_t id,
@@ -143,6 +139,10 @@ concept VariableDictionaryReaderReq = requires(
     {
         reader.get_entries_matching_wildcard_string(variable, ignore_case, entries)
     } -> std::same_as<void>;
+
+    std::same_as<typename VariableDictionaryReaderType::dictionary_id_t, variable_dictionary_id_t>;
+
+    std::same_as<typename VariableDictionaryReaderType::entry_t, VariableDictionaryEntryType>;
 };
 }  // namespace clp
 
