@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <cmath>
+#include <string>
+#include <string_view>
 
 #include <string_utils/string_utils.hpp>
 
@@ -10,6 +12,7 @@
 
 using clp::ffi::cEightByteEncodedFloatDigitsBitMask;
 using std::string;
+using std::string_view;
 
 namespace clp {
 variable_dictionary_id_t EncodedVariableInterpreter::decode_var_dict_id(
@@ -19,7 +22,7 @@ variable_dictionary_id_t EncodedVariableInterpreter::decode_var_dict_id(
 }
 
 bool EncodedVariableInterpreter::convert_string_to_representable_integer_var(
-        string const& value,
+        string_view value,
         encoded_variable_t& encoded_var
 ) {
     size_t length = value.length();
@@ -58,7 +61,7 @@ bool EncodedVariableInterpreter::convert_string_to_representable_integer_var(
 }
 
 bool EncodedVariableInterpreter::convert_string_to_representable_float_var(
-        string const& value,
+        string_view value,
         encoded_variable_t& encoded_var
 ) {
     if (value.empty()) {

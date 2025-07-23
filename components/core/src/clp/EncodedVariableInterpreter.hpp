@@ -9,8 +9,6 @@
 #include "ir/types.hpp"
 #include "Query.hpp"
 #include "TraceableException.hpp"
-// #include "VariableDictionaryReader.hpp"
-// #include "VariableDictionaryWriter.hpp"
 #include "DictionaryConcepts.hpp"
 #include "ffi/ir_stream/decoding_methods.hpp"
 #include "spdlog_with_specializations.hpp"
@@ -58,7 +56,7 @@ public:
      * @return true if was successfully converted, false otherwise
      */
     static bool convert_string_to_representable_integer_var(
-            std::string const& value,
+            std::string_view value,
             encoded_variable_t& encoded_var
     );
     /**
@@ -68,7 +66,7 @@ public:
      * @return true if was successfully converted, false otherwise
      */
     static bool convert_string_to_representable_float_var(
-            std::string const& value,
+            std::string_view value,
             encoded_variable_t& encoded_var
     );
     /**
@@ -91,7 +89,7 @@ public:
             VariableDictionaryWriterReq VariableDictionaryWriterType,
             LogTypeDictionaryEntryReq LogTypeDictionaryEntryType>
     static void encode_and_add_to_dictionary(
-            std::string const& message,
+            std::string_view message,
             LogTypeDictionaryEntryType& logtype_dict_entry,
             VariableDictionaryWriterType& var_dict,
             std::vector<encoded_variable_t>& encoded_vars,
@@ -167,7 +165,7 @@ public:
                     VariableDictionaryReaderTypeCheck
             = VariableDictionaryReaderType>
     static bool encode_and_search_dictionary(
-            std::string const& var_str,
+            std::string_view var_str,
             VariableDictionaryReaderType const& var_dict,
             bool ignore_case,
             std::string& logtype,
@@ -190,7 +188,7 @@ public:
                     VariableDictionaryReaderTypeCheck
             = VariableDictionaryReaderType>
     static bool wildcard_search_dictionary_and_get_encoded_matches(
-            std::string const& var_wildcard_str,
+            std::string_view var_wildcard_str,
             VariableDictionaryReaderType const& var_dict,
             bool ignore_case,
             SubQuery& sub_query
@@ -211,7 +209,7 @@ private:
             LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
             VariableDictionaryWriterReq VariableDictionaryWriterType>
     static encoded_variable_t encode_var(
-            std::string const& var,
+            std::string_view var,
             LogTypeDictionaryEntryType& logtype_dict_entry,
             VariableDictionaryWriterType& var_dict,
             std::vector<variable_dictionary_id_t>& var_ids
@@ -230,7 +228,7 @@ private:
             LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
             VariableDictionaryWriterReq VariableDictionaryWriterType>
     static variable_dictionary_id_t add_dict_var(
-            std::string const& var,
+            std::string_view var,
             LogTypeDictionaryEntryType& logtype_dict_entry,
             VariableDictionaryWriterType& var_dict,
             std::vector<variable_dictionary_id_t>& var_ids
@@ -241,7 +239,7 @@ template <
         VariableDictionaryWriterReq VariableDictionaryWriterType,
         LogTypeDictionaryEntryReq LogTypeDictionaryEntryType>
 void EncodedVariableInterpreter::encode_and_add_to_dictionary(
-        std::string const& message,
+        std::string_view message,
         LogTypeDictionaryEntryType& logtype_dict_entry,
         VariableDictionaryWriterType& var_dict,
         std::vector<encoded_variable_t>& encoded_vars,
@@ -256,8 +254,7 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
     // message
     logtype_dict_entry.reserve_constant_length(message.length());
     while (logtype_dict_entry.parse_next_var(message, var_begin_pos, var_end_pos, var_str)) {
-        // TODO: eliminate string copy
-        auto encoded_var = encode_var(std::string{var_str}, logtype_dict_entry, var_dict, var_ids);
+        auto encoded_var = encode_var(var_str, logtype_dict_entry, var_dict, var_ids);
         encoded_vars.push_back(encoded_var);
     }
 }
@@ -417,7 +414,7 @@ template <
         VariableDictionaryEntryReq VariableDictionaryEntryType,
         VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
 bool EncodedVariableInterpreter::encode_and_search_dictionary(
-        std::string const& var_str,
+        std::string_view var_str,
         VariableDictionaryReaderType const& var_dict,
         bool ignore_case,
         std::string& logtype,
@@ -470,7 +467,7 @@ template <
         VariableDictionaryEntryReq VariableDictionaryEntryType,
         VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
 bool EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
-        std::string const& var_wildcard_str,
+        std::string_view var_wildcard_str,
         VariableDictionaryReaderType const& var_dict,
         bool ignore_case,
         SubQuery& sub_query
@@ -498,7 +495,7 @@ template <
         LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
         VariableDictionaryWriterReq VariableDictionaryWriterType>
 encoded_variable_t EncodedVariableInterpreter::encode_var(
-        std::string const& var,
+        std::string_view var,
         LogTypeDictionaryEntryType& logtype_dict_entry,
         VariableDictionaryWriterType& var_dict,
         std::vector<variable_dictionary_id_t>& var_ids
@@ -519,7 +516,7 @@ template <
         LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
         VariableDictionaryWriterReq VariableDictionaryWriterType>
 variable_dictionary_id_t EncodedVariableInterpreter::add_dict_var(
-        std::string const& var,
+        std::string_view var,
         LogTypeDictionaryEntryType& logtype_dict_entry,
         VariableDictionaryWriterType& var_dict,
         std::vector<variable_dictionary_id_t>& var_ids
