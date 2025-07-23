@@ -12,12 +12,6 @@ set(
         ../EncodedVariableInterpreter.cpp
         ../EncodedVariableInterpreter.hpp
         ../ErrorCode.hpp
-        ../ffi/encoding_methods.cpp
-        ../ffi/encoding_methods.hpp
-        ../ffi/encoding_methods.inc
-        ../ffi/ir_stream/decoding_methods.cpp
-        ../ffi/ir_stream/decoding_methods.hpp
-        ../ffi/ir_stream/decoding_methods.inc
         ../FileDescriptor.cpp
         ../FileDescriptor.hpp
         ../FileReader.cpp
@@ -36,9 +30,6 @@ set(
         ../ir/EncodedTextAst.cpp
         ../ir/EncodedTextAst.hpp
         ../ir/LogEvent.hpp
-        ../ir/parsing.cpp
-        ../ir/parsing.hpp
-        ../ir/parsing.inc
         ../ir/types.hpp
         ../LogSurgeonReader.cpp
         ../LogSurgeonReader.hpp
@@ -134,6 +125,8 @@ if(CLP_BUILD_EXECUTABLES)
                 PRIVATE
                 absl::flat_hash_map
                 Boost::filesystem Boost::program_options
+                clp::ffi::encoding
+                clp::ffi::ir_stream::decoding
                 date::date
                 fmt::fmt
                 log_surgeon::log_surgeon
