@@ -6,8 +6,9 @@
 #include <log_surgeon/Lexer.hpp>
 
 #include "Defs.h"
+#include "LogTypeDictionaryReader.hpp"
 #include "Query.hpp"
-#include "streaming_archive/reader/Archive.hpp"
+#include "VariableDictionaryReader.hpp"
 
 namespace clp {
 class GrepCore {
@@ -15,7 +16,8 @@ public:
     // Methods
     /**
      * Processes a raw user query into a Query
-     * @param archive
+     * @param log_dict
+     * @param var_dict
      * @param search_string
      * @param search_begin_ts
      * @param search_end_ts
@@ -25,7 +27,8 @@ public:
      * @return Query if it may match a message, std::nullopt otherwise
      */
     static std::optional<Query> process_raw_query(
-            streaming_archive::reader::Archive const& archive,
+            LogTypeDictionaryReader const& log_dict,
+            VariableDictionaryReader const& var_dict,
             std::string const& search_string,
             epochtime_t search_begin_ts,
             epochtime_t search_end_ts,

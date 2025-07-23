@@ -208,7 +208,8 @@ static bool search(
         bool is_superseding_query = false;
         for (auto const& search_string : search_strings) {
             auto query_processing_result = GrepCore::process_raw_query(
-                    archive,
+                    archive.get_logtype_dictionary(),
+                    archive.get_var_dictionary(),
                     search_string,
                     search_begin_ts,
                     search_end_ts,

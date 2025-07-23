@@ -493,7 +493,8 @@ static bool search_archive(
     auto search_end_ts = command_line_args.get_search_end_ts();
 
     auto query_processing_result = GrepCore::process_raw_query(
-            archive_reader,
+            archive_reader.get_logtype_dictionary(),
+            archive_reader.get_var_dictionary(),
             command_line_args.get_search_string(),
             search_begin_ts,
             search_end_ts,

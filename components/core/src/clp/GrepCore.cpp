@@ -10,11 +10,11 @@
 #include "ir/types.hpp"
 #include "LogSurgeonReader.hpp"
 #include "LogTypeDictionaryEntry.hpp"
-#include "streaming_archive/reader/Archive.hpp"
+#include "LogTypeDictionaryReader.hpp"
 #include "StringReader.hpp"
+#include "VariableDictionaryReader.hpp"
 
 using clp::ir::is_delim;
-using clp::streaming_archive::reader::Archive;
 using clp::string_utils::clean_up_wildcard_search_string;
 using clp::string_utils::is_alphabet;
 using clp::string_utils::is_wildcard;
@@ -262,7 +262,7 @@ public:
 /**
  * Process a QueryToken that is definitely a variable
  * @param query_token
- * @param archive
+ * @param var_dict
  * @param ignore_case
  * @param sub_query
  * @param logtype
@@ -270,14 +270,15 @@ public:
  */
 bool process_var_token(
         QueryToken const& query_token,
-        Archive const& archive,
+        VariableDictionaryReader const& var_dict,
         bool ignore_case,
         SubQuery& sub_query,
         string& logtype
 );
 /**
  * Generates logtypes and variables for subquery
- * @param archive
+ * @param log_dict
+ * @param var_dict
  * @param processed_search_string
  * @param query_tokens
  * @param ignore_case
@@ -287,7 +288,8 @@ bool process_var_token(
  * @return SubQueryMatchabilityResult::MayMatch
  */
 SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
-        Archive const& archive,
+        LogTypeDictionaryReader const& log_dict,
+        VariableDictionaryReader const& var_dict,
         string& processed_search_string,
         vector<QueryToken>& query_tokens,
         bool ignore_case,
@@ -296,7 +298,7 @@ SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
 
 bool process_var_token(
         QueryToken const& query_token,
-        Archive const& archive,
+        VariableDictionaryReader const& var_dict,
         bool ignore_case,
         SubQuery& sub_query,
         string& logtype
@@ -309,7 +311,7 @@ bool process_var_token(
     if (!query_token.contains_wildcards()) {
         if (EncodedVariableInterpreter::encode_and_search_dictionary(
                     query_token.get_value(),
-                    archive.get_var_dictionary(),
+                    var_dict,
                     ignore_case,
                     logtype,
                     sub_query
@@ -335,7 +337,7 @@ bool process_var_token(
                 // Must be a dictionary variable, so search variable dictionary
                 if (!EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
                             query_token.get_value(),
-                            archive.get_var_dictionary(),
+                            var_dict,
                             ignore_case,
                             sub_query
                     ))
@@ -355,7 +357,8 @@ bool process_var_token(
 }
 
 SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
-        Archive const& archive,
+        LogTypeDictionaryReader const& log_dict,
+        VariableDictionaryReader const& var_dict,
         string& processed_search_string,
         vector<QueryToken>& query_tokens,
         bool ignore_case,
@@ -404,7 +407,7 @@ SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
         } else {
             if (!query_token.is_var()) {
                 ir::append_constant_to_logtype(query_token.get_value(), escape_handler, logtype);
-            } else if (!process_var_token(query_token, archive, ignore_case, sub_query, logtype)) {
+            } else if (!process_var_token(query_token, var_dict, ignore_case, sub_query, logtype)) {
                 return SubQueryMatchabilityResult::WontMatch;
             }
         }
@@ -428,8 +431,7 @@ SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
 
     // Find matching logtypes
     std::unordered_set<LogTypeDictionaryEntry const*> possible_logtype_entries;
-    archive.get_logtype_dictionary()
-            .get_entries_matching_wildcard_string(logtype, ignore_case, possible_logtype_entries);
+    log_dict.get_entries_matching_wildcard_string(logtype, ignore_case, possible_logtype_entries);
     if (possible_logtype_entries.empty()) {
         return SubQueryMatchabilityResult::WontMatch;
     }
@@ -444,7 +446,8 @@ SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
 }  // namespace
 
 std::optional<Query> GrepCore::process_raw_query(
-        Archive const& archive,
+        LogTypeDictionaryReader const& log_dict,
+        VariableDictionaryReader const& var_dict,
         string const& search_string,
         epochtime_t search_begin_ts,
         epochtime_t search_end_ts,
@@ -523,7 +526,8 @@ std::optional<Query> GrepCore::process_raw_query(
 
         // Compute logtypes and variables for query
         auto matchability = generate_logtypes_and_vars_for_subquery(
-                archive,
+                log_dict,
+                var_dict,
                 search_string_for_sub_queries,
                 query_tokens,
                 ignore_case,
