@@ -72,18 +72,6 @@ concept LogTypeDictionaryEntryReq = requires(
     {
         entry.get_id()
     } -> std::same_as<logtype_dictionary_id_t>;
-
-    {
-        LogTypeDictionaryEntryType::add_int_var(logtype)
-    } -> std::same_as<void>;
-
-    {
-        LogTypeDictionaryEntryType::add_float_var(logtype)
-    } -> std::same_as<void>;
-
-    {
-        LogTypeDictionaryEntryType::add_dict_var(logtype)
-    } -> std::same_as<void>;
 };
 
 template <typename VariableDictionaryEntryType>

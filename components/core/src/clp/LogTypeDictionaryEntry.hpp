@@ -13,7 +13,6 @@
 #include "streaming_compression/zstd/Compressor.hpp"
 #include "streaming_compression/zstd/Decompressor.hpp"
 #include "TraceableException.hpp"
-#include "type_utils.hpp"
 
 namespace clp {
 /**
@@ -44,38 +43,6 @@ public:
     LogTypeDictionaryEntry& operator=(LogTypeDictionaryEntry const&) = default;
 
     // Methods
-    /**
-     * Adds a dictionary variable placeholder to the given logtype
-     * @param logtype
-     */
-    static void add_dict_var(std::string& logtype) {
-        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Dictionary);
-    }
-
-    /**
-     * Adds an integer variable placeholder to the given logtype
-     * @param logtype
-     */
-    static void add_int_var(std::string& logtype) {
-        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Integer);
-    }
-
-    /**
-     * Adds a float variable placeholder to the given logtype
-     * @param logtype
-     */
-    static void add_float_var(std::string& logtype) {
-        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Float);
-    }
-
-    /**
-     * Adds an escape character to the given logtype
-     * @param logtype
-     */
-    static void add_escape(std::string& logtype) {
-        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Escape);
-    }
-
     /**
      * @return The number of variable placeholders (including escaped ones) in the logtype.
      */

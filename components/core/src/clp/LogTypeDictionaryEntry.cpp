@@ -1,5 +1,6 @@
 #include "LogTypeDictionaryEntry.hpp"
 
+#include "EncodedVariableInterpreter.hpp"
 #include "ir/parsing.hpp"
 #include "ir/types.hpp"
 #include "type_utils.hpp"
@@ -42,22 +43,22 @@ void LogTypeDictionaryEntry::add_constant(
 
 void LogTypeDictionaryEntry::add_dictionary_var() {
     m_placeholder_positions.push_back(m_value.length());
-    add_dict_var(m_value);
+    EncodedVariableInterpreter::add_dict_var(m_value);
 }
 
 void LogTypeDictionaryEntry::add_int_var() {
     m_placeholder_positions.push_back(m_value.length());
-    add_int_var(m_value);
+    EncodedVariableInterpreter::add_int_var(m_value);
 }
 
 void LogTypeDictionaryEntry::add_float_var() {
     m_placeholder_positions.push_back(m_value.length());
-    add_float_var(m_value);
+    EncodedVariableInterpreter::add_float_var(m_value);
 }
 
 void LogTypeDictionaryEntry::add_escape() {
     m_placeholder_positions.push_back(m_value.length());
-    add_escape(m_value);
+    EncodedVariableInterpreter::add_escape(m_value);
     ++m_num_escaped_placeholders;
 }
 
