@@ -1,6 +1,8 @@
 #ifndef CLP_LOGTYPEDICTIONARYENTRY_HPP
 #define CLP_LOGTYPEDICTIONARYENTRY_HPP
 
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "Defs.h"
@@ -106,8 +108,7 @@ public:
      * @param begin_pos Start of the constant in value_containing_constant
      * @param length
      */
-    void
-    add_constant(std::string const& value_containing_constant, size_t begin_pos, size_t length);
+    void add_constant(std::string_view value_containing_constant, size_t begin_pos, size_t length);
     /**
      * Adds an int variable placeholder
      */
@@ -137,10 +138,10 @@ public:
      * @return true if another variable was found, false otherwise
      */
     bool parse_next_var(
-            std::string const& msg,
+            std::string_view msg,
             size_t& var_begin_pos,
             size_t& var_end_pos,
-            std::string& var
+            std::string_view& var
     );
 
     /**
