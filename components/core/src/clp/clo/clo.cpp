@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <string>
 
 #include <mongocxx/instance.hpp>
@@ -39,12 +40,15 @@ using clp::Grep;
 using clp::GrepCore;
 using clp::ir::cIrFileExtension;
 using clp::load_lexer_from_file;
+using clp::logtype_dictionary_id_t;
 using clp::Query;
+using clp::segment_id_t;
 using clp::streaming_archive::MetadataDB;
 using clp::streaming_archive::reader::Archive;
 using clp::streaming_archive::reader::File;
 using clp::streaming_archive::reader::Message;
 using clp::TraceableException;
+using clp::variable_dictionary_id_t;
 using std::cerr;
 using std::cout;
 using std::endl;
@@ -491,10 +495,12 @@ static bool search_archive(
 
     auto search_begin_ts = command_line_args.get_search_begin_ts();
     auto search_end_ts = command_line_args.get_search_end_ts();
+    auto const& log_dict{archive_reader.get_logtype_dictionary()};
+    auto const& var_dict{archive_reader.get_var_dictionary()};
 
     auto query_processing_result = GrepCore::process_raw_query(
-            archive_reader.get_logtype_dictionary(),
-            archive_reader.get_var_dictionary(),
+            log_dict,
+            var_dict,
             command_line_args.get_search_string(),
             search_begin_ts,
             search_end_ts,
@@ -507,6 +513,20 @@ static bool search_archive(
     }
 
     auto& query = query_processing_result.value();
+    // Calculate the IDs of the segments that may contain results for each sub-query.
+    auto get_segments_containing_log_dict_id
+            = [&log_dict](logtype_dictionary_id_t logtype_id) -> std::set<segment_id_t> const& {
+        return log_dict.get_entry(logtype_id).get_ids_of_segments_containing_entry();
+    };
+    auto get_segments_containing_var_dict_id
+            = [&var_dict](variable_dictionary_id_t var_id) -> std::set<segment_id_t> const& {
+        return var_dict.get_entry(var_id).get_ids_of_segments_containing_entry();
+    };
+    query.calculate_ids_of_matching_segments(
+            get_segments_containing_log_dict_id,
+            get_segments_containing_var_dict_id
+    );
+
     // Get all segments potentially containing query results
     std::set<clp::segment_id_t> ids_of_segments_to_search;
     for (auto& sub_query : query.get_sub_queries()) {

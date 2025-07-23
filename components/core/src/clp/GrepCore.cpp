@@ -442,21 +442,6 @@ SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
     }
     sub_query.set_possible_logtypes(possible_logtype_ids);
 
-    // Calculate the IDs of the segments that may contain results for the sub-query now that we've
-    // calculated the matching logtypes and variables
-    auto get_segments_containing_log_dict_id
-            = [&log_dict](logtype_dictionary_id_t logtype_id) -> std::set<segment_id_t> const& {
-        return log_dict.get_entry(logtype_id).get_ids_of_segments_containing_entry();
-    };
-    auto get_segments_containing_var_dict_id
-            = [&var_dict](variable_dictionary_id_t var_id) -> std::set<segment_id_t> const& {
-        return var_dict.get_entry(var_id).get_ids_of_segments_containing_entry();
-    };
-    sub_query.calculate_ids_of_matching_segments(
-            get_segments_containing_log_dict_id,
-            get_segments_containing_var_dict_id
-    );
-
     return SubQueryMatchabilityResult::MayMatch;
 }
 }  // namespace

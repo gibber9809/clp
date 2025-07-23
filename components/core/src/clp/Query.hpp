@@ -208,6 +208,19 @@ public:
         return m_relevant_sub_queries;
     }
 
+    /**
+     * Calculates the segment IDs that should contain a match for each subquery's logtypes and
+     * QueryVars.
+     * @param get_segments_containing_log_dict_id
+     * @param get_segments_containing_var_dict_id
+     */
+    void calculate_ids_of_matching_segments(
+            std::function<std::set<segment_id_t> const&(logtype_dictionary_id_t)>
+                    get_segments_containing_log_dict_id,
+            std::function<std::set<segment_id_t> const&(variable_dictionary_id_t)>
+                    get_segments_containing_var_dict_id
+    );
+
 private:
     // Variables
     // Start of search time range (inclusive)
