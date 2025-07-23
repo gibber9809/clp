@@ -9,10 +9,10 @@
 #include "ffi/ir_stream/decoding_methods.hpp"
 #include "ir/LogEvent.hpp"
 #include "ir/types.hpp"
-#include "LogTypeDictionaryEntry.hpp"
 #include "Query.hpp"
 #include "spdlog_with_specializations.hpp"
 #include "TraceableException.hpp"
+#include "type_utils.hpp"
 
 namespace clp {
 /**
@@ -50,6 +50,39 @@ public:
     // Methods
     static encoded_variable_t encode_var_dict_id(variable_dictionary_id_t id);
     static variable_dictionary_id_t decode_var_dict_id(encoded_variable_t encoded_var);
+
+    /**
+     * Adds a dictionary variable placeholder to the given logtype
+     * @param logtype
+     */
+    static void add_dict_var(std::string& logtype) {
+        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Dictionary);
+    }
+
+    /**
+     * Adds an integer variable placeholder to the given logtype
+     * @param logtype
+     */
+    static void add_int_var(std::string& logtype) {
+        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Integer);
+    }
+
+    /**
+     * Adds a float variable placeholder to the given logtype
+     * @param logtype
+     */
+    static void add_float_var(std::string& logtype) {
+        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Float);
+    }
+
+    /**
+     * Adds an escape character to the given logtype
+     * @param logtype
+     */
+    static void add_escape(std::string& logtype) {
+        logtype += enum_to_underlying_type(ir::VariablePlaceholder::Escape);
+    }
+
     /**
      * Converts the given string into a representable integer variable if possible
      * @param value
@@ -428,10 +461,10 @@ bool EncodedVariableInterpreter::encode_and_search_dictionary(
 
     encoded_variable_t encoded_var;
     if (convert_string_to_representable_integer_var(var_str, encoded_var)) {
-        LogTypeDictionaryEntry::add_int_var(logtype);
+        add_int_var(logtype);
         sub_query.add_non_dict_var(encoded_var);
     } else if (convert_string_to_representable_float_var(var_str, encoded_var)) {
-        LogTypeDictionaryEntry::add_float_var(logtype);
+        add_float_var(logtype);
         sub_query.add_non_dict_var(encoded_var);
     } else {
         auto const entries = var_dict.get_entry_matching_value(var_str, ignore_case);
@@ -440,7 +473,7 @@ bool EncodedVariableInterpreter::encode_and_search_dictionary(
             return false;
         }
 
-        LogTypeDictionaryEntry::add_dict_var(logtype);
+        add_dict_var(logtype);
 
         if (entries.size() == 1) {
             auto const* entry = entries.at(0);
