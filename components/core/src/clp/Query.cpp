@@ -212,4 +212,18 @@ void Query::make_sub_queries_relevant_to_segment(segment_id_t segment_id) {
     }
     m_prev_segment_id = segment_id;
 }
+
+void Query::calculate_ids_of_matching_segments(
+        std::function<std::set<segment_id_t> const&(logtype_dictionary_id_t)>
+                get_segments_containing_log_dict_id,
+        std::function<std::set<segment_id_t> const&(variable_dictionary_id_t)>
+                get_segments_containing_var_dict_id
+) {
+    for (auto& sub_query : m_sub_queries) {
+        sub_query.calculate_ids_of_matching_segments(
+                get_segments_containing_log_dict_id,
+                get_segments_containing_var_dict_id
+        );
+    }
+}
 }  // namespace clp
