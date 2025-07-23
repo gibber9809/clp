@@ -2,14 +2,18 @@
 #define CLP_ENCODEDVARIABLEINTERPRETER_HPP
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "ir/LogEvent.hpp"
 #include "ir/types.hpp"
 #include "Query.hpp"
 #include "TraceableException.hpp"
-#include "VariableDictionaryReader.hpp"
-#include "VariableDictionaryWriter.hpp"
+// #include "VariableDictionaryReader.hpp"
+// #include "VariableDictionaryWriter.hpp"
+#include "DictionaryConcepts.hpp"
+#include "ffi/ir_stream/decoding_methods.hpp"
+#include "spdlog_with_specializations.hpp"
 
 namespace clp {
 /**
@@ -83,10 +87,13 @@ public:
      * @param encoded_vars
      * @param var_ids
      */
+    template <
+            VariableDictionaryWriterReq VariableDictionaryWriterType,
+            LogTypeDictionaryEntryReq LogTypeDictionaryEntryType>
     static void encode_and_add_to_dictionary(
             std::string const& message,
-            LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            LogTypeDictionaryEntryType& logtype_dict_entry,
+            VariableDictionaryWriterType& var_dict,
             std::vector<encoded_variable_t>& encoded_vars,
             std::vector<variable_dictionary_id_t>& var_ids
     );
@@ -104,11 +111,14 @@ public:
      * @param raw_num_bytes Returns an estimate of the number of bytes that this log event would
      * occupy if it was not encoded in CLP's IR
      */
-    template <typename encoded_variable_t>
+    template <
+            typename encoded_variable_t,
+            LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+            VariableDictionaryWriterReq VariableDictionaryWriterType>
     static void encode_and_add_to_dictionary(
             ir::LogEvent<encoded_variable_t> const& log_event,
-            LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            LogTypeDictionaryEntryType& logtype_dict_entry,
+            VariableDictionaryWriterType& var_dict,
             std::vector<ir::eight_byte_encoded_variable_t>& encoded_vars,
             std::vector<variable_dictionary_id_t>& var_ids,
             size_t& raw_num_bytes
@@ -122,9 +132,17 @@ public:
      * @param decompressed_msg
      * @return true if successful, false otherwise
      */
+    template <
+            LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+            typename VariableDictionaryReaderType,
+            VariableDictionaryEntryReq VariableDictionaryEntryType
+            = typename VariableDictionaryReaderType::entry_t,
+            VariableDictionaryReaderReq<VariableDictionaryEntryType>
+                    VariableDictionaryReaderTypeCheck
+            = VariableDictionaryReaderType>
     static bool decode_variables_into_message(
-            LogTypeDictionaryEntry const& logtype_dict_entry,
-            VariableDictionaryReader const& var_dict,
+            LogTypeDictionaryEntryType const& logtype_dict_entry,
+            VariableDictionaryReaderType const& var_dict,
             std::vector<encoded_variable_t> const& encoded_vars,
             std::string& decompressed_msg
     );
@@ -141,9 +159,16 @@ public:
      * dictionary
      * @return false otherwise
      */
+    template <
+            typename VariableDictionaryReaderType,
+            VariableDictionaryEntryReq VariableDictionaryEntryType
+            = typename VariableDictionaryReaderType::entry_t,
+            VariableDictionaryReaderReq<VariableDictionaryEntryType>
+                    VariableDictionaryReaderTypeCheck
+            = VariableDictionaryReaderType>
     static bool encode_and_search_dictionary(
             std::string const& var_str,
-            VariableDictionaryReader const& var_dict,
+            VariableDictionaryReaderType const& var_dict,
             bool ignore_case,
             std::string& logtype,
             SubQuery& sub_query
@@ -157,9 +182,16 @@ public:
      * @param sub_query
      * @return true if any match found, false otherwise
      */
+    template <
+            typename VariableDictionaryReaderType,
+            VariableDictionaryEntryReq VariableDictionaryEntryType
+            = typename VariableDictionaryReaderType::entry_t,
+            VariableDictionaryReaderReq<VariableDictionaryEntryType>
+                    VariableDictionaryReaderTypeCheck
+            = VariableDictionaryReaderType>
     static bool wildcard_search_dictionary_and_get_encoded_matches(
             std::string const& var_wildcard_str,
-            VariableDictionaryReader const& var_dict,
+            VariableDictionaryReaderType const& var_dict,
             bool ignore_case,
             SubQuery& sub_query
     );
@@ -175,10 +207,13 @@ private:
      * variable)
      * @return The encoded variable
      */
+    template <
+            LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+            VariableDictionaryWriterReq VariableDictionaryWriterType>
     static encoded_variable_t encode_var(
             std::string const& var,
-            LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            LogTypeDictionaryEntryType& logtype_dict_entry,
+            VariableDictionaryWriterType& var_dict,
             std::vector<variable_dictionary_id_t>& var_ids
     );
 
@@ -191,13 +226,312 @@ private:
      * @param var_ids A container to add the dictionary ID to
      * @return The dictionary ID
      */
+    template <
+            LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+            VariableDictionaryWriterReq VariableDictionaryWriterType>
     static variable_dictionary_id_t add_dict_var(
             std::string const& var,
-            LogTypeDictionaryEntry& logtype_dict_entry,
-            VariableDictionaryWriter& var_dict,
+            LogTypeDictionaryEntryType& logtype_dict_entry,
+            VariableDictionaryWriterType& var_dict,
             std::vector<variable_dictionary_id_t>& var_ids
     );
 };
+
+template <
+        VariableDictionaryWriterReq VariableDictionaryWriterType,
+        LogTypeDictionaryEntryReq LogTypeDictionaryEntryType>
+void EncodedVariableInterpreter::encode_and_add_to_dictionary(
+        std::string const& message,
+        LogTypeDictionaryEntryType& logtype_dict_entry,
+        VariableDictionaryWriterType& var_dict,
+        std::vector<encoded_variable_t>& encoded_vars,
+        std::vector<variable_dictionary_id_t>& var_ids
+) {
+    // Extract all variables and add to dictionary while building logtype
+    size_t var_begin_pos = 0;
+    size_t var_end_pos = 0;
+    std::string_view var_str;
+    logtype_dict_entry.clear();
+    // To avoid reallocating the logtype as we append to it, reserve enough space to hold the entire
+    // message
+    logtype_dict_entry.reserve_constant_length(message.length());
+    while (logtype_dict_entry.parse_next_var(message, var_begin_pos, var_end_pos, var_str)) {
+        // TODO: eliminate string copy
+        auto encoded_var = encode_var(std::string{var_str}, logtype_dict_entry, var_dict, var_ids);
+        encoded_vars.push_back(encoded_var);
+    }
+}
+
+template <
+        typename encoded_variable_t,
+        LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+        VariableDictionaryWriterReq VariableDictionaryWriterType>
+void EncodedVariableInterpreter::encode_and_add_to_dictionary(
+        ir::LogEvent<encoded_variable_t> const& log_event,
+        LogTypeDictionaryEntryType& logtype_dict_entry,
+        VariableDictionaryWriterType& var_dict,
+        std::vector<ir::eight_byte_encoded_variable_t>& encoded_vars,
+        std::vector<variable_dictionary_id_t>& var_ids,
+        size_t& raw_num_bytes
+) {
+    logtype_dict_entry.clear();
+    auto const& log_message = log_event.get_message();
+    logtype_dict_entry.reserve_constant_length(log_message.get_logtype().length());
+
+    raw_num_bytes = 0;
+
+    auto constant_handler = [&](std::string const& value, size_t begin_pos, size_t length) {
+        raw_num_bytes += length;
+        logtype_dict_entry.add_constant(value, begin_pos, length);
+    };
+
+    auto encoded_int_handler = [&](encoded_variable_t encoded_var) {
+        raw_num_bytes += ffi::decode_integer_var(encoded_var).length();
+        logtype_dict_entry.add_int_var();
+
+        ir::eight_byte_encoded_variable_t eight_byte_encoded_var{};
+        if constexpr (std::is_same_v<encoded_variable_t, ir::eight_byte_encoded_variable_t>) {
+            eight_byte_encoded_var = encoded_var;
+        } else {  // std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>
+            eight_byte_encoded_var = ffi::encode_four_byte_integer_as_eight_byte(encoded_var);
+        }
+        encoded_vars.push_back(eight_byte_encoded_var);
+    };
+
+    auto encoded_float_handler = [&](encoded_variable_t encoded_var) {
+        raw_num_bytes += ffi::decode_float_var(encoded_var).length();
+        logtype_dict_entry.add_float_var();
+
+        ir::eight_byte_encoded_variable_t eight_byte_encoded_var{};
+        if constexpr (std::is_same_v<encoded_variable_t, ir::eight_byte_encoded_variable_t>) {
+            eight_byte_encoded_var = encoded_var;
+        } else {  // std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>
+            eight_byte_encoded_var = ffi::encode_four_byte_float_as_eight_byte(encoded_var);
+        }
+        encoded_vars.push_back(eight_byte_encoded_var);
+    };
+
+    auto dict_var_handler = [&](std::string const& dict_var) {
+        raw_num_bytes += dict_var.length();
+
+        ir::eight_byte_encoded_variable_t encoded_var{};
+        if constexpr (std::is_same_v<encoded_variable_t, ir::eight_byte_encoded_variable_t>) {
+            encoded_var = encode_var_dict_id(
+                    add_dict_var(dict_var, logtype_dict_entry, var_dict, var_ids)
+            );
+        } else {  // std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>
+            encoded_var = encode_var(dict_var, logtype_dict_entry, var_dict, var_ids);
+        }
+        encoded_vars.push_back(encoded_var);
+    };
+
+    ffi::ir_stream::generic_decode_message<false>(
+            log_message.get_logtype(),
+            log_message.get_encoded_vars(),
+            log_message.get_dict_vars(),
+            constant_handler,
+            encoded_int_handler,
+            encoded_float_handler,
+            dict_var_handler
+    );
+}
+
+template <
+        LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+        typename VariableDictionaryReaderType,
+        VariableDictionaryEntryReq VariableDictionaryEntryType,
+        VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
+bool EncodedVariableInterpreter::decode_variables_into_message(
+        LogTypeDictionaryEntryType const& logtype_dict_entry,
+        VariableDictionaryReaderType const& var_dict,
+        std::vector<encoded_variable_t> const& encoded_vars,
+        std::string& decompressed_msg
+) {
+    // Ensure the number of variables in the logtype matches the number of encoded variables given
+    auto const& logtype_value = logtype_dict_entry.get_value();
+    size_t const num_vars = logtype_dict_entry.get_num_variables();
+    if (num_vars != encoded_vars.size()) {
+        SPDLOG_ERROR(
+                "EncodedVariableInterpreter: Logtype '{}' contains {} variables, but {} were given "
+                "for decoding.",
+                logtype_value.c_str(),
+                num_vars,
+                encoded_vars.size()
+        );
+        return false;
+    }
+
+    ir::VariablePlaceholder var_placeholder;
+    size_t constant_begin_pos = 0;
+    std::string float_str;
+    variable_dictionary_id_t var_dict_id;
+    size_t const num_placeholders_in_logtype = logtype_dict_entry.get_num_placeholders();
+    for (size_t placeholder_ix = 0, var_ix = 0; placeholder_ix < num_placeholders_in_logtype;
+         ++placeholder_ix)
+    {
+        size_t placeholder_position
+                = logtype_dict_entry.get_placeholder_info(placeholder_ix, var_placeholder);
+
+        // Add the constant that's between the last placeholder and this one
+        decompressed_msg.append(
+                logtype_value,
+                constant_begin_pos,
+                placeholder_position - constant_begin_pos
+        );
+        switch (var_placeholder) {
+            case ir::VariablePlaceholder::Integer:
+                decompressed_msg += std::to_string(encoded_vars[var_ix++]);
+                break;
+            case ir::VariablePlaceholder::Float:
+                convert_encoded_float_to_string(encoded_vars[var_ix++], float_str);
+                decompressed_msg += float_str;
+                break;
+            case ir::VariablePlaceholder::Dictionary:
+                var_dict_id = decode_var_dict_id(encoded_vars[var_ix++]);
+                decompressed_msg += var_dict.get_value(var_dict_id);
+                break;
+            case ir::VariablePlaceholder::Escape:
+                break;
+            default:
+                SPDLOG_ERROR(
+                        "EncodedVariableInterpreter: Logtype '{}' contains unexpected variable "
+                        "placeholder 0x{:x}",
+                        logtype_value,
+                        enum_to_underlying_type(var_placeholder)
+                );
+                return false;
+        }
+        // Move past the variable placeholder
+        constant_begin_pos = placeholder_position + 1;
+    }
+    // Append remainder of logtype, if any
+    if (constant_begin_pos < logtype_value.length()) {
+        decompressed_msg.append(logtype_value, constant_begin_pos, std::string::npos);
+    }
+
+    return true;
+}
+
+template <
+        typename VariableDictionaryReaderType,
+        VariableDictionaryEntryReq VariableDictionaryEntryType,
+        VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
+bool EncodedVariableInterpreter::encode_and_search_dictionary(
+        std::string const& var_str,
+        VariableDictionaryReaderType const& var_dict,
+        bool ignore_case,
+        std::string& logtype,
+        SubQuery& sub_query
+) {
+    size_t length = var_str.length();
+    if (0 == length) {
+        throw OperationFailed(ErrorCode_BadParam, __FILENAME__, __LINE__);
+    }
+
+    encoded_variable_t encoded_var;
+    if (convert_string_to_representable_integer_var(var_str, encoded_var)) {
+        LogTypeDictionaryEntry::add_int_var(logtype);
+        sub_query.add_non_dict_var(encoded_var);
+    } else if (convert_string_to_representable_float_var(var_str, encoded_var)) {
+        LogTypeDictionaryEntry::add_float_var(logtype);
+        sub_query.add_non_dict_var(encoded_var);
+    } else {
+        auto const entries = var_dict.get_entry_matching_value(var_str, ignore_case);
+        if (entries.empty()) {
+            // Not in dictionary
+            return false;
+        }
+
+        LogTypeDictionaryEntry::add_dict_var(logtype);
+
+        if (entries.size() == 1) {
+            auto const* entry = entries.at(0);
+            sub_query.add_dict_var(encode_var_dict_id(entry->get_id()), entry);
+            return true;
+        }
+
+        std::unordered_set<VariableDictionaryEntryType const*> const entries_set{
+                entries.cbegin(),
+                entries.cend()
+        };
+        std::unordered_set<encoded_variable_t> encoded_vars;
+        encoded_vars.reserve(entries.size());
+        for (auto const* entry : entries) {
+            encoded_vars.emplace(encode_var_dict_id(entry->get_id()));
+        }
+        sub_query.add_imprecise_dict_var(encoded_vars, entries_set);
+    }
+
+    return true;
+}
+
+template <
+        typename VariableDictionaryReaderType,
+        VariableDictionaryEntryReq VariableDictionaryEntryType,
+        VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
+bool EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
+        std::string const& var_wildcard_str,
+        VariableDictionaryReaderType const& var_dict,
+        bool ignore_case,
+        SubQuery& sub_query
+) {
+    // Find matches
+    std::unordered_set<VariableDictionaryEntryType const*> var_dict_entries;
+    var_dict.get_entries_matching_wildcard_string(var_wildcard_str, ignore_case, var_dict_entries);
+    if (var_dict_entries.empty()) {
+        // Not in dictionary
+        return false;
+    }
+
+    // Encode matches
+    std::unordered_set<encoded_variable_t> encoded_vars;
+    for (auto entry : var_dict_entries) {
+        encoded_vars.insert(encode_var_dict_id(entry->get_id()));
+    }
+
+    sub_query.add_imprecise_dict_var(encoded_vars, var_dict_entries);
+
+    return true;
+}
+
+template <
+        LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+        VariableDictionaryWriterReq VariableDictionaryWriterType>
+encoded_variable_t EncodedVariableInterpreter::encode_var(
+        std::string const& var,
+        LogTypeDictionaryEntryType& logtype_dict_entry,
+        VariableDictionaryWriterType& var_dict,
+        std::vector<variable_dictionary_id_t>& var_ids
+) {
+    encoded_variable_t encoded_var{0};
+    if (convert_string_to_representable_integer_var(var, encoded_var)) {
+        logtype_dict_entry.add_int_var();
+    } else if (convert_string_to_representable_float_var(var, encoded_var)) {
+        logtype_dict_entry.add_float_var();
+    } else {
+        // Variable string looks like a dictionary variable, so encode it as so
+        encoded_var = encode_var_dict_id(add_dict_var(var, logtype_dict_entry, var_dict, var_ids));
+    }
+    return encoded_var;
+}
+
+template <
+        LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
+        VariableDictionaryWriterReq VariableDictionaryWriterType>
+variable_dictionary_id_t EncodedVariableInterpreter::add_dict_var(
+        std::string const& var,
+        LogTypeDictionaryEntryType& logtype_dict_entry,
+        VariableDictionaryWriterType& var_dict,
+        std::vector<variable_dictionary_id_t>& var_ids
+) {
+    variable_dictionary_id_t id{cVariableDictionaryIdMax};
+    var_dict.add_entry(var, id);
+    var_ids.push_back(id);
+
+    logtype_dict_entry.add_dictionary_var();
+
+    return id;
+}
 }  // namespace clp
 
 #endif  // CLP_ENCODEDVARIABLEINTERPRETER_HPP
