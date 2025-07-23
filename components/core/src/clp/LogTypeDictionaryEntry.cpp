@@ -33,7 +33,7 @@ size_t LogTypeDictionaryEntry::get_data_size() const {
 }
 
 void LogTypeDictionaryEntry::add_constant(
-        string const& value_containing_constant,
+        std::string_view value_containing_constant,
         size_t begin_pos,
         size_t length
 ) {
@@ -62,10 +62,10 @@ void LogTypeDictionaryEntry::add_escape() {
 }
 
 bool LogTypeDictionaryEntry::parse_next_var(
-        string const& msg,
+        std::string_view msg,
         size_t& var_begin_pos,
         size_t& var_end_pos,
-        string& var
+        std::string_view& var
 ) {
     auto last_var_end_pos = var_end_pos;
     // clang-format off
@@ -87,7 +87,7 @@ bool LogTypeDictionaryEntry::parse_next_var(
         );
         ir::append_constant_to_logtype(constant, escape_handler, m_value);
 
-        var.assign(msg, var_begin_pos, var_end_pos - var_begin_pos);
+        var = msg.substr(var_begin_pos, var_end_pos - var_begin_pos);
         return true;
     }
     if (last_var_end_pos < msg.length()) {
