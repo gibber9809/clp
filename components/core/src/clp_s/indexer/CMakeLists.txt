@@ -65,8 +65,6 @@ set(
         ../TimestampPattern.hpp
         ../Utils.cpp
         ../Utils.hpp
-        ../VariableDecoder.cpp
-        ../VariableDecoder.hpp
         ../ZstdCompressor.cpp
         ../ZstdCompressor.hpp
         ../ZstdDecompressor.cpp
@@ -88,6 +86,7 @@ if(CLP_BUILD_EXECUTABLES)
                 absl::flat_hash_map
                 Boost::iostreams Boost::program_options Boost::url
                 ${CURL_LIBRARIES}
+                clp::encoded_variable_interpreter
                 clp::string_utils
                 date::date
                 MariaDBClient::MariaDBClient
