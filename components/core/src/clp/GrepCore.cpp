@@ -24,13 +24,6 @@ using std::vector;
 
 namespace clp {
 namespace {
-// Local types
-enum class SubQueryMatchabilityResult {
-    MayMatch,  // The subquery might match a message
-    WontMatch,  // The subquery has no chance of matching a message
-    SupercedesAllSubQueries  // The subquery will cause all messages to be matched
-};
-
 /**
  * Wraps the tokens returned from the log_surgeon lexer, and stores the variable ids of the tokens
  * in a search query in a set. This allows for optimized search performance.
@@ -39,194 +32,7 @@ class SearchToken : public log_surgeon::Token {
 public:
     std::set<int> m_type_ids_set;
 };
-
-// Local prototypes
-/**
- * Process a QueryToken that is definitely a variable
- * @param query_token
- * @param var_dict
- * @param ignore_case
- * @param sub_query
- * @param logtype
- * @return true if this token might match a message, false otherwise
- */
-bool process_var_token(
-        QueryToken const& query_token,
-        VariableDictionaryReader const& var_dict,
-        bool ignore_case,
-        SubQuery& sub_query,
-        string& logtype
-);
-/**
- * Generates logtypes and variables for subquery
- * @param log_dict
- * @param var_dict
- * @param processed_search_string
- * @param query_tokens
- * @param ignore_case
- * @param sub_query
- * @return SubQueryMatchabilityResult::SupercedesAllSubQueries
- * @return SubQueryMatchabilityResult::WontMatch
- * @return SubQueryMatchabilityResult::MayMatch
- */
-SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
-        LogTypeDictionaryReader const& log_dict,
-        VariableDictionaryReader const& var_dict,
-        string& processed_search_string,
-        vector<QueryToken>& query_tokens,
-        bool ignore_case,
-        SubQuery& sub_query
-);
-
-bool process_var_token(
-        QueryToken const& query_token,
-        VariableDictionaryReader const& var_dict,
-        bool ignore_case,
-        SubQuery& sub_query,
-        string& logtype
-) {
-    // Even though we may have a precise variable, we still fallback to decompressing to ensure that
-    // it is in the right place in the message
-    sub_query.mark_wildcard_match_required();
-
-    // Create QueryVar corresponding to token
-    if (!query_token.contains_wildcards()) {
-        if (EncodedVariableInterpreter::encode_and_search_dictionary(
-                    query_token.get_value(),
-                    var_dict,
-                    ignore_case,
-                    logtype,
-                    sub_query
-            )
-            == false)
-        {
-            // Variable doesn't exist in dictionary
-            return false;
-        }
-    } else {
-        if (query_token.has_prefix_greedy_wildcard()) {
-            logtype += '*';
-        }
-
-        if (query_token.is_float_var()) {
-            EncodedVariableInterpreter::add_float_var(logtype);
-        } else if (query_token.is_int_var()) {
-            EncodedVariableInterpreter::add_int_var(logtype);
-        } else {
-            EncodedVariableInterpreter::add_dict_var(logtype);
-
-            if (query_token.cannot_convert_to_non_dict_var()) {
-                // Must be a dictionary variable, so search variable dictionary
-                if (!EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
-                            query_token.get_value(),
-                            var_dict,
-                            ignore_case,
-                            sub_query
-                    ))
-                {
-                    // Variable doesn't exist in dictionary
-                    return false;
-                }
-            }
-        }
-
-        if (query_token.has_suffix_greedy_wildcard()) {
-            logtype += '*';
-        }
-    }
-
-    return true;
-}
-
-SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
-        LogTypeDictionaryReader const& log_dict,
-        VariableDictionaryReader const& var_dict,
-        string& processed_search_string,
-        vector<QueryToken>& query_tokens,
-        bool ignore_case,
-        SubQuery& sub_query
-) {
-    size_t last_token_end_pos = 0;
-    string logtype;
-    auto escape_handler
-            = [](std::string_view constant, size_t char_to_escape_pos, string& logtype) -> void {
-        auto const escape_char{enum_to_underlying_type(ir::VariablePlaceholder::Escape)};
-        auto const next_char_pos{char_to_escape_pos + 1};
-        // NOTE: We don't want to add additional escapes for wildcards that have been escaped. E.g.,
-        // the query "\\*" should remain unchanged.
-        if (next_char_pos < constant.length() && false == is_wildcard(constant[next_char_pos])) {
-            logtype += escape_char;
-        } else if (ir::is_variable_placeholder(constant[char_to_escape_pos])) {
-            logtype += escape_char;
-            logtype += escape_char;
-        }
-    };
-    for (auto const& query_token : query_tokens) {
-        // Append from end of last token to beginning of this token, to logtype
-        ir::append_constant_to_logtype(
-                static_cast<std::string_view>(processed_search_string)
-                        .substr(last_token_end_pos,
-                                query_token.get_begin_pos() - last_token_end_pos),
-                escape_handler,
-                logtype
-        );
-        last_token_end_pos = query_token.get_end_pos();
-
-        if (query_token.is_wildcard()) {
-            logtype += '*';
-        } else if (query_token.has_greedy_wildcard_in_middle()) {
-            // Fallback to decompression + wildcard matching for now to avoid handling queries where
-            // the pieces of the token on either side of each wildcard need to be processed as
-            // ambiguous tokens
-            sub_query.mark_wildcard_match_required();
-            if (!query_token.is_var()) {
-                logtype += '*';
-            } else {
-                logtype += '*';
-                EncodedVariableInterpreter::add_dict_var(logtype);
-                logtype += '*';
-            }
-        } else {
-            if (!query_token.is_var()) {
-                ir::append_constant_to_logtype(query_token.get_value(), escape_handler, logtype);
-            } else if (!process_var_token(query_token, var_dict, ignore_case, sub_query, logtype)) {
-                return SubQueryMatchabilityResult::WontMatch;
-            }
-        }
-    }
-
-    if (last_token_end_pos < processed_search_string.length()) {
-        // Append from end of last token to end
-        ir::append_constant_to_logtype(
-                static_cast<std::string_view>(processed_search_string)
-                        .substr(last_token_end_pos, string::npos),
-                escape_handler,
-                logtype
-        );
-        last_token_end_pos = processed_search_string.length();
-    }
-
-    if ("*" == logtype) {
-        // Logtype will match all messages
-        return SubQueryMatchabilityResult::SupercedesAllSubQueries;
-    }
-
-    // Find matching logtypes
-    std::unordered_set<LogTypeDictionaryEntry const*> possible_logtype_entries;
-    log_dict.get_entries_matching_wildcard_string(logtype, ignore_case, possible_logtype_entries);
-    if (possible_logtype_entries.empty()) {
-        return SubQueryMatchabilityResult::WontMatch;
-    }
-
-    std::unordered_set<logtype_dictionary_id_t> possible_logtype_ids;
-    for (auto const* entry : possible_logtype_entries) {
-        possible_logtype_ids.emplace(entry->get_id());
-    }
-    sub_query.set_possible_logtypes(possible_logtype_ids);
-
-    return SubQueryMatchabilityResult::MayMatch;
-}
-}  // namespace
+} // namespace
 
 std::optional<Query> GrepCore::process_raw_query(
         LogTypeDictionaryReader const& log_dict,
@@ -586,5 +392,154 @@ bool GrepCore::get_bounds_of_next_potential_var(
         }
     }
     return (value_length != begin_pos);
+}
+
+bool GrepCore::process_var_token(
+        QueryToken const& query_token,
+        VariableDictionaryReader const& var_dict,
+        bool ignore_case,
+        SubQuery& sub_query,
+        string& logtype
+) {
+    // Even though we may have a precise variable, we still fallback to decompressing to ensure that
+    // it is in the right place in the message
+    sub_query.mark_wildcard_match_required();
+
+    // Create QueryVar corresponding to token
+    if (!query_token.contains_wildcards()) {
+        if (EncodedVariableInterpreter::encode_and_search_dictionary(
+                    query_token.get_value(),
+                    var_dict,
+                    ignore_case,
+                    logtype,
+                    sub_query
+            )
+            == false)
+        {
+            // Variable doesn't exist in dictionary
+            return false;
+        }
+    } else {
+        if (query_token.has_prefix_greedy_wildcard()) {
+            logtype += '*';
+        }
+
+        if (query_token.is_float_var()) {
+            EncodedVariableInterpreter::add_float_var(logtype);
+        } else if (query_token.is_int_var()) {
+            EncodedVariableInterpreter::add_int_var(logtype);
+        } else {
+            EncodedVariableInterpreter::add_dict_var(logtype);
+
+            if (query_token.cannot_convert_to_non_dict_var()) {
+                // Must be a dictionary variable, so search variable dictionary
+                if (!EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
+                            query_token.get_value(),
+                            var_dict,
+                            ignore_case,
+                            sub_query
+                    ))
+                {
+                    // Variable doesn't exist in dictionary
+                    return false;
+                }
+            }
+        }
+
+        if (query_token.has_suffix_greedy_wildcard()) {
+            logtype += '*';
+        }
+    }
+
+    return true;
+}
+
+GrepCore::SubQueryMatchabilityResult GrepCore::generate_logtypes_and_vars_for_subquery(
+        LogTypeDictionaryReader const& log_dict,
+        VariableDictionaryReader const& var_dict,
+        string& processed_search_string,
+        vector<QueryToken>& query_tokens,
+        bool ignore_case,
+        SubQuery& sub_query
+) {
+    size_t last_token_end_pos = 0;
+    string logtype;
+    auto escape_handler
+            = [](std::string_view constant, size_t char_to_escape_pos, string& logtype) -> void {
+        auto const escape_char{enum_to_underlying_type(ir::VariablePlaceholder::Escape)};
+        auto const next_char_pos{char_to_escape_pos + 1};
+        // NOTE: We don't want to add additional escapes for wildcards that have been escaped. E.g.,
+        // the query "\\*" should remain unchanged.
+        if (next_char_pos < constant.length() && false == is_wildcard(constant[next_char_pos])) {
+            logtype += escape_char;
+        } else if (ir::is_variable_placeholder(constant[char_to_escape_pos])) {
+            logtype += escape_char;
+            logtype += escape_char;
+        }
+    };
+    for (auto const& query_token : query_tokens) {
+        // Append from end of last token to beginning of this token, to logtype
+        ir::append_constant_to_logtype(
+                static_cast<std::string_view>(processed_search_string)
+                        .substr(last_token_end_pos,
+                                query_token.get_begin_pos() - last_token_end_pos),
+                escape_handler,
+                logtype
+        );
+        last_token_end_pos = query_token.get_end_pos();
+
+        if (query_token.is_wildcard()) {
+            logtype += '*';
+        } else if (query_token.has_greedy_wildcard_in_middle()) {
+            // Fallback to decompression + wildcard matching for now to avoid handling queries where
+            // the pieces of the token on either side of each wildcard need to be processed as
+            // ambiguous tokens
+            sub_query.mark_wildcard_match_required();
+            if (!query_token.is_var()) {
+                logtype += '*';
+            } else {
+                logtype += '*';
+                EncodedVariableInterpreter::add_dict_var(logtype);
+                logtype += '*';
+            }
+        } else {
+            if (!query_token.is_var()) {
+                ir::append_constant_to_logtype(query_token.get_value(), escape_handler, logtype);
+            } else if (!process_var_token(query_token, var_dict, ignore_case, sub_query, logtype)) {
+                return SubQueryMatchabilityResult::WontMatch;
+            }
+        }
+    }
+
+    if (last_token_end_pos < processed_search_string.length()) {
+        // Append from end of last token to end
+        ir::append_constant_to_logtype(
+                static_cast<std::string_view>(processed_search_string)
+                        .substr(last_token_end_pos, string::npos),
+                escape_handler,
+                logtype
+        );
+        last_token_end_pos = processed_search_string.length();
+    }
+
+    if ("*" == logtype) {
+        // Logtype will match all messages
+        return SubQueryMatchabilityResult::SupercedesAllSubQueries;
+    }
+
+    // Find matching logtypes
+    std::unordered_set<LogTypeDictionaryEntry const*> possible_logtype_entries;
+    log_dict.get_entries_matching_wildcard_string(logtype, ignore_case, possible_logtype_entries);
+    if (possible_logtype_entries.empty()) {
+        return SubQueryMatchabilityResult::WontMatch;
+    }
+
+    std::unordered_set<logtype_dictionary_id_t> possible_logtype_ids;
+    for (auto const* entry : possible_logtype_entries) {
+        possible_logtype_ids.emplace(entry->get_id());
+    }
+    sub_query.set_possible_logtypes(possible_logtype_ids);
+
+    return SubQueryMatchabilityResult::MayMatch;
 }
 }  // namespace clp

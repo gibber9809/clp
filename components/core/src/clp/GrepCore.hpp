@@ -2,6 +2,10 @@
 #define CLP_GREPCORE_HPP
 
 #include <optional>
+#include <cstdint>
+#include <cstddef>
+#include <string>
+#include <vector>
 
 #include <log_surgeon/Lexer.hpp>
 
@@ -9,6 +13,7 @@
 #include "LogTypeDictionaryReader.hpp"
 #include "Query.hpp"
 #include "VariableDictionaryReader.hpp"
+#include "QueryToken.hpp"
 
 namespace clp {
 class GrepCore {
@@ -73,6 +78,52 @@ public:
             size_t& end_pos,
             bool& is_var,
             log_surgeon::lexers::ByteLexer& lexer
+    );
+private:
+    // Types
+    enum class SubQueryMatchabilityResult : uint8_t {
+        MayMatch,  // The subquery might match a message
+        WontMatch,  // The subquery has no chance of matching a message
+        SupercedesAllSubQueries  // The subquery will cause all messages to be matched
+    };
+
+    // Methods
+    /**
+     * Process a QueryToken that is definitely a variable.
+     * @param query_token
+     * @param var_dict
+     * @param ignore_case
+     * @param sub_query
+     * @param logtype
+     * @return true if this token might match a message, false otherwise
+     */
+    static bool process_var_token(
+            QueryToken const& query_token,
+            VariableDictionaryReader const& var_dict,
+            bool ignore_case,
+            SubQuery& sub_query,
+            std::string& logtype
+    );
+
+    /**
+     * Generates logtypes and variables for subquery.
+     * @param log_dict
+     * @param var_dict
+     * @param processed_search_string
+     * @param query_tokens
+     * @param ignore_case
+     * @param sub_query
+     * @return SubQueryMatchabilityResult::SupercedesAllSubQueries
+     * @return SubQueryMatchabilityResult::WontMatch
+     * @return SubQueryMatchabilityResult::MayMatch
+     */
+    static SubQueryMatchabilityResult generate_logtypes_and_vars_for_subquery(
+            LogTypeDictionaryReader const& log_dict,
+            VariableDictionaryReader const& var_dict,
+            std::string& processed_search_string,
+            std::vector<QueryToken>& query_tokens,
+            bool ignore_case,
+            SubQuery& sub_query
     );
 };
 }  // namespace clp
