@@ -146,6 +146,10 @@ endfunction()
 
 function(validate_clp_binaries_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_EXECUTABLES
+        CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
+        CLP_BUILD_CLP_FFI_ENCODING
+        CLP_BUILD_CLP_FFI_IR_STREAM_DECODING
+        CLP_BUILD_CLP_GREP_CORE
         CLP_BUILD_CLP_STRING_UTILS
         CLP_BUILD_CLP_S_ARCHIVEREADER
         CLP_BUILD_CLP_S_ARCHIVEWRITER
@@ -282,6 +286,7 @@ endfunction()
 
 function(validate_clp_s_archivereader_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_CLP_S_ARCHIVEREADER
+        CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
         CLP_BUILD_CLP_STRING_UTILS
         CLP_BUILD_CLP_S_CLP_DEPENDENCIES
         CLP_BUILD_CLP_S_IO
@@ -303,6 +308,7 @@ endfunction()
 
 function(validate_clp_s_archivewriter_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_CLP_S_ARCHIVEWRITER
+        CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
         CLP_BUILD_CLP_S_CLP_DEPENDENCIES
         CLP_BUILD_CLP_S_IO
         CLP_BUILD_CLP_S_TIMESTAMPPATTERN
@@ -387,6 +393,7 @@ endfunction()
 
 function(validate_clp_s_search_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_CLP_S_SEARCH
+        CLP_BUILD_CLP_GREP_CORE
         CLP_BUILD_CLP_STRING_UTILS
         CLP_BUILD_CLP_S_ARCHIVEREADER
         CLP_BUILD_CLP_S_CLP_DEPENDENCIES
@@ -397,6 +404,7 @@ endfunction()
 function(set_clp_s_search_dependencies)
     set_clp_need_flags(
         CLP_NEED_ABSL
+        CLP_NEED_LOG_SURGEON
         CLP_NEED_SIMDJSON
         CLP_NEED_SPDLOG
     )
