@@ -168,6 +168,7 @@ public:
     template <
             LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
             typename VariableDictionaryReaderType,
+            typename EncodedVariableVectorType,  // TODO: Make a concept.
             VariableDictionaryEntryReq VariableDictionaryEntryType
             = typename VariableDictionaryReaderType::entry_t,
             VariableDictionaryReaderReq<VariableDictionaryEntryType>
@@ -176,7 +177,7 @@ public:
     static bool decode_variables_into_message(
             LogTypeDictionaryEntryType const& logtype_dict_entry,
             VariableDictionaryReaderType const& var_dict,
-            std::vector<encoded_variable_t> const& encoded_vars,
+            EncodedVariableVectorType const& encoded_vars,
             std::string& decompressed_msg
     );
 
@@ -371,12 +372,13 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
 template <
         LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
         typename VariableDictionaryReaderType,
+        typename EncodedVariableVectorType,
         VariableDictionaryEntryReq VariableDictionaryEntryType,
         VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
 bool EncodedVariableInterpreter::decode_variables_into_message(
         LogTypeDictionaryEntryType const& logtype_dict_entry,
         VariableDictionaryReaderType const& var_dict,
-        std::vector<encoded_variable_t> const& encoded_vars,
+        EncodedVariableVectorType const& encoded_vars,
         std::string& decompressed_msg
 ) {
     // Ensure the number of variables in the logtype matches the number of encoded variables given
