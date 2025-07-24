@@ -321,6 +321,8 @@ tasks:
             - "{{.G_CORE_COMPONENT_DIR}}/src/clp/Profiler.hpp"
             - "{{.G_CORE_COMPONENT_DIR}}/src/clp/Query.cpp"
             - "{{.G_CORE_COMPONENT_DIR}}/src/clp/Query.hpp"
+            - "{{.G_CORE_COMPONENT_DIR}}/src/clp/QueryToken.cpp"
+            - "{{.G_CORE_COMPONENT_DIR}}/src/clp/QueryToken.hpp"
             - "{{.G_CORE_COMPONENT_DIR}}/src/clp/ReaderInterface.cpp"
             - "{{.G_CORE_COMPONENT_DIR}}/src/clp/ReaderInterface.hpp"
             - "{{.G_CORE_COMPONENT_DIR}}/src/clp/spdlog_with_specializations.hpp"
