@@ -22,18 +22,20 @@ set(
         type_utils.hpp
 )
 
-add_library(
-        clp_ffi_encoding
-        ${CLP_FFI_ENCODING_SOURCES}
-)
-add_library(clp::ffi::encoding ALIAS clp_ffi_encoding)
-target_compile_features(clp_ffi_encoding PRIVATE cxx_std_20)
-target_include_directories(clp_ffi_encoding PUBLIC ../)
-target_link_libraries(
-        clp_ffi_encoding
-        PUBLIC
-        clp::string_utils
-)
+if(CLP_BUILD_CLP_FFI_ENCODING)
+    add_library(
+            clp_ffi_encoding
+            ${CLP_FFI_ENCODING_SOURCES}
+    )
+    add_library(clp::ffi::encoding ALIAS clp_ffi_encoding)
+    target_compile_features(clp_ffi_encoding PRIVATE cxx_std_20)
+    target_include_directories(clp_ffi_encoding PUBLIC ../)
+    target_link_libraries(
+            clp_ffi_encoding
+            PUBLIC
+            clp::string_utils
+    )
+endif()
 
 set(
         CLP_FFI_IR_STREAM_DECODING_SOURCES
@@ -55,21 +57,23 @@ set(
         type_utils.hpp
 )
 
-add_library(
-        clp_ffi_ir_stream_decoding
-        ${CLP_FFI_IR_STREAM_DECODING_SOURCES}
-)
-add_library(clp::ffi::ir_stream::decoding ALIAS clp_ffi_ir_stream_decoding)
-target_compile_features(clp_ffi_ir_stream_decoding PRIVATE cxx_std_20)
-target_include_directories(clp_ffi_ir_stream_decoding PUBLIC ../)
-target_link_libraries(
-        clp_ffi_ir_stream_decoding
-        PUBLIC
-        clp::ffi::encoding
-        PRIVATE
-        nlohmann_json
-        ystdlib::error_handling
-)
+if(CLP_BUILD_CLP_FFI_IR_STREAM_DECODING)
+    add_library(
+            clp_ffi_ir_stream_decoding
+            ${CLP_FFI_IR_STREAM_DECODING_SOURCES}
+    )
+    add_library(clp::ffi::ir_stream::decoding ALIAS clp_ffi_ir_stream_decoding)
+    target_compile_features(clp_ffi_ir_stream_decoding PRIVATE cxx_std_20)
+    target_include_directories(clp_ffi_ir_stream_decoding PUBLIC ../)
+    target_link_libraries(
+            clp_ffi_ir_stream_decoding
+            PUBLIC
+            clp::ffi::encoding
+            PRIVATE
+            nlohmann_json
+            ystdlib::error_handling
+    )
+endif()
 
 set(
         CLP_FFI_SEARCH_SOURCES
@@ -89,17 +93,19 @@ set(
         ffi/search/WildcardToken.hpp
 )
 
-add_library(
-        clp_ffi_search
-        ${CLP_FFI_SEARCH_SOURCES}
-)
-add_library(clp::ffi::search ALIAS clp_ffi_search)
-target_compile_features(clp_ffi_search PRIVATE cxx_std_20)
-target_include_directories(clp_ffi_search PUBLIC ../)
-target_link_libraries(
-        clp_ffi_search
-        PUBLIC
-        clp::ffi::encoding
-        PRIVATE
-        clp::string_utils
-)
+if(CLP_BUILD_CLP_FFI_SEARCH)
+    add_library(
+            clp_ffi_search
+            ${CLP_FFI_SEARCH_SOURCES}
+    )
+    add_library(clp::ffi::search ALIAS clp_ffi_search)
+    target_compile_features(clp_ffi_search PRIVATE cxx_std_20)
+    target_include_directories(clp_ffi_search PUBLIC ../)
+    target_link_libraries(
+            clp_ffi_search
+            PUBLIC
+            clp::ffi::encoding
+            PRIVATE
+            clp::string_utils
+    )
+endif()
