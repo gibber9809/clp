@@ -456,18 +456,12 @@ std::optional<Query> GrepCore::process_raw_query(
         log_surgeon::lexers::ByteLexer& lexer,
         bool use_heuristic
 ) {
-    // Add prefix and suffix '*' to make the search a sub-string match
-    string processed_search_string = "*";
-    processed_search_string += search_string;
-    processed_search_string += '*';
-    processed_search_string = clean_up_wildcard_search_string(processed_search_string);
-
     // Split search_string into tokens with wildcards
     vector<QueryToken> query_tokens;
     size_t begin_pos = 0;
     size_t end_pos = 0;
     bool is_var;
-    string search_string_for_sub_queries{processed_search_string};
+    string search_string_for_sub_queries{search_string};
     if (use_heuristic) {
         // Replace '?' wildcards with '*' wildcards since we currently have no support for
         // generating sub-queries with '?' wildcards. The final wildcard match on the decompressed
@@ -538,13 +532,7 @@ std::optional<Query> GrepCore::process_raw_query(
             case SubQueryMatchabilityResult::SupercedesAllSubQueries:
                 // Since other sub-queries will be superceded by this one, we can stop processing
                 // now
-                return Query{
-                        search_begin_ts,
-                        search_end_ts,
-                        ignore_case,
-                        processed_search_string,
-                        {}
-                };
+                return Query{search_begin_ts, search_end_ts, ignore_case, search_string, {}};
             case SubQueryMatchabilityResult::MayMatch:
                 sub_queries.push_back(std::move(sub_query));
                 break;
@@ -572,7 +560,7 @@ std::optional<Query> GrepCore::process_raw_query(
             search_begin_ts,
             search_end_ts,
             ignore_case,
-            processed_search_string,
+            search_string,
             std::move(sub_queries)
     };
 }

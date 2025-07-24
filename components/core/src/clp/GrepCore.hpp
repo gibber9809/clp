@@ -15,7 +15,11 @@ class GrepCore {
 public:
     // Methods
     /**
-     * Processes a raw user query into a Query
+     * Processes a raw user query into a Query.
+     *
+     * Note: callers are responsible for ensuring that the search string does not contain repeated
+     * wildcards "**" e.g. by using `clp::string_utils::clean_up_wildcard_search_string`.
+     *
      * @param log_dict
      * @param var_dict
      * @param search_string

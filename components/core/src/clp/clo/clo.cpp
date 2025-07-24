@@ -7,6 +7,7 @@
 #include <mongocxx/instance.hpp>
 #include <nlohmann/json.hpp>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <string_utils/string_utils.hpp>
 
 #include "../../reducer/network_utils.hpp"
 #include "../clp/FileDecompressor.hpp"
@@ -47,6 +48,7 @@ using clp::streaming_archive::MetadataDB;
 using clp::streaming_archive::reader::Archive;
 using clp::streaming_archive::reader::File;
 using clp::streaming_archive::reader::Message;
+using clp::string_utils::clean_up_wildcard_search_string;
 using clp::TraceableException;
 using clp::variable_dictionary_id_t;
 using std::cerr;
@@ -498,10 +500,12 @@ static bool search_archive(
     auto const& log_dict{archive_reader.get_logtype_dictionary()};
     auto const& var_dict{archive_reader.get_var_dictionary()};
 
+    std::string wildcard_search_string
+            = clean_up_wildcard_search_string('*' + command_line_args.get_search_string() + '*');
     auto query_processing_result = GrepCore::process_raw_query(
             log_dict,
             var_dict,
-            command_line_args.get_search_string(),
+            wildcard_search_string,
             search_begin_ts,
             search_end_ts,
             command_line_args.ignore_case(),

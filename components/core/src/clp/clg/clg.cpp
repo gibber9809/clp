@@ -6,6 +6,7 @@
 
 #include <log_surgeon/Lexer.hpp>
 #include <spdlog/sinks/stdout_sinks.h>
+#include <string_utils/string_utils.hpp>
 
 #include "../Defs.h"
 #include "../GlobalMySQLMetadataDB.hpp"
@@ -37,6 +38,7 @@ using clp::streaming_archive::MetadataDB;
 using clp::streaming_archive::reader::Archive;
 using clp::streaming_archive::reader::File;
 using clp::streaming_archive::reader::Message;
+using clp::string_utils::clean_up_wildcard_search_string;
 using clp::TraceableException;
 using clp::variable_dictionary_id_t;
 using std::cerr;
@@ -499,16 +501,20 @@ int main(int argc, char const* argv[]) {
 
     Profiler::start_continuous_measurement<Profiler::ContinuousMeasurementIndex::Search>();
 
+    auto add_implicit_wildcards = [](string const& search_string) -> string {
+        return clean_up_wildcard_search_string('*' + search_string + '*');
+    };
+
     // Create vector of search strings
     vector<string> search_strings;
     if (command_line_args.get_search_strings_file_path().empty()) {
-        search_strings.push_back(command_line_args.get_search_string());
+        search_strings.emplace_back(add_implicit_wildcards(command_line_args.get_search_string()));
     } else {
         FileReader file_reader{command_line_args.get_search_strings_file_path()};
         string line;
         while (file_reader.read_to_delimiter('\n', false, false, line)) {
             if (!line.empty()) {
-                search_strings.push_back(line);
+                search_strings.emplace_back(add_implicit_wildcards(line));
             }
         }
     }
