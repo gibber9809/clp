@@ -13,8 +13,6 @@ set(
         ../DictionaryEntry.hpp
         ../DictionaryReader.hpp
         ../DictionaryWriter.hpp
-        ../EncodedVariableInterpreter.cpp
-        ../EncodedVariableInterpreter.hpp
         ../ErrorCode.hpp
         ../ffi/ir_stream/byteswap.hpp
         ../ffi/ir_stream/encoding_methods.cpp
@@ -167,6 +165,7 @@ if(CLP_BUILD_EXECUTABLES)
                 PRIVATE
                 absl::flat_hash_map
                 Boost::filesystem Boost::program_options
+                clp::encoded_variable_interpreter
                 clp::ffi::encoding
                 clp::ffi::ir_stream::decoding
                 date::date

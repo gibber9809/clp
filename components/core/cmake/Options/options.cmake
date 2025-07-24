@@ -12,6 +12,12 @@ option(
 )
 
 option(
+    CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
+    "Build clp::encoded_variable_interpreter."
+    ON
+)
+
+option(
     CLP_BUILD_CLP_FFI_ENCODING
     "Build clp::ffi::encoding."
     ON
@@ -26,6 +32,12 @@ option(
 option(
     CLP_BUILD_CLP_FFI_SEARCH
     "Build clp::ffi::search."
+    ON
+)
+
+option(
+    CLP_BUILD_CLP_GREP_CORE
+    "Build clp::grep_core."
     ON
 )
 
@@ -204,6 +216,20 @@ function(set_clp_tests_dependencies)
     )
 endfunction()
 
+function(validate_clp_encoded_variable_interpreter_dependencies)
+    validate_clp_dependencies_for_target(CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
+        CLP_BUILD_CLP_FFI_ENCODING
+        CLP_BUILD_CLP_FFI_IR_STREAM_DECODING
+        CLP_BUILD_CLP_STRING_UTILS
+    )
+endfunction()
+
+function(set_clp_encoded_variable_interpreter_dependencies)
+    set_clp_need_flags(
+        CLP_NEED_SPDLOG
+    )
+endfunction()
+
 function(validate_clp_ffi_encoding_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_CLP_FFI_ENCODING
         CLP_BUILD_CLP_STRING_UTILS
@@ -227,6 +253,20 @@ function(validate_clp_ffi_search_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_CLP_FFI_SEARCH
         CLP_BUILD_CLP_FFI_ENCODING
         CLP_BUILD_CLP_STRING_UTILS
+    )
+endfunction()
+
+function(validate_clp_grep_core_dependencies)
+    validate_clp_dependencies_for_target(CLP_BUILD_CLP_GREP_CORE
+        CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
+        CLP_BUILD_CLP_FFI_ENCODING
+        CLP_BUILD_CLP_STRING_UTILS
+    )
+endfunction()
+
+function(set_clp_grep_core_dependencies)
+    set_clp_need_flags(
+        CLP_NEED_LOG_SURGEON
     )
 endfunction()
 
@@ -426,9 +466,13 @@ function(validate_and_setup_all_clp_dependency_flags)
         set_clp_tests_dependencies()
     endif()
 
+    if (CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER)
+        validate_clp_encoded_variable_interpreter_dependencies()
+        set_clp_encoded_variable_interpreter_dependencies()
+    endif()
+
     if (CLP_BUILD_CLP_FFI_ENCODING)
         validate_clp_ffi_encoding_dependencies()
-
     endif()
 
     if (CLP_BUILD_CLP_FFI_IR_STREAM_DECODING)
@@ -438,6 +482,11 @@ function(validate_and_setup_all_clp_dependency_flags)
 
     if (CLP_BUILD_CLP_FFI_SEARCH)
         validate_clp_ffi_search_dependencies()
+    endif()
+
+    if (CLP_BUILD_CLP_GREP_CORE)
+        validate_clp_grep_core_dependencies()
+        set_clp_grep_core_dependencies()
     endif()
 
     if (CLP_BUILD_CLP_REGEX_UTILS)
