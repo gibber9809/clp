@@ -109,3 +109,71 @@ if(CLP_BUILD_CLP_FFI_SEARCH)
             clp::string_utils
     )
 endif()
+
+set(
+    CLP_ENCODED_VARIABLE_INTERPRETER_SOURCES
+    Defs.h
+    DictionaryConcepts.hpp
+    EncodedVariableInterpreter.cpp
+    EncodedVariableInterpreter.hpp
+    ErrorCode.hpp
+    ir/EncodedTextAst.cpp
+    ir/EncodedTextAst.hpp
+    ir/LogEvent.hpp
+    Query.cpp
+    Query.hpp
+    spdlog_with_specializations.hpp
+    TraceableException.hpp
+)
+
+if(CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER)
+    add_library(
+        clp_encoded_variable_interpreter
+        ${CLP_ENCODED_VARIABLE_INTERPRETER_SOURCES}
+    )
+    add_library(clp::encoded_variable_interpreter ALIAS clp_encoded_variable_interpreter)
+    target_compile_features(clp_encoded_variable_interpreter PRIVATE cxx_std_20)
+    target_include_directories(clp_encoded_variable_interpreter PUBLIC ../)
+    target_link_libraries(
+        clp_encoded_variable_interpreter
+        PUBLIC
+        clp::ffi::encoding
+        clp::ffi::ir_stream::decoding
+        spdlog::spdlog
+        PRIVATE
+        clp::string_utils
+    )
+endif()
+
+set(
+    CLP_GREP_CORE_SOURCES
+    Defs.h
+    DictionaryConcepts.hpp
+    GrepCore.cpp
+    GrepCore.hpp
+    LogSurgeonReader.cpp
+    LogSurgeonReader.hpp
+    QueryToken.cpp
+    QueryToken.hpp
+    ReaderInterface.hpp
+    StringReader.cpp
+    StringReader.hpp
+)
+
+if(CLP_BUILD_CLP_GREP_CORE)
+    add_library(
+        clp_grep_core
+        ${CLP_GREP_CORE_SOURCES}
+    )
+    add_library(clp::grep_core ALIAS clp_grep_core)
+    target_compile_features(clp_grep_core PRIVATE cxx_std_20)
+    target_include_directories(clp_grep_core PUBLIC ../)
+    target_link_libraries(
+        clp_grep_core
+        PUBLIC
+        clp::encoded_variable_interpreter
+        clp::ffi::encoding
+        clp::string_utils
+        log_surgeon::log_surgeon
+    )
+endif()

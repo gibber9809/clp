@@ -13,8 +13,6 @@ set(
         ../dictionary_utils.hpp
         ../DictionaryEntry.hpp
         ../DictionaryReader.hpp
-        ../EncodedVariableInterpreter.cpp
-        ../EncodedVariableInterpreter.hpp
         ../ErrorCode.hpp
         ../ffi/ir_stream/encoding_methods.cpp
         ../ffi/ir_stream/encoding_methods.hpp
@@ -28,8 +26,6 @@ set(
         ../FileWriter.hpp
         ../Grep.cpp
         ../Grep.hpp
-        ../GrepCore.cpp
-        ../GrepCore.hpp
         ../ir/EncodedTextAst.cpp
         ../ir/EncodedTextAst.hpp
         ../ir/LogEvent.hpp
@@ -50,10 +46,6 @@ set(
         ../Platform.hpp
         ../Profiler.cpp
         ../Profiler.hpp
-        ../Query.cpp
-        ../Query.hpp
-        ../QueryToken.cpp
-        ../QueryToken.hpp
         ../ReaderInterface.cpp
         ../ReaderInterface.hpp
         ../ReadOnlyMemoryMappedFile.cpp
@@ -157,8 +149,10 @@ if(CLP_BUILD_EXECUTABLES)
                 PRIVATE
                 absl::flat_hash_map
                 Boost::filesystem Boost::program_options
+                clp::encoded_variable_interpreter
                 clp::ffi::encoding
                 clp::ffi::ir_stream::decoding
+                clp::grep_core
                 date::date
                 fmt::fmt
                 log_surgeon::log_surgeon

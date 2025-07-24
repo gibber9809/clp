@@ -496,8 +496,6 @@ set(SOURCE_FILES_unitTest
         src/clp/DictionaryEntry.hpp
         src/clp/DictionaryReader.hpp
         src/clp/DictionaryWriter.hpp
-        src/clp/EncodedVariableInterpreter.cpp
-        src/clp/EncodedVariableInterpreter.hpp
         src/clp/ErrorCode.hpp
         src/clp/ffi/ir_stream/byteswap.hpp
         src/clp/ffi/ir_stream/Deserializer.hpp
@@ -553,8 +551,6 @@ set(SOURCE_FILES_unitTest
         src/clp/GlobalSQLiteMetadataDB.hpp
         src/clp/Grep.cpp
         src/clp/Grep.hpp
-        src/clp/GrepCore.cpp
-        src/clp/GrepCore.hpp
         src/clp/hash_utils.cpp
         src/clp/hash_utils.hpp
         src/clp/ir/constants.hpp
@@ -601,10 +597,6 @@ set(SOURCE_FILES_unitTest
         src/clp/Platform.hpp
         src/clp/Profiler.cpp
         src/clp/Profiler.hpp
-        src/clp/Query.cpp
-        src/clp/Query.hpp
-        src/clp/QueryToken.cpp
-        src/clp/QueryToken.hpp
         src/clp/ReaderInterface.cpp
         src/clp/ReaderInterface.hpp
         src/clp/ReadOnlyMemoryMappedFile.cpp
@@ -734,9 +726,11 @@ if(CLP_BUILD_TESTING)
             Boost::filesystem Boost::iostreams Boost::program_options Boost::regex Boost::url
             Catch2::Catch2
             ${CURL_LIBRARIES}
+            clp::encoded_variable_interpreter
             clp::ffi::encoding
             clp::ffi::ir_stream::decoding
             clp::ffi::search
+            clp::grep_core
             clp_s::search::ast
             clp_s::search::kql
             clp_s::search::sql
