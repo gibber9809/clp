@@ -144,9 +144,11 @@ public:
      * Whether the given variables contain the subquery's variables in order (but not necessarily
      * contiguously)
      * @param vars
+     * @tparam EncodedVariableVectorType a vector of `encoded_variable_t`. TODO: use a concept.
      * @return true if matched, false otherwise
      */
-    bool matches_vars(std::vector<encoded_variable_t> const& vars) const;
+    template <typename EncodedVariableVectorType>
+    bool matches_vars(EncodedVariableVectorType const& vars) const;
 
 private:
     // Variables
@@ -234,6 +236,32 @@ private:
     std::vector<SubQuery const*> m_relevant_sub_queries;
     segment_id_t m_prev_segment_id{cInvalidSegmentId};
 };
+
+template <typename EncodedVariableVectorType>
+bool SubQuery::matches_vars(EncodedVariableVectorType const& vars) const {
+    if (vars.size() < m_vars.size()) {
+        // Not enough variables to satisfy query
+        return false;
+    }
+
+    // Try to find m_vars in vars, in order, but not necessarily contiguously
+    size_t possible_vars_ix = 0;
+    size_t const num_possible_vars = m_vars.size();
+    size_t vars_ix = 0;
+    size_t const num_vars = vars.size();
+    while (possible_vars_ix < num_possible_vars && vars_ix < num_vars) {
+        QueryVar const& possible_var = m_vars[possible_vars_ix];
+
+        if (possible_var.matches(vars[vars_ix])) {
+            // Matched
+            ++possible_vars_ix;
+            ++vars_ix;
+        } else {
+            ++vars_ix;
+        }
+    }
+    return (num_possible_vars == possible_vars_ix);
+}
 }  // namespace clp
 
 #endif  // CLP_QUERY_HPP

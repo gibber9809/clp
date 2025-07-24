@@ -157,31 +157,6 @@ bool SubQuery::matches_logtype(logtype_dictionary_id_t const logtype) const {
     return m_possible_logtype_ids.count(logtype) > 0;
 }
 
-bool SubQuery::matches_vars(std::vector<encoded_variable_t> const& vars) const {
-    if (vars.size() < m_vars.size()) {
-        // Not enough variables to satisfy query
-        return false;
-    }
-
-    // Try to find m_vars in vars, in order, but not necessarily contiguously
-    size_t possible_vars_ix = 0;
-    size_t const num_possible_vars = m_vars.size();
-    size_t vars_ix = 0;
-    size_t const num_vars = vars.size();
-    while (possible_vars_ix < num_possible_vars && vars_ix < num_vars) {
-        QueryVar const& possible_var = m_vars[possible_vars_ix];
-
-        if (possible_var.matches(vars[vars_ix])) {
-            // Matched
-            ++possible_vars_ix;
-            ++vars_ix;
-        } else {
-            ++vars_ix;
-        }
-    }
-    return (num_possible_vars == possible_vars_ix);
-}
-
 Query::Query(
         epochtime_t search_begin_timestamp,
         epochtime_t search_end_timestamp,
