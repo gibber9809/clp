@@ -167,4 +167,4 @@ bool QueryToken::change_to_next_possible_type() {
         return false;
     }
 }
-} // namespace clp
+}  // namespace clp

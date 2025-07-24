@@ -11,9 +11,9 @@
 #include "LogSurgeonReader.hpp"
 #include "LogTypeDictionaryEntry.hpp"
 #include "LogTypeDictionaryReader.hpp"
+#include "QueryToken.hpp"
 #include "StringReader.hpp"
 #include "VariableDictionaryReader.hpp"
-#include "QueryToken.hpp"
 
 using clp::ir::is_delim;
 using clp::string_utils::clean_up_wildcard_search_string;
@@ -32,7 +32,7 @@ class SearchToken : public log_surgeon::Token {
 public:
     std::set<int> m_type_ids_set;
 };
-} // namespace
+}  // namespace
 
 std::optional<Query> GrepCore::process_raw_query(
         LogTypeDictionaryReader const& log_dict,

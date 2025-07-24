@@ -1,9 +1,9 @@
 #ifndef CLP_QUERYTOKEN_HPP
 #define CLP_QUERYTOKEN_HPP
 
+#include <cstddef>
 #include <string>
 #include <vector>
-#include <cstddef>
 
 namespace clp {
 // Class representing a token in a query. It is used to interpret a token in a search string.
@@ -62,5 +62,5 @@ private:
     // Index of the current possible type selected for generating a subquery
     size_t m_current_possible_type_ix{};
 };
-} // namespace clp
-#endif // CLP_QUERYTOKEN_HPP
+}  // namespace clp
+#endif  // CLP_QUERYTOKEN_HPP
