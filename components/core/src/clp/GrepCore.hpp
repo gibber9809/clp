@@ -1,9 +1,9 @@
 #ifndef CLP_GREPCORE_HPP
 #define CLP_GREPCORE_HPP
 
-#include <optional>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -12,8 +12,8 @@
 #include "Defs.h"
 #include "LogTypeDictionaryReader.hpp"
 #include "Query.hpp"
-#include "VariableDictionaryReader.hpp"
 #include "QueryToken.hpp"
+#include "VariableDictionaryReader.hpp"
 
 namespace clp {
 class GrepCore {
@@ -83,6 +83,7 @@ public:
             log_surgeon::lexers::ByteLexer& forward_lexer,
             log_surgeon::lexers::ByteLexer& reverse_lexer
     );
+
 private:
     // Types
     enum class SubQueryMatchabilityResult : uint8_t {
