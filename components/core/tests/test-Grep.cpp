@@ -5,6 +5,7 @@
 #include <log_surgeon/SchemaParser.hpp>
 
 #include "../src/clp/GrepCore.hpp"
+#include "../src/clp/Utils.hpp"
 
 using clp::GrepCore;
 using clp::load_lexer_from_file;
