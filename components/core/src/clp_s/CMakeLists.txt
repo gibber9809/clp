@@ -221,8 +221,6 @@ set(
         TraceableException.hpp
         Utils.cpp
         Utils.hpp
-        VariableEncoder.cpp
-        VariableEncoder.hpp
 )
 
 if(CLP_BUILD_CLP_S_ARCHIVEWRITER)
@@ -243,6 +241,7 @@ if(CLP_BUILD_CLP_S_ARCHIVEWRITER)
                 simdjson::simdjson
                 PRIVATE
                 Boost::url
+                clp::encoded_variable_interpreter
                 clp_s::clp_dependencies
                 clp_s::timestamp_pattern
                 ${CURL_LIBRARIES}
@@ -284,8 +283,6 @@ set(
         TraceableException.hpp
         Utils.cpp
         Utils.hpp
-        VariableDecoder.cpp
-        VariableDecoder.hpp
 )
 
 if(CLP_BUILD_CLP_S_ARCHIVEREADER)
@@ -306,6 +303,7 @@ if(CLP_BUILD_CLP_S_ARCHIVEREADER)
                 nlohmann_json::nlohmann_json
                 PRIVATE
                 Boost::url
+                clp::encoded_variable_interpreter
                 clp_s::clp_dependencies
                 clp_s::timestamp_pattern
                 ${CURL_LIBRARIES}
