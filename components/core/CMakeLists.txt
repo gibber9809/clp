@@ -521,6 +521,20 @@ set(SOURCE_FILES_unitTest
         src/clp/ffi/KeyValuePairLogEvent.hpp
         src/clp/ffi/SchemaTree.cpp
         src/clp/ffi/SchemaTree.hpp
+        src/clp/ffi/search/CompositeWildcardToken.cpp
+        src/clp/ffi/search/CompositeWildcardToken.hpp
+        src/clp/ffi/search/ExactVariableToken.cpp
+        src/clp/ffi/search/ExactVariableToken.hpp
+        src/clp/ffi/search/query_methods.cpp
+        src/clp/ffi/search/query_methods.hpp
+        src/clp/ffi/search/QueryMethodFailed.hpp
+        src/clp/ffi/search/QueryToken.hpp
+        src/clp/ffi/search/QueryWildcard.cpp
+        src/clp/ffi/search/QueryWildcard.hpp
+        src/clp/ffi/search/Subquery.cpp
+        src/clp/ffi/search/Subquery.hpp
+        src/clp/ffi/search/WildcardToken.cpp
+        src/clp/ffi/search/WildcardToken.hpp
         src/clp/ffi/utils.cpp
         src/clp/ffi/utils.hpp
         src/clp/ffi/Value.hpp
@@ -719,7 +733,6 @@ if(CLP_BUILD_TESTING)
             clp::encoded_variable_interpreter
             clp::ffi::encoding
             clp::ffi::ir_stream::decoding
-            clp::ffi::search
             clp::grep_core
             clp_s::search::ast
             clp_s::search::kql

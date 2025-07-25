@@ -76,41 +76,6 @@ if(CLP_BUILD_CLP_FFI_IR_STREAM_DECODING)
 endif()
 
 set(
-        CLP_FFI_SEARCH_SOURCES
-        ffi/search/CompositeWildcardToken.cpp
-        ffi/search/CompositeWildcardToken.hpp
-        ffi/search/ExactVariableToken.cpp
-        ffi/search/ExactVariableToken.hpp
-        ffi/search/query_methods.cpp
-        ffi/search/query_methods.hpp
-        ffi/search/QueryMethodFailed.hpp
-        ffi/search/QueryToken.hpp
-        ffi/search/QueryWildcard.cpp
-        ffi/search/QueryWildcard.hpp
-        ffi/search/Subquery.cpp
-        ffi/search/Subquery.hpp
-        ffi/search/WildcardToken.cpp
-        ffi/search/WildcardToken.hpp
-)
-
-if(CLP_BUILD_CLP_FFI_SEARCH)
-    add_library(
-            clp_ffi_search
-            ${CLP_FFI_SEARCH_SOURCES}
-    )
-    add_library(clp::ffi::search ALIAS clp_ffi_search)
-    target_compile_features(clp_ffi_search PRIVATE cxx_std_20)
-    target_include_directories(clp_ffi_search PUBLIC ../)
-    target_link_libraries(
-            clp_ffi_search
-            PUBLIC
-            clp::ffi::encoding
-            PRIVATE
-            clp::string_utils
-    )
-endif()
-
-set(
     CLP_ENCODED_VARIABLE_INTERPRETER_SOURCES
     Defs.h
     DictionaryConcepts.hpp
