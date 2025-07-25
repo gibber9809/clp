@@ -30,12 +30,6 @@ option(
 )
 
 option(
-    CLP_BUILD_CLP_FFI_SEARCH
-    "Build clp::ffi::search."
-    ON
-)
-
-option(
     CLP_BUILD_CLP_GREP_CORE
     "Build clp::grep_core."
     ON
@@ -188,6 +182,10 @@ endfunction()
 
 function(validate_clp_tests_dependencies)
     validate_clp_dependencies_for_target(CLP_BUILD_TESTING
+        CLP_BUILD_CLP_ENCODED_VARIABLE_INTERPRETER
+        CLP_BUILD_CLP_FFI_ENCODING
+        CLP_BUILD_CLP_FFI_IR_STREAM_DECODING
+        CLP_BUILD_CLP_GREP_CORE
         CLP_BUILD_CLP_REGEX_UTILS
         CLP_BUILD_CLP_STRING_UTILS
         CLP_BUILD_CLP_S_SEARCH_AST
@@ -250,13 +248,6 @@ function(set_clp_ffi_ir_stream_decoding_dependencies)
     set_clp_need_flags(
         CLP_NEED_NLOHMANN_JSON
         CLP_NEED_YSTDLIB
-    )
-endfunction()
-
-function(validate_clp_ffi_search_dependencies)
-    validate_clp_dependencies_for_target(CLP_BUILD_CLP_FFI_SEARCH
-        CLP_BUILD_CLP_FFI_ENCODING
-        CLP_BUILD_CLP_STRING_UTILS
     )
 endfunction()
 
@@ -488,10 +479,6 @@ function(validate_and_setup_all_clp_dependency_flags)
     if (CLP_BUILD_CLP_FFI_IR_STREAM_DECODING)
         validate_clp_ffi_ir_stream_decoding_dependencies()
         set_clp_ffi_ir_stream_decoding_dependencies()
-    endif()
-
-    if (CLP_BUILD_CLP_FFI_SEARCH)
-        validate_clp_ffi_search_dependencies()
     endif()
 
     if (CLP_BUILD_CLP_GREP_CORE)
