@@ -30,7 +30,7 @@ concept LogTypeDictionaryEntryReq = requires(
         std::string& logtype
 ) {
     /**
-     * Clear all internal state.
+     * Clears all internal state.
      */
     {
         entry.clear()
