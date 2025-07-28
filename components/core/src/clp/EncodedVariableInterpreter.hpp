@@ -114,6 +114,8 @@ public:
     /**
      * Parses all variables from a message (while constructing the logtype) and encodes them (adding
      * them to the variable dictionary if necessary)
+     * @tparam VariableDictionaryWriterType
+     * @tparam LogTypeDictionaryEntryType
      * @param message
      * @param logtype_dict_entry
      * @param var_dict
@@ -135,7 +137,9 @@ public:
      * Encodes the given IR log event, constructing a logtype dictionary entry, and adding any
      * dictionary variables to the dictionary. NOTE: Four-byte encoded variables will be converted
      * to eight-byte encoded variables.
-     * @tparam EncodedVariableType The type of the encoded variables in the log event
+     * @tparam EncodedVariableType The type of the encoded variables in the log event.
+     * @tparam LogTypeDictionaryEntryType
+     * @tparam VariableDictionaryWriterType
      * @param log_event
      * @param logtype_dict_entry
      * @param var_dict
@@ -159,6 +163,9 @@ public:
 
     /**
      * Decodes all variables and decompresses them into a message
+     * @tparam LogTypeDictionaryEntryType
+     * @tparam VariableDictionaryReaderType
+     * @tparam EncodedVariableVectorType A vector of `clp::encoded_variable_t`.
      * @param logtype_dict_entry
      * @param var_dict
      * @param encoded_vars
@@ -178,7 +185,8 @@ public:
 
     /**
      * Encodes a string-form variable, and if it is dictionary variable, searches for its ID in the
-     * given variable dictionary
+     * given variable dictionary.
+     * @tparam VariableDictionaryReaderType
      * @param var_str
      * @param var_dict
      * @param ignore_case
@@ -198,7 +206,9 @@ public:
     );
     /**
      * Search for the given string-form variable in the variable dictionary, encode any matches, and
-     * add them to the given sub-query
+     * add them to the given sub-query.
+     * @tparam VariableDictionaryReaderType
+     * @tparam VariableDictionaryEntryType
      * @param var_wildcard_str
      * @param var_dict
      * @param ignore_case
@@ -219,7 +229,9 @@ public:
 private:
     /**
      * Encodes the given string as a dictionary or non-dictionary variable and adds a corresponding
-     * placeholder to the logtype
+     * placeholder to the logtype.
+     * @tparam LogTypeDictionaryEntryType
+     * @tparam VariableDictionaryWriterType
      * @param var
      * @param logtype_dict_entry
      * @param var_dict
@@ -239,7 +251,9 @@ private:
 
     /**
      * Adds the given string to the variable dictionary and adds a corresponding placeholder to
-     * logtype
+     * logtype.
+     * @tparam LogTypeDictionaryEntryType
+     * @tparam VariableDictionaryWriterType
      * @param var
      * @param logtype_dict_entry
      * @param var_dict

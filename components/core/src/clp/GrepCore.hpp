@@ -30,6 +30,8 @@ public:
      * Note: callers are responsible for ensuring that the search string does not contain repeated
      * wildcards "**" e.g. by using `clp::string_utils::clean_up_wildcard_search_string`.
      *
+     * @tparam LogTypeDictionaryReaderType
+     * @tparam VariableDictionaryReaderType
      * @param log_dict
      * @param var_dict
      * @param search_string
@@ -99,6 +101,7 @@ private:
     // Methods
     /**
      * Process a QueryToken that is definitely a variable.
+     * @tparam VariableDictionaryReaderType
      * @param query_token
      * @param var_dict
      * @param ignore_case
@@ -117,6 +120,9 @@ private:
 
     /**
      * Generates logtypes and variables for subquery.
+     * @tparam LogTypeDictionaryReaderType
+     * @tparam VariableDictionaryReaderType
+     * @tparam LogTypeDictionaryEntryType
      * @param log_dict
      * @param var_dict
      * @param processed_search_string
