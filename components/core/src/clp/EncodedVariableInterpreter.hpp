@@ -167,13 +167,8 @@ public:
      */
     template <
             LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
-            typename VariableDictionaryReaderType,
-            typename EncodedVariableVectorType,  // TODO: Make a concept.
-            VariableDictionaryEntryReq VariableDictionaryEntryType
-            = typename VariableDictionaryReaderType::entry_t,
-            VariableDictionaryReaderReq<VariableDictionaryEntryType>
-                    VariableDictionaryReaderTypeCheck
-            = VariableDictionaryReaderType>
+            VariableDictionaryReaderReq VariableDictionaryReaderType,
+            typename EncodedVariableVectorType>  // TODO: Make a concept.
     static bool decode_variables_into_message(
             LogTypeDictionaryEntryType const& logtype_dict_entry,
             VariableDictionaryReaderType const& var_dict,
@@ -193,13 +188,7 @@ public:
      * dictionary
      * @return false otherwise
      */
-    template <
-            typename VariableDictionaryReaderType,
-            VariableDictionaryEntryReq VariableDictionaryEntryType
-            = typename VariableDictionaryReaderType::entry_t,
-            VariableDictionaryReaderReq<VariableDictionaryEntryType>
-                    VariableDictionaryReaderTypeCheck
-            = VariableDictionaryReaderType>
+    template <VariableDictionaryReaderReq VariableDictionaryReaderType>
     static bool encode_and_search_dictionary(
             std::string_view var_str,
             VariableDictionaryReaderType const& var_dict,
@@ -217,12 +206,9 @@ public:
      * @return true if any match found, false otherwise
      */
     template <
-            typename VariableDictionaryReaderType,
+            VariableDictionaryReaderReq VariableDictionaryReaderType,
             VariableDictionaryEntryReq VariableDictionaryEntryType
-            = typename VariableDictionaryReaderType::entry_t,
-            VariableDictionaryReaderReq<VariableDictionaryEntryType>
-                    VariableDictionaryReaderTypeCheck
-            = VariableDictionaryReaderType>
+            = VariableDictionaryReaderType::entry_t>
     static bool wildcard_search_dictionary_and_get_encoded_matches(
             std::string_view var_wildcard_str,
             VariableDictionaryReaderType const& var_dict,
@@ -371,10 +357,8 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
 
 template <
         LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
-        typename VariableDictionaryReaderType,
-        typename EncodedVariableVectorType,
-        VariableDictionaryEntryReq VariableDictionaryEntryType,
-        VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
+        VariableDictionaryReaderReq VariableDictionaryReaderType,
+        typename EncodedVariableVectorType>
 bool EncodedVariableInterpreter::decode_variables_into_message(
         LogTypeDictionaryEntryType const& logtype_dict_entry,
         VariableDictionaryReaderType const& var_dict,
@@ -446,10 +430,7 @@ bool EncodedVariableInterpreter::decode_variables_into_message(
     return true;
 }
 
-template <
-        typename VariableDictionaryReaderType,
-        VariableDictionaryEntryReq VariableDictionaryEntryType,
-        VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
+template <VariableDictionaryReaderReq VariableDictionaryReaderType>
 bool EncodedVariableInterpreter::encode_and_search_dictionary(
         std::string_view var_str,
         VariableDictionaryReaderType const& var_dict,
@@ -498,9 +479,8 @@ bool EncodedVariableInterpreter::encode_and_search_dictionary(
 }
 
 template <
-        typename VariableDictionaryReaderType,
-        VariableDictionaryEntryReq VariableDictionaryEntryType,
-        VariableDictionaryReaderReq<VariableDictionaryEntryType> VariableDictionaryReaderTypeCheck>
+        VariableDictionaryReaderReq VariableDictionaryReaderType,
+        VariableDictionaryEntryReq VariableDictionaryEntryType>
 bool EncodedVariableInterpreter::wildcard_search_dictionary_and_get_encoded_matches(
         std::string_view var_wildcard_str,
         VariableDictionaryReaderType const& var_dict,

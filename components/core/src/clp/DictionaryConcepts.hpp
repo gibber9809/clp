@@ -150,7 +150,9 @@ concept VariableDictionaryEntryReq = requires(VariableDictionaryEntryType entry)
  * @tparam LogTypeDictionaryReaderType The type of the logtype dictionary reader.
  * @tparam LogTypeDictionaryEntryType The type of the entries in the logtype dictionary reader.
  */
-template <typename LogTypeDictionaryReaderType, typename LogTypeDictionaryEntryType>
+template <
+        typename LogTypeDictionaryReaderType,
+        typename LogTypeDictionaryEntryType = LogTypeDictionaryReaderType::entry_t>
 concept LogTypeDictionaryReaderReq = requires(
         LogTypeDictionaryReaderType reader,
         std::string_view logtype,
@@ -207,7 +209,9 @@ concept VariableDictionaryWriterReq = requires(
  * @tparam VariableDictionaryReaderType The type of the variable dictionary reader.
  * @tparam VariableDictionaryEntryType The type of the entries in the variable dictionary reader.
  */
-template <typename VariableDictionaryReaderType, typename VariableDictionaryEntryType>
+template <
+        typename VariableDictionaryReaderType,
+        typename VariableDictionaryEntryType = VariableDictionaryReaderType::entry_t>
 concept VariableDictionaryReaderReq = requires(
         VariableDictionaryReaderType reader,
         variable_dictionary_id_t id,
