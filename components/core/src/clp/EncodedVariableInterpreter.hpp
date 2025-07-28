@@ -135,7 +135,7 @@ public:
      * Encodes the given IR log event, constructing a logtype dictionary entry, and adding any
      * dictionary variables to the dictionary. NOTE: Four-byte encoded variables will be converted
      * to eight-byte encoded variables.
-     * @tparam encoded_variable_t The type of the encoded variables in the log event
+     * @tparam EncodedVariableType The type of the encoded variables in the log event
      * @param log_event
      * @param logtype_dict_entry
      * @param var_dict
@@ -145,11 +145,11 @@ public:
      * occupy if it was not encoded in CLP's IR
      */
     template <
-            typename encoded_variable_t,
+            typename EncodedVariableType,
             LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
             VariableDictionaryWriterReq VariableDictionaryWriterType>
     static void encode_and_add_to_dictionary(
-            ir::LogEvent<encoded_variable_t> const& log_event,
+            ir::LogEvent<EncodedVariableType> const& log_event,
             LogTypeDictionaryEntryType& logtype_dict_entry,
             VariableDictionaryWriterType& var_dict,
             std::vector<ir::eight_byte_encoded_variable_t>& encoded_vars,
@@ -282,11 +282,11 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
 }
 
 template <
-        typename encoded_variable_t,
+        typename EncodedVariableType,
         LogTypeDictionaryEntryReq LogTypeDictionaryEntryType,
         VariableDictionaryWriterReq VariableDictionaryWriterType>
 void EncodedVariableInterpreter::encode_and_add_to_dictionary(
-        ir::LogEvent<encoded_variable_t> const& log_event,
+        ir::LogEvent<EncodedVariableType> const& log_event,
         LogTypeDictionaryEntryType& logtype_dict_entry,
         VariableDictionaryWriterType& var_dict,
         std::vector<ir::eight_byte_encoded_variable_t>& encoded_vars,
@@ -304,27 +304,27 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
         logtype_dict_entry.add_constant(value, begin_pos, length);
     };
 
-    auto encoded_int_handler = [&](encoded_variable_t encoded_var) {
+    auto encoded_int_handler = [&](EncodedVariableType encoded_var) {
         raw_num_bytes += ffi::decode_integer_var(encoded_var).length();
         logtype_dict_entry.add_int_var();
 
         ir::eight_byte_encoded_variable_t eight_byte_encoded_var{};
-        if constexpr (std::is_same_v<encoded_variable_t, ir::eight_byte_encoded_variable_t>) {
+        if constexpr (std::is_same_v<EncodedVariableType, ir::eight_byte_encoded_variable_t>) {
             eight_byte_encoded_var = encoded_var;
-        } else {  // std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>
+        } else {  // std::is_same_v<EncodedVariableType, ir::four_byte_encoded_variable_t>
             eight_byte_encoded_var = ffi::encode_four_byte_integer_as_eight_byte(encoded_var);
         }
         encoded_vars.push_back(eight_byte_encoded_var);
     };
 
-    auto encoded_float_handler = [&](encoded_variable_t encoded_var) {
+    auto encoded_float_handler = [&](EncodedVariableType encoded_var) {
         raw_num_bytes += ffi::decode_float_var(encoded_var).length();
         logtype_dict_entry.add_float_var();
 
         ir::eight_byte_encoded_variable_t eight_byte_encoded_var{};
-        if constexpr (std::is_same_v<encoded_variable_t, ir::eight_byte_encoded_variable_t>) {
+        if constexpr (std::is_same_v<EncodedVariableType, ir::eight_byte_encoded_variable_t>) {
             eight_byte_encoded_var = encoded_var;
-        } else {  // std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>
+        } else {  // std::is_same_v<EncodedVariableType, ir::four_byte_encoded_variable_t>
             eight_byte_encoded_var = ffi::encode_four_byte_float_as_eight_byte(encoded_var);
         }
         encoded_vars.push_back(eight_byte_encoded_var);
@@ -334,11 +334,11 @@ void EncodedVariableInterpreter::encode_and_add_to_dictionary(
         raw_num_bytes += dict_var.length();
 
         ir::eight_byte_encoded_variable_t encoded_var{};
-        if constexpr (std::is_same_v<encoded_variable_t, ir::eight_byte_encoded_variable_t>) {
+        if constexpr (std::is_same_v<EncodedVariableType, ir::eight_byte_encoded_variable_t>) {
             encoded_var = encode_var_dict_id(
                     add_dict_var(dict_var, logtype_dict_entry, var_dict, var_ids)
             );
-        } else {  // std::is_same_v<encoded_variable_t, four_byte_encoded_variable_t>
+        } else {  // std::is_same_v<EncodedVariableType, ir::four_byte_encoded_variable_t>
             encoded_var = encode_var(dict_var, logtype_dict_entry, var_dict, var_ids);
         }
         encoded_vars.push_back(encoded_var);
