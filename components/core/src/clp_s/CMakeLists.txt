@@ -18,8 +18,6 @@ set(
         ../clp/cli_utils.hpp
         ../clp/Defs.h
         ../clp/ErrorCode.hpp
-        ../clp/ffi/ir_stream/decoding_methods.cpp
-        ../clp/ffi/ir_stream/decoding_methods.hpp
         ../clp/ffi/ir_stream/Deserializer.hpp
         ../clp/ffi/ir_stream/encoding_methods.cpp
         ../clp/ffi/ir_stream/encoding_methods.hpp
@@ -53,8 +51,6 @@ set(
         ../clp/ir/constants.hpp
         ../clp/ir/EncodedTextAst.cpp
         ../clp/ir/EncodedTextAst.hpp
-        ../clp/ir/parsing.cpp
-        ../clp/ir/parsing.hpp
         ../clp/NetworkReader.cpp
         ../clp/NetworkReader.hpp
         ../clp/networking/socket_utils.cpp
@@ -95,6 +91,8 @@ if(CLP_BUILD_CLP_S_CLP_DEPENDENCIES)
                 ystdlib::containers
                 PRIVATE
                 Boost::regex
+                clp::ffi::encoding
+                clp::ffi::ir_stream::decoding
                 ${CURL_LIBRARIES}
                 fmt::fmt
                 msgpack-cxx
@@ -223,8 +221,6 @@ set(
         TraceableException.hpp
         Utils.cpp
         Utils.hpp
-        VariableEncoder.cpp
-        VariableEncoder.hpp
 )
 
 if(CLP_BUILD_CLP_S_ARCHIVEWRITER)
@@ -245,6 +241,7 @@ if(CLP_BUILD_CLP_S_ARCHIVEWRITER)
                 simdjson::simdjson
                 PRIVATE
                 Boost::url
+                clp::encoded_variable_interpreter
                 clp_s::clp_dependencies
                 clp_s::timestamp_pattern
                 ${CURL_LIBRARIES}
@@ -286,8 +283,6 @@ set(
         TraceableException.hpp
         Utils.cpp
         Utils.hpp
-        VariableDecoder.cpp
-        VariableDecoder.hpp
 )
 
 if(CLP_BUILD_CLP_S_ARCHIVEREADER)
@@ -308,6 +303,7 @@ if(CLP_BUILD_CLP_S_ARCHIVEREADER)
                 nlohmann_json::nlohmann_json
                 PRIVATE
                 Boost::url
+                clp::encoded_variable_interpreter
                 clp_s::clp_dependencies
                 clp_s::timestamp_pattern
                 ${CURL_LIBRARIES}

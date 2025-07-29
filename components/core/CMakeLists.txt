@@ -344,14 +344,8 @@ if(CLP_NEED_SQLITE)
     FindDynamicLibraryDependencies(sqlite "${sqlite_DYNAMIC_LIBS}")
 endif()
 
-add_subdirectory(src/clp/regex_utils)
-add_subdirectory(src/clp/string_utils)
-
-add_subdirectory(src/clp/clg)
-add_subdirectory(src/clp/clo)
-add_subdirectory(src/clp/clp)
+add_subdirectory(src/clp)
 add_subdirectory(src/glt/glt)
-add_subdirectory(src/clp/make_dictionaries_readable)
 add_subdirectory(src/clp_s)
 add_subdirectory(src/reducer)
 
@@ -402,12 +396,6 @@ set(SOURCE_FILES_clp_s_unitTest
     src/clp_s/SchemaWriter.hpp
     src/clp_s/search/AddTimestampConditions.cpp
     src/clp_s/search/AddTimestampConditions.hpp
-    src/clp_s/search/clp_search/EncodedVariableInterpreter.cpp
-    src/clp_s/search/clp_search/EncodedVariableInterpreter.hpp
-    src/clp_s/search/clp_search/Grep.cpp
-    src/clp_s/search/clp_search/Grep.hpp
-    src/clp_s/search/clp_search/Query.cpp
-    src/clp_s/search/clp_search/Query.hpp
     src/clp_s/search/EvaluateRangeIndexFilters.cpp
     src/clp_s/search/EvaluateRangeIndexFilters.hpp
     src/clp_s/search/EvaluateTimestampIndex.cpp
@@ -429,10 +417,6 @@ set(SOURCE_FILES_clp_s_unitTest
     src/clp_s/TimestampEntry.hpp
     src/clp_s/Utils.cpp
     src/clp_s/Utils.hpp
-    src/clp_s/VariableDecoder.cpp
-    src/clp_s/VariableDecoder.hpp
-    src/clp_s/VariableEncoder.cpp
-    src/clp_s/VariableEncoder.hpp
     src/clp_s/ZstdCompressor.cpp
     src/clp_s/ZstdCompressor.hpp
     src/clp_s/ZstdDecompressor.cpp
@@ -502,17 +486,9 @@ set(SOURCE_FILES_unitTest
         src/clp/DictionaryEntry.hpp
         src/clp/DictionaryReader.hpp
         src/clp/DictionaryWriter.hpp
-        src/clp/EncodedVariableInterpreter.cpp
-        src/clp/EncodedVariableInterpreter.hpp
         src/clp/ErrorCode.hpp
-        src/clp/ffi/encoding_methods.cpp
-        src/clp/ffi/encoding_methods.hpp
-        src/clp/ffi/encoding_methods.inc
         src/clp/ffi/ir_stream/byteswap.hpp
         src/clp/ffi/ir_stream/Deserializer.hpp
-        src/clp/ffi/ir_stream/decoding_methods.cpp
-        src/clp/ffi/ir_stream/decoding_methods.hpp
-        src/clp/ffi/ir_stream/decoding_methods.inc
         src/clp/ffi/ir_stream/encoding_methods.cpp
         src/clp/ffi/ir_stream/encoding_methods.hpp
         src/clp/ffi/ir_stream/IrErrorCode.cpp
@@ -625,8 +601,6 @@ set(SOURCE_FILES_unitTest
         src/clp/Platform.hpp
         src/clp/Profiler.cpp
         src/clp/Profiler.hpp
-        src/clp/Query.cpp
-        src/clp/Query.hpp
         src/clp/ReaderInterface.cpp
         src/clp/ReaderInterface.hpp
         src/clp/ReadOnlyMemoryMappedFile.cpp
@@ -756,6 +730,10 @@ if(CLP_BUILD_TESTING)
             Boost::filesystem Boost::iostreams Boost::program_options Boost::regex Boost::url
             Catch2::Catch2
             ${CURL_LIBRARIES}
+            clp::encoded_variable_interpreter
+            clp::ffi::encoding
+            clp::ffi::ir_stream::decoding
+            clp::grep_core
             clp_s::search::ast
             clp_s::search::kql
             clp_s::search::sql

@@ -13,15 +13,7 @@ set(
         ../dictionary_utils.hpp
         ../DictionaryEntry.hpp
         ../DictionaryReader.hpp
-        ../EncodedVariableInterpreter.cpp
-        ../EncodedVariableInterpreter.hpp
         ../ErrorCode.hpp
-        ../ffi/encoding_methods.cpp
-        ../ffi/encoding_methods.hpp
-        ../ffi/encoding_methods.inc
-        ../ffi/ir_stream/decoding_methods.cpp
-        ../ffi/ir_stream/decoding_methods.hpp
-        ../ffi/ir_stream/decoding_methods.inc
         ../ffi/ir_stream/encoding_methods.cpp
         ../ffi/ir_stream/encoding_methods.hpp
         ../ffi/ir_stream/utils.cpp
@@ -39,9 +31,6 @@ set(
         ../ir/LogEvent.hpp
         ../ir/LogEventSerializer.cpp
         ../ir/LogEventSerializer.hpp
-        ../ir/parsing.cpp
-        ../ir/parsing.hpp
-        ../ir/parsing.inc
         ../ir/types.hpp
         ../LogSurgeonReader.cpp
         ../LogSurgeonReader.hpp
@@ -57,8 +46,6 @@ set(
         ../Platform.hpp
         ../Profiler.cpp
         ../Profiler.hpp
-        ../Query.cpp
-        ../Query.hpp
         ../ReaderInterface.cpp
         ../ReaderInterface.hpp
         ../ReadOnlyMemoryMappedFile.cpp
@@ -160,7 +147,12 @@ if(CLP_BUILD_EXECUTABLES)
         )
         target_link_libraries(clo
                 PRIVATE
+                absl::flat_hash_map
                 Boost::filesystem Boost::program_options
+                clp::encoded_variable_interpreter
+                clp::ffi::encoding
+                clp::ffi::ir_stream::decoding
+                clp::grep_core
                 date::date
                 fmt::fmt
                 log_surgeon::log_surgeon

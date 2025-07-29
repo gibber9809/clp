@@ -13,16 +13,8 @@ set(
         ../DictionaryEntry.hpp
         ../DictionaryReader.hpp
         ../DictionaryWriter.hpp
-        ../EncodedVariableInterpreter.cpp
-        ../EncodedVariableInterpreter.hpp
         ../ErrorCode.hpp
-        ../ffi/encoding_methods.cpp
-        ../ffi/encoding_methods.hpp
-        ../ffi/encoding_methods.inc
         ../ffi/ir_stream/byteswap.hpp
-        ../ffi/ir_stream/decoding_methods.cpp
-        ../ffi/ir_stream/decoding_methods.hpp
-        ../ffi/ir_stream/decoding_methods.inc
         ../ffi/ir_stream/encoding_methods.cpp
         ../ffi/ir_stream/encoding_methods.hpp
         ../ffi/ir_stream/utils.cpp
@@ -48,9 +40,6 @@ set(
         ../ir/LogEventDeserializer.hpp
         ../ir/LogEventSerializer.cpp
         ../ir/LogEventSerializer.hpp
-        ../ir/parsing.cpp
-        ../ir/parsing.hpp
-        ../ir/parsing.inc
         ../ir/types.hpp
         ../ir/utils.cpp
         ../ir/utils.hpp
@@ -174,7 +163,11 @@ if(CLP_BUILD_EXECUTABLES)
         )
         target_link_libraries(clp
                 PRIVATE
+                absl::flat_hash_map
                 Boost::filesystem Boost::program_options
+                clp::encoded_variable_interpreter
+                clp::ffi::encoding
+                clp::ffi::ir_stream::decoding
                 date::date
                 fmt::fmt
                 log_surgeon::log_surgeon
