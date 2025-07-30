@@ -206,6 +206,10 @@ private:
     static bool
     check_and_log_curl_error(Path const& path, std::shared_ptr<clp::ReaderInterface> reader);
 
+    uint64_t get_offset_for_logdict_id(clp::logtype_dictionary_id_t id) {
+        return m_offset_map[id]++;
+    }
+
     int m_num_messages;
     std::vector<Path> m_input_paths;
     NetworkAuthOption m_network_auth{};
@@ -231,6 +235,7 @@ private:
             m_autogen_ir_node_to_archive_node_id_mapping;
 
     std::vector<ArchiveStats> m_archive_stats;
+    std::map<clp::logtype_dictionary_id_t, uint64_t> m_offset_map;
 };
 }  // namespace clp_s
 

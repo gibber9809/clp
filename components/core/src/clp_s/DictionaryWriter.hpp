@@ -101,12 +101,19 @@ public:
                 : TraceableException(error_code, filename, line_number) {}
     };
 
+    LogTypeDictionaryWriter(bool logtext)
+            : DictionaryWriter<clp::logtype_dictionary_id_t, LogTypeDictionaryEntry>(),
+              m_logtext(logtext) {}
+
     /**
      * Adds the given entry to the dictionary if it doesn't exist
      * @param logtype_entry
      * @param logtype_id ID of the logtype matching the given entry
      */
     bool add_entry(LogTypeDictionaryEntry& logtype_entry, clp::logtype_dictionary_id_t& logtype_id);
+
+private:
+    bool m_logtext{true};
 };
 
 template <typename DictionaryIdType, typename EntryType>

@@ -269,6 +269,8 @@ public:
         return rc;
     }
 
+    auto get_log_dict() -> LogTypeDictionaryWriter& { return *m_log_dict; }
+
 private:
     /**
      * Initializes the schema writer

@@ -36,6 +36,20 @@ void DeltaEncodedInt64ColumnWriter::store(ZstdCompressor& compressor) {
     compressor.write(reinterpret_cast<char const*>(m_values.data()), size);
 }
 
+size_t IndirectClpStringColumnWriter::add_value(ParsedMessage::variable_t& value) {
+    auto [offset, id] = std::get<std::pair<uint64_t, epochtime_t>>(value);
+    auto mid = ParsedMessage::variable_t(static_cast<int64_t>(id));
+    auto moffset = ParsedMessage::variable_t(static_cast<int64_t>(offset));
+    auto size1 = m_dict_id_writer.add_value(mid);
+    size1 += m_offset_writer.add_value(moffset);
+    return size1;
+}
+
+void IndirectClpStringColumnWriter::store(ZstdCompressor& compressor) {
+    m_dict_id_writer.store(compressor);
+    m_offset_writer.store(compressor);
+}
+
 size_t FloatColumnWriter::add_value(ParsedMessage::variable_t& value) {
     m_values.push_back(std::get<double>(value));
     return sizeof(double);

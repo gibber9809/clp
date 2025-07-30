@@ -49,11 +49,11 @@ void ArchiveWriter::open(ArchiveWriterOption const& option) {
     m_var_dict->open(var_dict_path, m_compression_level, UINT64_MAX);
 
     std::string log_dict_path = m_archive_path + constants::cArchiveLogDictFile;
-    m_log_dict = std::make_shared<LogTypeDictionaryWriter>();
+    m_log_dict = std::make_shared<LogTypeDictionaryWriter>(true);
     m_log_dict->open(log_dict_path, m_compression_level, UINT64_MAX);
 
     std::string array_dict_path = m_archive_path + constants::cArchiveArrayDictFile;
-    m_array_dict = std::make_shared<LogTypeDictionaryWriter>();
+    m_array_dict = std::make_shared<LogTypeDictionaryWriter>(false);
     m_array_dict->open(array_dict_path, m_compression_level, UINT64_MAX);
 }
 
@@ -333,6 +333,9 @@ void ArchiveWriter::initialize_schema_writer(SchemaWriter* writer, Schema const&
                 break;
             case NodeType::DeltaInteger:
                 writer->append_column(new DeltaEncodedInt64ColumnWriter(id));
+                break;
+            case NodeType::IndirectClpString:
+                writer->append_column(new IndirectClpStringColumnWriter(id));
                 break;
             case NodeType::Metadata:
             case NodeType::NullValue:

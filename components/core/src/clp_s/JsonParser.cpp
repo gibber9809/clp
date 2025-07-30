@@ -14,6 +14,7 @@
 #include <simdjson.h>
 #include <spdlog/spdlog.h>
 
+#include "../clp/EncodedVariableInterpreter.hpp"
 #include "../clp/ffi/ir_stream/decoding_methods.hpp"
 #include "../clp/ffi/ir_stream/Deserializer.hpp"
 #include "../clp/ffi/ir_stream/IrUnitType.hpp"
@@ -40,6 +41,13 @@ using clp::ffi::KeyValuePairLogEvent;
 using clp::UtcOffset;
 
 namespace clp_s {
+namespace {
+class DummyVariableDictionaryWriter {
+public:
+    bool add_entry(std::string_view value, clp::variable_dictionary_id_t& id) { return false; }
+};
+}  // namespace
+
 /**
  * Class that implements `clp::ffi::ir_stream::IrUnitHandlerReq` for Key-Value IR compression.
  */
@@ -436,9 +444,26 @@ void JsonParser::parse_line(ondemand::value line, int32_t parent_node_id, std::s
                     );
                     m_current_parsed_message.add_value(node_id, encoding_id, timestamp);
                 } else if (value.find(' ') != std::string::npos) {
-                    node_id = m_archive_writer
-                                      ->add_node(node_id_stack.top(), NodeType::ClpString, cur_key);
-                    m_current_parsed_message.add_value(node_id, value);
+                    node_id = m_archive_writer->add_node(
+                            node_id_stack.top(),
+                            NodeType::IndirectClpString,
+                            cur_key
+                    );
+                    LogTypeDictionaryEntry logtype_entry;
+                    DummyVariableDictionaryWriter var_dict;
+                    std::vector<clp::encoded_variable_t> encoded_vars;
+                    std::vector<clp::variable_dictionary_id_t> vardict_ids;
+                    clp::EncodedVariableInterpreter::encode_and_add_to_dictionary(
+                            value,
+                            logtype_entry,
+                            var_dict,
+                            encoded_vars,
+                            vardict_ids
+                    );
+                    clp::logtype_dictionary_id_t logdict_id{};
+                    m_archive_writer->get_log_dict().add_entry(logtype_entry, logdict_id);
+                    auto offset = get_offset_for_logdict_id(logdict_id);
+                    m_current_parsed_message.add_value(node_id, offset, logdict_id);
                 } else {
                     node_id = m_archive_writer
                                       ->add_node(node_id_stack.top(), NodeType::VarString, cur_key);

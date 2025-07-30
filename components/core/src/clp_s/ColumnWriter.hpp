@@ -81,6 +81,27 @@ private:
     int64_t m_cur{};
 };
 
+class IndirectClpStringColumnWriter : public BaseColumnWriter {
+public:
+    // Constructor
+    explicit IndirectClpStringColumnWriter(int32_t id)
+            : BaseColumnWriter(id),
+              m_dict_id_writer(id),
+              m_offset_writer(id) {}
+
+    // Destructor
+    ~IndirectClpStringColumnWriter() override = default;
+
+    // Methods inherited from BaseColumnWriter
+    size_t add_value(ParsedMessage::variable_t& value) override;
+
+    void store(ZstdCompressor& compressor) override;
+
+private:
+    Int64ColumnWriter m_dict_id_writer;
+    Int64ColumnWriter m_offset_writer;
+};
+
 class FloatColumnWriter : public BaseColumnWriter {
 public:
     // Constructor
