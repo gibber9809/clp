@@ -99,7 +99,7 @@ public:
 
 private:
     Int64ColumnWriter m_dict_id_writer;
-    Int64ColumnWriter m_offset_writer;
+    DeltaEncodedInt64ColumnWriter m_offset_writer;
 };
 
 class FloatColumnWriter : public BaseColumnWriter {
