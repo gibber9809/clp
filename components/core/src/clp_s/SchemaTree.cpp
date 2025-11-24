@@ -27,7 +27,7 @@ auto node_to_literal_type(NodeType type) -> clp_s::search::ast::LiteralType {
             return clp_s::search::ast::LiteralType::ArrayT;
         case NodeType::NullValue:
             return clp_s::search::ast::LiteralType::NullT;
-        case NodeType::DateString:
+        case NodeType::DeprecatedDateString:
             return clp_s::search::ast::LiteralType::EpochDateT;
         case NodeType::Metadata:
         case NodeType::Unknown:

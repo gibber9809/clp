@@ -75,7 +75,7 @@ void QueryRunner::initialize_reader(int32_t column_id, BaseColumnReader* column_
     {
         auto* clp_reader = dynamic_cast<ClpStringColumnReader*>(column_reader);
         auto* var_reader = dynamic_cast<VariableStringColumnReader*>(column_reader);
-        auto* date_reader = dynamic_cast<DateStringColumnReader*>(column_reader);
+        auto* date_reader = dynamic_cast<DeprecatedDateStringColumnReader*>(column_reader);
         if (nullptr != clp_reader && clp_reader->get_type() == NodeType::ClpString) {
             m_clp_string_readers[column_id].push_back(clp_reader);
         } else if (nullptr != var_reader && var_reader->get_type() == NodeType::VarString) {
@@ -947,7 +947,7 @@ void QueryRunner::populate_searched_wildcard_columns(std::shared_ptr<Expression>
                 auto literal_type = node_to_literal_type(tree_node_type);
                 matching_types |= literal_type;
                 if (NodeType::ClpString != tree_node_type && NodeType::VarString != tree_node_type
-                    && NodeType::DateString != tree_node_type)
+                    && NodeType::DeprecatedDateString != tree_node_type)
                 {
                     m_wildcard_to_searched_basic_columns[col].insert(node);
                 }
@@ -1162,7 +1162,7 @@ EvaluatedValue QueryRunner::constant_propagate(std::shared_ptr<Expression> const
 
 bool QueryRunner::evaluate_epoch_date_filter(
         FilterOperation op,
-        DateStringColumnReader* reader,
+        DeprecatedDateStringColumnReader* reader,
         std::shared_ptr<Literal>& operand
 ) {
     if (FilterOperation::EXISTS == op || FilterOperation::NEXISTS == op) {

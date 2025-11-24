@@ -19,9 +19,9 @@ void SchemaReader::append_unordered_column(BaseColumnReader* column_reader) {
 
 void SchemaReader::mark_column_as_timestamp(BaseColumnReader* column_reader) {
     m_timestamp_column = column_reader;
-    if (m_timestamp_column->get_type() == NodeType::DateString) {
+    if (m_timestamp_column->get_type() == NodeType::DeprecatedDateString) {
         m_get_timestamp = [this]() {
-            return static_cast<DateStringColumnReader*>(m_timestamp_column)
+            return static_cast<DeprecatedDateStringColumnReader*>(m_timestamp_column)
                     ->get_encoded_time(m_cur_message);
         };
     } else if (m_timestamp_column->get_type() == NodeType::Integer) {
@@ -474,7 +474,7 @@ size_t SchemaReader::generate_structured_array_template(
                     m_json_serializer.add_op(JsonSerializer::Op::AddNullValue);
                     break;
                 }
-                case NodeType::DateString:
+                case NodeType::DeprecatedDateString:
                 case NodeType::UnstructuredArray:
                 case NodeType::Metadata:
                 case NodeType::Unknown:
@@ -566,7 +566,7 @@ size_t SchemaReader::generate_structured_object_template(
                     m_json_serializer.add_special_key(node.get_key_name());
                     break;
                 }
-                case NodeType::DateString:
+                case NodeType::DeprecatedDateString:
                 case NodeType::UnstructuredArray:
                 case NodeType::Metadata:
                 case NodeType::Unknown:
@@ -672,7 +672,7 @@ void SchemaReader::generate_json_template(int32_t id) {
             }
             case NodeType::ClpString:
             case NodeType::VarString:
-            case NodeType::DateString: {
+            case NodeType::DeprecatedDateString: {
                 m_json_serializer.add_op(JsonSerializer::Op::AddStringField);
                 m_reordered_columns.push_back(m_column_map[child_global_id]);
                 break;

@@ -72,6 +72,9 @@ public:
     // Destructor
     ~DeltaEncodedInt64ColumnWriter() override = default;
 
+    // Methods
+    [[nodiscard]] auto add_value(int64_t value) -> size_t;
+
     // Methods inherited from BaseColumnWriter
     size_t add_value(ParsedMessage::variable_t& value) override;
 
@@ -239,13 +242,13 @@ private:
     std::vector<clp::variable_dictionary_id_t> m_var_dict_ids;
 };
 
-class DateStringColumnWriter : public BaseColumnWriter {
+class DeprecatedDateStringColumnWriter : public BaseColumnWriter {
 public:
     // Constructor
-    explicit DateStringColumnWriter(int32_t id) : BaseColumnWriter(id) {}
+    explicit DeprecatedDateStringColumnWriter(int32_t id) : BaseColumnWriter(id) {}
 
     // Destructor
-    ~DateStringColumnWriter() override = default;
+    ~DeprecatedDateStringColumnWriter() override = default;
 
     // Methods inherited from BaseColumnWriter
     size_t add_value(ParsedMessage::variable_t& value) override;
@@ -255,6 +258,24 @@ public:
 private:
     std::vector<int64_t> m_timestamps;
     std::vector<int64_t> m_timestamp_encodings;
+};
+
+class TimestampColumnWriter : public BaseColumnWriter {
+public:
+    // Constructor
+    explicit TimestampColumnWriter(int32_t id) : BaseColumnWriter(id), m_timestamps{id} {}
+
+    // Destructor
+    ~TimestampColumnWriter() override = default;
+
+    // Methods inherited from BaseColumnWriter
+    size_t add_value(ParsedMessage::variable_t& value) override;
+
+    void store(ZstdCompressor& compressor) override;
+
+private:
+    DeltaEncodedInt64ColumnWriter m_timestamps;
+    std::vector<uint64_t> m_timestamp_encodings;
 };
 }  // namespace clp_s
 

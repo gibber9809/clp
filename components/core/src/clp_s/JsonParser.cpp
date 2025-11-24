@@ -561,7 +561,7 @@ void JsonParser::parse_line(
                 if (matches_timestamp) {
                     node_id = m_archive_writer->add_node(
                             node_id_stack.top(),
-                            NodeType::DateString,
+                            NodeType::DeprecatedDateString,
                             cur_key
                     );
                     uint64_t encoding_id{0};
@@ -1058,7 +1058,7 @@ auto JsonParser::adjust_archive_node_type_for_timestamp(NodeType node_type, bool
     switch (node_type) {
         case NodeType::ClpString:
         case NodeType::VarString:
-            return NodeType::DateString;
+            return NodeType::DeprecatedDateString;
         default:
             return node_type;
     }
