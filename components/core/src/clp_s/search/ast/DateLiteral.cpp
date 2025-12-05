@@ -2,7 +2,6 @@
 
 #include <sstream>
 
-#include "../../TimestampPattern.hpp"
 #include "SearchUtils.hpp"
 
 namespace clp_s::search::ast {
@@ -28,17 +27,7 @@ std::shared_ptr<Literal> DateLiteral::create_from_string(std::string const& v) {
     // begin end arguments are returned only -- their value doesn't matter
     size_t timestamp_begin_pos{0};
     size_t timestamp_end_pos{0};
-    epochtime_t timestamp;
-    auto pattern = TimestampPattern::search_known_ts_patterns(
-            v,
-            timestamp,
-            timestamp_begin_pos,
-            timestamp_end_pos
-    );
-    if (pattern == nullptr) {
-        return std::shared_ptr<Literal>(nullptr);
-    }
-
+    epochtime_t timestamp{};
     return std::shared_ptr<Literal>(static_cast<Literal*>(new DateLiteral(timestamp, v)));
 }
 

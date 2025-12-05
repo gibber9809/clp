@@ -61,7 +61,7 @@ if(CLP_BUILD_CLP_S_SEARCH_AST)
     target_link_libraries(
         clp_s_search_ast
         PUBLIC
-        clp_s::timestamp_pattern
+        clp_s::timestamp_parser
         PRIVATE
         simdjson::simdjson
     )

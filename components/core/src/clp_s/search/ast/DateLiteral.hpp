@@ -29,7 +29,7 @@ public:
 
     /**
      * Attempt to create a Date literal from string. Tries to parse the string using
-     * TimestampPattern.
+     * TimestampParser.
      * @return A Date Literal or nullptr if the string can not be parsed as date.
      */
     static std::shared_ptr<Literal> create_from_string(std::string const& v);
