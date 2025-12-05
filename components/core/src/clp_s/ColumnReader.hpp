@@ -365,6 +365,7 @@ private:
 };
 
 class TimestampColumnReader : public BaseColumnReader {
+public:
     // Constructor
     TimestampColumnReader(int32_t id, std::shared_ptr<TimestampDictionaryReader> timestamp_dict)
             : BaseColumnReader(id),

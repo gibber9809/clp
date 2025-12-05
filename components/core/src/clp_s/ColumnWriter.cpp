@@ -171,22 +171,8 @@ void VariableStringColumnWriter::store(ZstdCompressor& compressor) {
     compressor.write(reinterpret_cast<char const*>(m_var_dict_ids.data()), size);
 }
 
-size_t DeprecatedDateStringColumnWriter::add_value(ParsedMessage::variable_t& value) {
-    auto encoded_timestamp = std::get<std::pair<uint64_t, epochtime_t>>(value);
-    m_timestamps.push_back(encoded_timestamp.second);
-    m_timestamp_encodings.push_back(encoded_timestamp.first);
-    return 2 * sizeof(int64_t);
-}
-
-void DeprecatedDateStringColumnWriter::store(ZstdCompressor& compressor) {
-    size_t timestamps_size = m_timestamps.size() * sizeof(int64_t);
-    compressor.write(reinterpret_cast<char const*>(m_timestamps.data()), timestamps_size);
-    size_t encodings_size = m_timestamp_encodings.size() * sizeof(int64_t);
-    compressor.write(reinterpret_cast<char const*>(m_timestamp_encodings.data()), encodings_size);
-}
-
 size_t TimestampColumnWriter::add_value(ParsedMessage::variable_t& value) {
-    auto encoded_timestamp = std::get<std::pair<uint64_t, epochtime_t>>(value);
+    auto const& encoded_timestamp = std::get<std::pair<epochtime_t, uint64_t>>(value);
     auto encoded_timestamp_size{m_timestamps.add_value(encoded_timestamp.second)};
     m_timestamp_encodings.emplace_back(encoded_timestamp.first);
     return encoded_timestamp_size + sizeof(uint64_t);

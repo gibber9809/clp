@@ -18,28 +18,39 @@ void SchemaReader::append_unordered_column(BaseColumnReader* column_reader) {
 }
 
 void SchemaReader::mark_column_as_timestamp(BaseColumnReader* column_reader) {
+    constexpr epochtime_t cNanosecondsInMillisecond{1000 * 1000LL};
+    constexpr epochtime_t cNanosecondsInSecond{1000 * 1000 * 1000LL};
     m_timestamp_column = column_reader;
-    if (m_timestamp_column->get_type() == NodeType::DeprecatedDateString) {
+    if (m_timestamp_column->get_type() == NodeType::Timestamp) {
+        m_get_timestamp = [this]() {
+            return static_cast<TimestampColumnReader*>(m_timestamp_column)
+                    ->get_encoded_time(m_cur_message);
+        };
+    } else if (m_timestamp_column->get_type() == NodeType::DeprecatedDateString) {
         m_get_timestamp = [this]() {
             return static_cast<DeprecatedDateStringColumnReader*>(m_timestamp_column)
-                    ->get_encoded_time(m_cur_message);
+                           ->get_encoded_time(m_cur_message)
+                   * cNanosecondsInMillisecond;
         };
     } else if (m_timestamp_column->get_type() == NodeType::Integer) {
         m_get_timestamp = [this]() {
             return std::get<int64_t>(static_cast<Int64ColumnReader*>(m_timestamp_column)
-                                             ->extract_value(m_cur_message));
+                                             ->extract_value(m_cur_message))
+                   * cNanosecondsInMillisecond;
         };
     } else if (m_timestamp_column->get_type() == NodeType::DeltaInteger) {
         m_get_timestamp = [this]() {
             return std::get<int64_t>(static_cast<DeltaEncodedInt64ColumnReader*>(m_timestamp_column)
-                                             ->extract_value(m_cur_message));
+                                             ->extract_value(m_cur_message))
+                   * cNanosecondsInMillisecond;
         };
     } else if (m_timestamp_column->get_type() == NodeType::Float) {
         m_get_timestamp = [this]() {
             return static_cast<epochtime_t>(
-                    std::get<double>(static_cast<FloatColumnReader*>(m_timestamp_column)
-                                             ->extract_value(m_cur_message))
-            );
+                           std::get<double>(static_cast<FloatColumnReader*>(m_timestamp_column)
+                                                    ->extract_value(m_cur_message))
+                   )
+                   * cNanosecondsInSecond;
         };
     }
 }
@@ -184,6 +195,15 @@ auto SchemaReader::generate_json_string(uint64_t message_index) -> std::string {
             }
             case JsonSerializer::Op::AddNullValue: {
                 m_json_serializer.append_value("null");
+                break;
+            }
+            case JsonSerializer::Op::AddLiteralField: {
+                column = m_reordered_columns[column_id_index++];
+                auto const key{m_global_schema_tree->get_node(column->get_id()).get_key_name()};
+                m_json_serializer.append_key(key);
+                // TODO: Consider whether we should use a different signature like
+                // "append_literal_value_from_column".
+                m_json_serializer.append_value_from_column(column, message_index);
                 break;
             }
         }
@@ -477,6 +497,7 @@ size_t SchemaReader::generate_structured_array_template(
                 case NodeType::DeprecatedDateString:
                 case NodeType::UnstructuredArray:
                 case NodeType::Metadata:
+                case NodeType::Timestamp:
                 case NodeType::Unknown:
                     break;
             }
@@ -569,6 +590,7 @@ size_t SchemaReader::generate_structured_object_template(
                 case NodeType::DeprecatedDateString:
                 case NodeType::UnstructuredArray:
                 case NodeType::Metadata:
+                case NodeType::Timestamp:
                 case NodeType::Unknown:
                     break;
             }
@@ -676,6 +698,10 @@ void SchemaReader::generate_json_template(int32_t id) {
                 m_json_serializer.add_op(JsonSerializer::Op::AddStringField);
                 m_reordered_columns.push_back(m_column_map[child_global_id]);
                 break;
+            }
+            case NodeType::Timestamp: {
+                m_json_serializer.add_op(JsonSerializer::Op::AddLiteralField);
+                m_reordered_columns.emplace_back(m_column_map.at(child_global_id));
             }
             case NodeType::NullValue: {
                 m_json_serializer.add_op(JsonSerializer::Op::AddNullField);
