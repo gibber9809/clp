@@ -92,7 +92,7 @@ auto TimestampDictionaryWriter::ingest_json_string_timestamp(
             std::move(unquoted_pattern_result.value()),
             new_pattern_id
     );
-    return {epoch_timestamp, m_next_id};
+    return {epoch_timestamp, new_pattern_id};
 }
 
 auto TimestampDictionaryWriter::ingest_utf8_string_timestamp(
@@ -150,7 +150,7 @@ auto TimestampDictionaryWriter::ingest_utf8_string_timestamp(
             std::move(unquoted_pattern_result.value()),
             new_pattern_id
     );
-    return {epoch_timestamp, m_next_id};
+    return {epoch_timestamp, new_pattern_id};
 }
 
 auto TimestampDictionaryWriter::ingest_numeric_json_timestamp(
