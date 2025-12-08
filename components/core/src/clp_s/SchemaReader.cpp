@@ -702,6 +702,7 @@ void SchemaReader::generate_json_template(int32_t id) {
             case NodeType::Timestamp: {
                 m_json_serializer.add_op(JsonSerializer::Op::AddLiteralField);
                 m_reordered_columns.emplace_back(m_column_map.at(child_global_id));
+                break;
             }
             case NodeType::NullValue: {
                 m_json_serializer.add_op(JsonSerializer::Op::AddNullField);
