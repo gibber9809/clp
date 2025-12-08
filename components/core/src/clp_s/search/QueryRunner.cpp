@@ -75,7 +75,7 @@ void QueryRunner::initialize_reader(int32_t column_id, BaseColumnReader* column_
         || m_match->schema_searches_against_column(m_schema, column_id))
     {
         if (auto const clp_reader = dynamic_cast<ClpStringColumnReader*>(column_reader);
-            nullptr != clp_reader)
+            nullptr != clp_reader && NodeType::ClpString == clp_reader->get_type())
         {
             m_clp_string_readers[column_id].push_back(clp_reader);
         } else if (auto const var_reader = dynamic_cast<VariableStringColumnReader*>(column_reader);
