@@ -216,8 +216,9 @@ auto TimestampDictionaryWriter::ingest_unknown_precision_epoch_timestamp(
         timestamp_entry_it = m_column_id_to_range.emplace(node_id, key).first;
     }
 
-    auto const [epoch_timestamp, precision]
-            = timestamp_parser::estimate_timestamp_precision(timestamp);
+    auto const [factor, precision] = timestamp_parser::estimate_timestamp_precision(timestamp);
+    auto const epoch_timestamp{timestamp * factor};
+    timestamp_entry_it->second.ingest_timestamp(epoch_timestamp);
     auto const pattern{fmt::format("\\{}", precision)};
 
     auto pattern_it{m_numeric_pattern_to_id.find(pattern)};
