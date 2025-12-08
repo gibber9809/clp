@@ -33,4 +33,19 @@ bool DateLiteral::as_float(double& ret, FilterOperation op) {
     ret = m_double_timestamp;
     return true;
 }
+
+auto DateLiteral::as_precision(Precision precision) -> epochtime_t {
+    switch (precision) {
+        case Precision::Seconds:
+            return m_timestamp / cNanosecondsInSecond;
+        case Precision::Milliseconds:
+            return m_timestamp / cNanosecondsInMillisecond;
+        case Precision::Microseconds:
+            return m_timestamp / cNanosecondsInMicrosecond;
+        case Precision::Nanoseconds:
+            return m_timestamp;
+        default:
+            return m_timestamp;
+    }
+}
 }  // namespace clp_s::search::ast

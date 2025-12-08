@@ -1,6 +1,7 @@
 #ifndef CLP_S_SEARCH_DATELITERAL_HPP
 #define CLP_S_SEARCH_DATELITERAL_HPP
 
+#include <cstdint>
 #include <memory>
 
 #include "../../Defs.hpp"
@@ -13,6 +14,14 @@ namespace clp_s::search::ast {
  */
 class DateLiteral : public Literal {
 public:
+    // Types
+    enum Precision : uint8_t {
+        Seconds,
+        Milliseconds,
+        Microseconds,
+        Nanoseconds
+    };
+
     // Delete copy constructor and assignment operator.
     DateLiteral(DateLiteral const&) = delete;
     DateLiteral& operator=(DateLiteral const&) = delete;
@@ -41,6 +50,11 @@ public:
     bool as_float(double& ret, FilterOperation op) override;
 
     // Methods
+    /**
+     * @param precision
+     * @return The literal timestamp as the given precision (rounded towards zero).
+     */
+    auto as_precision(Precision precision) -> epochtime_t;
 
 private:
     // Types
