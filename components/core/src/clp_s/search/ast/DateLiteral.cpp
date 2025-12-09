@@ -14,6 +14,7 @@ constexpr epochtime_t cNanosecondsInSecond{1000LL * cNanosecondsInMillisecond};
 
 DateLiteral::DateLiteral(epochtime_t v)
         : m_timestamp{v},
+          m_default_precision_timestamp{v},
           m_double_timestamp{static_cast<double>(v) / cNanosecondsInSecond} {}
 
 std::shared_ptr<Literal> DateLiteral::create(epochtime_t v) {
@@ -21,11 +22,11 @@ std::shared_ptr<Literal> DateLiteral::create(epochtime_t v) {
 }
 
 void DateLiteral::print() const {
-    get_print_stream() << "timestamp(" << m_timestamp << ")";
+    get_print_stream() << "timestamp(" << m_default_precision_timestamp << ")";
 }
 
 bool DateLiteral::as_int(int64_t& ret, FilterOperation op) {
-    ret = m_timestamp;
+    ret = m_default_precision_timestamp;
     return true;
 }
 
@@ -47,5 +48,9 @@ auto DateLiteral::as_precision(Precision precision) -> epochtime_t {
         default:
             return m_timestamp;
     }
+}
+
+void DateLiteral::set_default_precision(Precision precision) {
+    m_default_precision_timestamp = as_precision(precision);
 }
 }  // namespace clp_s::search::ast

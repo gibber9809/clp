@@ -56,6 +56,13 @@ public:
      */
     auto as_precision(Precision precision) -> epochtime_t;
 
+    /**
+     * Sets the precision of the timestamp returned by `as_int`. The returned value from `as_int` is
+     * the same as the value obtained returned by calling `as_precision(precision)`.
+     * @param precision
+     */
+    void set_default_precision(Precision precision);
+
 private:
     // Types
     static constexpr literal_type_bitmask_t cDateLiteralTypes = EpochDateT;
@@ -65,6 +72,7 @@ private:
 
     // Variables
     epochtime_t m_timestamp{};
+    epochtime_t m_default_precision_timestamp{};
     double m_double_timestamp{};
 };
 }  // namespace clp_s::search::ast
