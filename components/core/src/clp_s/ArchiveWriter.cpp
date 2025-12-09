@@ -239,8 +239,7 @@ void ArchiveWriter::write_archive_files(
 void ArchiveWriter::write_archive_header(FileWriter& archive_writer, size_t metadata_section_size) {
     ArchiveHeader header{
             .magic_number{0},
-            .version
-            = (cArchiveMajorVersion << 24) | (cArchiveMinorVersion << 16) | cArchivePatchVersion,
+            .version = cArchiveVersion,
             .uncompressed_size = m_uncompressed_size,
             .compressed_size = m_compressed_size,
             .reserved_padding{0},
