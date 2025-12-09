@@ -39,7 +39,6 @@
 #include "search/OutputHandler.hpp"
 #include "search/Projection.hpp"
 #include "search/SchemaMatch.hpp"
-#include "TimestampPattern.hpp"
 
 using namespace clp_s::search;
 using clp_s::cArchiveFormatDevelopmentVersionFlag;
@@ -300,7 +299,6 @@ int main(int argc, char const* argv[]) {
         return 1;
     }
 
-    clp_s::TimestampPattern::init();
     mongocxx::instance const mongocxx_instance{};
     clp::CurlGlobalInstance const curl_instance{};
 

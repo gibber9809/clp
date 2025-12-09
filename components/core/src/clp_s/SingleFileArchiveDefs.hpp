@@ -26,8 +26,8 @@ make_archive_version(uint8_t major_version, uint8_t minor_version, uint16_t patc
 
 // define the version
 constexpr uint8_t cArchiveMajorVersion = 0;
-constexpr uint8_t cArchiveMinorVersion = 4;
-constexpr uint16_t cArchivePatchVersion = 1;
+constexpr uint8_t cArchiveMinorVersion = 5;
+constexpr uint16_t cArchivePatchVersion = 0;
 constexpr uint32_t cArchiveVersion{
         make_archive_version(cArchiveMajorVersion, cArchiveMinorVersion, cArchivePatchVersion)
 };
