@@ -871,7 +871,7 @@ def handle_pending_query_jobs(
 def try_getting_task_result(async_task_result):
     if not async_task_result.ready():
         return None
-    return async_task_result.get()
+    return async_task_result.get(interval=0.005)
 
 
 def found_max_num_latest_results(
@@ -1056,11 +1056,16 @@ async def handle_finished_stream_extraction_job(
 
 async def check_job_status_and_update_db(db_conn_pool, results_cache_uri):
     global active_jobs
-
+    start_time = datetime.datetime.now()
+    loop_times = []
+    acquire_time = None
     with contextlib.closing(db_conn_pool.connect()) as db_conn:
+        acquire_time = datetime.datetime.now()
         for job_id in [
             id for id, job in active_jobs.items() if InternalJobState.RUNNING == job.state
         ]:
+            loop_start_time =  datetime.datetime.now()
+
             job = active_jobs[job_id]
             try:
                 returned_results = try_getting_task_result(job.current_sub_job_async_task_result)
@@ -1082,8 +1087,11 @@ async def check_job_status_and_update_db(db_conn_pool, results_cache_uri):
                     duration=(datetime.datetime.now() - job.start_time).total_seconds(),
                 )
                 continue
+            get_result_time = datetime.datetime.now()
+            d = {"get_result": get_result_time - loop_start_time}
 
             if returned_results is None:
+                loop_times.append(d)
                 continue
             job_type = job.get_type()
             if QueryJobType.SEARCH_OR_AGGREGATION == job_type:
@@ -1095,13 +1103,24 @@ async def check_job_status_and_update_db(db_conn_pool, results_cache_uri):
                 await handle_finished_stream_extraction_job(db_conn, job, returned_results)
             else:
                 logger.error(f"Unexpected job type: {job_type}, skipping job {job_id}")
+            handle_finish_time = datetime.datetime.now()
+            d["handle_finish"] = handle_finish_time - get_result_time
+            loop_times.append(d)
+    logger.info(f"Handle active: acquire_time: {acquire_time - start_time}, {loop_times}")
+
 
 
 async def handle_job_updates(db_conn_pool, results_cache_uri: str, jobs_poll_delay: float):
+    last_wake_time = datetime.datetime.now()
     while True:
+        wake_time = datetime.datetime.now()
         await handle_cancelling_search_jobs(db_conn_pool)
+        handle_cancelling_time = datetime.datetime.now()
         await check_job_status_and_update_db(db_conn_pool, results_cache_uri)
-        await asyncio.sleep(jobs_poll_delay)
+        check_status_time = datetime.datetime.now()
+        await asyncio.sleep(jobs_poll_delay - (check_status_time - wake_time).total_seconds())
+        logger.info(f"woke: {wake_time}, cancel_time: {handle_cancelling_time - wake_time}, update_status_time: {check_status_time - handle_cancelling_time}, wake_interval: {wake_time - last_wake_time}")
+        last_wake_time = wake_time
 
 
 async def handle_jobs(
@@ -1120,6 +1139,7 @@ async def handle_jobs(
     tasks = [handle_updating_task]
     existing_datasets: set[str] = set()
     while True:
+        pending_start = datetime.datetime.now()
         reducer_acquisition_tasks = handle_pending_query_jobs(
             db_conn_pool,
             clp_metadata_db_conn_params,
@@ -1129,6 +1149,8 @@ async def handle_jobs(
             existing_datasets,
             archive_retention_period,
         )
+        pending_end = datetime.datetime.now()
+        logger.info(f"handle_pending_time: {pending_end - pending_start}")
         if 0 == len(reducer_acquisition_tasks):
             tasks.append(asyncio.create_task(asyncio.sleep(jobs_poll_delay)))
         else:
