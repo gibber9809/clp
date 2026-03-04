@@ -208,6 +208,14 @@ class JsonExtractionHandle(StreamExtractionHandle):
         )
 
 
+def add_to_dict(d, d2):
+    for k, v in d2.items():
+        if k not in d:
+            d[k] = v
+        else:
+            d[k] += v
+
+
 def document_exists(mongodb_uri, collection_name, field, value):
     with pymongo.MongoClient(mongodb_uri) as mongo_client:
         collection = mongo_client.get_default_database()[collection_name]
@@ -648,7 +656,8 @@ def dispatch_job_and_update_db(
     clp_metadata_db_conn_params: dict[str, any],
     results_cache_uri: str,
     num_tasks: int,
-) -> None:
+) -> dict[str, any]:
+    b = datetime.datetime.now()
     dispatch_query_job(
         db_conn, new_job, target_archives, clp_metadata_db_conn_params, results_cache_uri
     )
@@ -664,6 +673,8 @@ def dispatch_job_and_update_db(
         start_time=start_time,
         num_tasks=num_tasks,
     )
+    e = datetime.datetime.now()
+    return {"db_dispatch": e - start_time, "celery_dispatch": start_time - b}
 
 
 def handle_pending_query_jobs(
@@ -677,6 +688,9 @@ def handle_pending_query_jobs(
     archive_retention_period: int | None,
 ) -> list[asyncio.Task]:
     global active_jobs
+
+    pending_query_job_timings = {}
+    handle_pending_start = datetime.datetime.now()
 
     reducer_acquisition_tasks = []
     pending_search_jobs = [
@@ -746,13 +760,16 @@ def handle_pending_query_jobs(
                 archives_for_search = job.remaining_archives_for_search
                 job.remaining_archives_for_search = []
 
-            dispatch_job_and_update_db(
-                db_conn,
-                job,
-                archives_for_search,
-                clp_metadata_db_conn_params,
-                results_cache_uri,
-                job.num_archives_to_search,
+            add_to_dict(
+                pending_query_job_timings,
+                dispatch_job_and_update_db(
+                    db_conn,
+                    job,
+                    archives_for_search,
+                    clp_metadata_db_conn_params,
+                    results_cache_uri,
+                    job.num_archives_to_search,
+                ),
             )
             logger.info(
                 "Dispatched job %s with %d archives to search.",
@@ -760,6 +777,10 @@ def handle_pending_query_jobs(
                 len(archives_for_search),
             )
 
+    handle_pending_end = datetime.datetime.now()
+    logger.info(
+        f"handle_pending_time: {handle_pending_end - handle_pending_start} - {pending_query_job_timings}"
+    )
     return reducer_acquisition_tasks
 
 
@@ -796,9 +817,10 @@ def found_max_num_latest_results(
 
 async def handle_finished_search_job(
     db_conn, job: SearchJob, task_results: Any | None, results_cache_uri: str
-) -> None:
+) -> dict[str, any]:
     global active_jobs
 
+    begin = datetime.datetime.now()
     job_id = job.id
     is_reducer_job = job.reducer_handler_msg_queues is not None
     new_job_status = QueryJobStatus.RUNNING
@@ -818,7 +840,7 @@ async def handle_finished_search_job(
                 f"Search task job-{job_id}-task-{task_id} succeeded in "
                 f"{task_result.duration} second(s)."
             )
-
+    validate_done = datetime.datetime.now()
     if new_job_status != QueryJobStatus.FAILED:
         max_num_results = job.search_config.max_num_results
         # Check if we've searched all archives
@@ -833,6 +855,7 @@ async def handle_finished_search_job(
                 job.remaining_archives_for_search[0]["end_timestamp"],
             ):
                 new_job_status = QueryJobStatus.SUCCEEDED
+    check_done = datetime.datetime.now()
     if new_job_status == QueryJobStatus.RUNNING:
         job.current_sub_job_async_task_result = None
         job.state = InternalJobState.WAITING_FOR_DISPATCH
@@ -845,7 +868,12 @@ async def handle_finished_search_job(
             QueryJobStatus.RUNNING,
             num_tasks_completed=job.num_archives_searched,
         )
-        return
+        db_done = datetime.datetime.now()
+        return {
+            "db_update": db_done - check_done,
+            "check_finished": check_done - validate_done,
+            "validate": validate_done - begin,
+        }
 
     reducer_failed = False
     if is_reducer_job:
@@ -860,7 +888,7 @@ async def handle_finished_search_job(
         elif ReducerHandlerMessageType.SUCCESS != msg.msg_type:
             error_msg = f"Unexpected msg_type: {msg.msg_type.name}"
             raise NotImplementedError(error_msg)
-
+    reducer_done = datetime.datetime.now()
     # We set the status regardless of the job's previous status to handle the case where the
     # job is cancelled (status = CANCELLING) while we're in this method.
     if set_job_or_task_status(
@@ -878,6 +906,13 @@ async def handle_finished_search_job(
         else:
             logger.info(f"Completed job {job_id} with failing tasks.")
     del active_jobs[job_id]
+    db_done = datetime.datetime.now()
+    return {
+        "db_update": db_done - reducer_done,
+        "reducer_finish": reducer_done - check_done,
+        "check_finished": check_done - validate_done,
+        "validate": validate_done - begin,
+    }
 
 
 async def handle_finished_stream_extraction_job(
@@ -952,10 +987,12 @@ async def handle_finished_stream_extraction_job(
 async def check_job_status_and_update_db(db_conn_pool, results_cache_uri):
     global active_jobs
 
+    check_job_status_timings = {}
     with contextlib.closing(db_conn_pool.connect()) as db_conn:
         for job_id in [
             id for id, job in active_jobs.items() if InternalJobState.RUNNING == job.state
         ]:
+            s = datetime.datetime.now()
             job = active_jobs[job_id]
             try:
                 returned_results = try_getting_task_result(job.current_sub_job_async_task_result)
@@ -977,30 +1014,42 @@ async def check_job_status_and_update_db(db_conn_pool, results_cache_uri):
                     duration=(datetime.datetime.now() - job.start_time).total_seconds(),
                 )
                 continue
-
+            finish_check_time = datetime.datetime.now()
+            add_to_dict(check_job_status_timings, {"check_celery": finish_check_time - s})
             if returned_results is None:
                 continue
             job_type = job.get_type()
             if QueryJobType.SEARCH_OR_AGGREGATION == job_type:
                 search_job: SearchJob = job
-                await handle_finished_search_job(
-                    db_conn, search_job, returned_results, results_cache_uri
+                add_to_dict(
+                    check_job_status_timings,
+                    await handle_finished_search_job(
+                        db_conn, search_job, returned_results, results_cache_uri
+                    ),
                 )
             elif job_type in (QueryJobType.EXTRACT_JSON, QueryJobType.EXTRACT_IR):
                 await handle_finished_stream_extraction_job(db_conn, job, returned_results)
             else:
                 logger.error(f"Unexpected job type: {job_type}, skipping job {job_id}")
+    logger.info(f"job finish breakdown: {check_job_status_timings}")
 
 
 async def handle_job_updates(db_conn_pool, results_cache_uri: str, jobs_poll_delay: float):
+    last_wake_time = datetime.datetime.now()
     while True:
         interval_start_time = datetime.datetime.now()
         await handle_cancelling_search_jobs(db_conn_pool)
+        cancel_time = datetime.datetime.now()
+        handle_cancelling_time = cancel_time - interval_start_time
         await check_job_status_and_update_db(db_conn_pool, results_cache_uri)
         interval_end_time = datetime.datetime.now()
         await asyncio.sleep(
             jobs_poll_delay - (interval_end_time - interval_start_time).total_seconds()
         )
+        logger.info(
+            f"woke: {interval_start_time}, cancel_time: {handle_cancelling_time}, update_status_time: {interval_end_time - cancel_time}"
+        )
+        last_wake_time = interval_start_time
 
 
 async def handle_jobs(
