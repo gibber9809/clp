@@ -26,6 +26,13 @@ export class StorageStack extends cdk.Stack {
           ],
         },
       ],
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.GET],
+          allowedOrigins: ["*"],
+          allowedHeaders: ["*"],
+        },
+      ],
     });
 
     NagSuppressions.addStackSuppressions(this, [

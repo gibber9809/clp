@@ -64,6 +64,25 @@ describe("ClpStack", () => {
     });
   });
 
+  test("Helm chart custom resource is created", () => {
+    template.hasResourceProperties("Custom::AWSCDK-EKS-HelmChart", {
+      Chart: "clp",
+      Repository: "https://y-scope.github.io/clp",
+      Version: "0.2.1-dev.1",
+      Namespace: "clp",
+      CreateNamespace: true,
+    });
+  });
+
+  test("Helm chart values configure S3 storage", () => {
+    const resources = template.findResources("Custom::AWSCDK-EKS-HelmChart");
+    const helmChart = Object.values(resources)[0];
+    // Values is a Fn::Join containing CDK tokens; verify the joined parts include S3 config
+    const joinParts = helmChart?.Properties?.Values?.["Fn::Join"]?.[1];
+    const valuesStr = JSON.stringify(joinParts);
+    expect(valuesStr).toContain('\\"type\\":\\"s3\\"');
+  });
+
   test("stack exports S3AccessRoleArn output", () => {
     template.hasOutput("S3AccessRoleArn", {});
   });
