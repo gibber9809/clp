@@ -174,7 +174,8 @@ void close_nested_readers(std::vector<std::shared_ptr<clp::ReaderInterface>> con
 
 /**
  * Tries to process an archive using libarchive, deducing the file type of each member and
- * calling the appropriate handler.
+ * calling the appropriate handler. This utility skips over empty directories and other non-file
+ * content within archives.
  * @param reader The reader to open as an archive.
  * @param path The path to the archive.
  * @param default_file_path The path name to return when this is a single compressed file.
