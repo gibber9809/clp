@@ -77,6 +77,10 @@ set(
         ../clp/ir/parsing.hpp
         ../clp/ir/parsing.inc
         ../clp/ir/types.hpp
+        ../clp/LibarchiveReader.cpp
+        ../clp/LibarchiveReader.hpp
+        ../clp/LibarchiveFileReader.cpp
+        ../clp/LibarchiveFileReader.hpp
         ../clp/LogSurgeonReader.cpp
         ../clp/LogSurgeonReader.hpp
         ../clp/LogTypeDictionaryEntryReq.hpp
@@ -148,6 +152,7 @@ if(CLP_BUILD_CLP_S_CLP_DEPENDENCIES)
                 clp_s_clp_dependencies
                 PUBLIC
                 clp::string_utils
+                LibArchive::LibArchive
                 log_surgeon::log_surgeon
                 ystdlib::containers
                 zstd::libzstd_static
