@@ -345,7 +345,7 @@ def search_and_schedule_new_tasks(
     :param task_manager:
     :param db_context:
     """
-    existing_datasets: set[str] = set()
+    existing_datasets: dict[str, int] = {}
     if StorageEngine.CLP_S == clp_config.package.storage_engine:
         existing_datasets = fetch_existing_datasets(
             db_context.cursor, clp_metadata_db_connection_config["table_prefix"]
@@ -374,7 +374,7 @@ def _schedule_job(
     task_manager: TaskManager,
     db_context: DbContext,
     job_row: dict[str, Any],
-    existing_datasets: set[str],
+    existing_datasets: dict[str, int],
 ) -> None:
     """
     Schedules a single pending compression job. On failure, the job is marked as FAILED in the
@@ -385,8 +385,8 @@ def _schedule_job(
     :param task_manager:
     :param db_context:
     :param job_row: A row from the compression jobs table.
-    :param existing_datasets: The current set of datasets. May be updated if the job creates a new
-    dataset.
+    :param existing_datasets: A map of each existing dataset's name to its ID. May be updated if
+    the job creates a new dataset.
     """
     job_id = job_row["id"]
     with bound_contextvars(job_id=job_id):
@@ -825,7 +825,7 @@ def _ensure_dataset_exists(
     db_context: DbContext,
     table_prefix: str,
     dataset: str,
-    existing_datasets: set[str],
+    existing_datasets: dict[str, int],
 ) -> None:
     """
     Ensures that the specified dataset exists in the metadata database.
@@ -837,14 +837,13 @@ def _ensure_dataset_exists(
     :param existing_datasets:
     """
     if dataset is not None and dataset not in existing_datasets:
-        add_dataset(
+        existing_datasets[dataset] = add_dataset(
             db_context.connection,
             db_context.cursor,
             table_prefix,
             dataset,
             clp_config.archive_output,
         )
-        existing_datasets.add(dataset)
 
 
 def _handle_failed_compression_job(
