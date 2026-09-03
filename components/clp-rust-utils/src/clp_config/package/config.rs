@@ -173,6 +173,14 @@ impl Database {
 
     /// # Returns
     ///
+    /// The long span archives table name (`<prefix>long_span_archives`).
+    #[must_use]
+    pub fn long_span_archives_table_name(&self) -> String {
+        format!("{}long_span_archives", self.table_prefix)
+    }
+
+    /// # Returns
+    ///
     /// The column-metadata table name (`<prefix>column_metadata`).
     #[must_use]
     pub fn column_metadata_table_name(&self) -> String {
@@ -181,7 +189,7 @@ impl Database {
 
     /// # Returns
     ///
-    /// The datasets table name `<prefix>datasets`.
+    /// The datasets table name ()`<prefix>datasets`).
     #[must_use]
     pub fn datasets_table_name(&self) -> String {
         format!("{}datasets", self.table_prefix)
