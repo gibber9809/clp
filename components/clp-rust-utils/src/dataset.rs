@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 /// The default dataset name (mirror of `clp_py_utils.clp_config.CLP_DEFAULT_DATASET_NAME`).
 pub const CLP_DEFAULT_DATASET_NAME: &str = "default";
 
