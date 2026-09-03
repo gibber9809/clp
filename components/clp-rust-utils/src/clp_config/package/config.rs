@@ -165,18 +165,18 @@ impl Default for Database {
 impl Database {
     /// # Returns
     ///
-    /// The archives table name (`<prefix>_archives`).
+    /// The archives table name (`<prefix>archives`).
     #[must_use]
     pub fn archives_table_name(&self) -> String {
-        format!("{}_archives", self.table_prefix)
+        format!("{}archives", self.table_prefix)
     }
 
     /// # Returns
     ///
-    /// The column-metadata table name (`<prefix>_column_metadata`).
+    /// The column-metadata table name (`<prefix>column_metadata`).
     #[must_use]
     pub fn column_metadata_table_name(&self) -> String {
-        format!("{}_column_metadata", self.table_prefix)
+        format!("{}column_metadata", self.table_prefix)
     }
 
     /// # Returns
