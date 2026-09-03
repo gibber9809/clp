@@ -4,7 +4,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use clp_rust_utils::clp_config::package::config::Database;
-use clp_rust_utils::dataset::VALID_DATASET_NAME_REGEX;
 use clp_rust_utils::job_config::ClpIoConfig;
 use clp_rust_utils::job_config::CompressionJobId;
 use clp_rust_utils::job_config::CompressionJobStatus;
@@ -86,9 +85,7 @@ impl<SubmitterType: S3CompressionJobSubmitter> S3CompressionJobHandle<SubmitterT
             return Err(Error::UnsupportedInputConfig);
         };
         let dataset: Option<String> = s3_object_metadata_config.dataset.clone().map(String::from);
-        if let Some(dataset_name) = dataset.as_ref()
-            && !VALID_DATASET_NAME_REGEX.is_match(dataset_name)
-        {
+        if let Some(dataset_name) = dataset.as_ref() {
             return Err(Error::InvalidDataset(dataset_name.clone()));
         }
 

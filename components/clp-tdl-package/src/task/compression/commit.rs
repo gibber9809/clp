@@ -3,7 +3,6 @@
 use anyhow::Context;
 use clp_rust_utils::clp_config::package::credentials;
 use clp_rust_utils::database::mysql::create_clp_db_mysql_pool;
-use clp_rust_utils::dataset::VALID_DATASET_NAME_REGEX;
 use clp_rust_utils::dataset::resolve_dataset_name;
 use clp_rust_utils::job_config::CompressionJobId;
 use clp_rust_utils::job_config::CompressionJobStatus;
@@ -55,13 +54,6 @@ pub(super) async fn commit(
 
     let config = spider_task_executor_config();
 
-    // The dataset is interpolated into the table name (it cannot be bound), so guard against SQL
-    // injection by validating it against the allowed-name pattern.
-    if let Some(dataset) = dataset.as_deref()
-        && !VALID_DATASET_NAME_REGEX.is_match(dataset)
-    {
-        anyhow::bail!("invalid dataset name: {dataset}");
-    }
     let archives_table = config.database.archives_table_name();
 
     let pool = create_clp_db_mysql_pool(&config.database, &db_credentials_from_env()?, 1)
