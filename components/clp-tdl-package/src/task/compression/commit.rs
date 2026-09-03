@@ -57,7 +57,7 @@ pub(super) async fn commit(
     if let Some(dataset) = dataset.as_deref() {
         anyhow::bail!("invalid dataset name: {dataset}");
     }
-    let archives_table = config.database.archives_table_name(dataset.as_deref());
+    let archives_table = config.database.archives_table_name();
 
     let pool = create_clp_db_mysql_pool(&config.database, &db_credentials_from_env()?, 1)
         .await
