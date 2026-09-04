@@ -135,7 +135,7 @@ def update_archive_metadata(
     query = f"""
         INSERT INTO {archives_table_name} (dataset_id, {keys})
         SELECT id, {value_placeholders} FROM {datasets_table_name}
-        WHERE name = %s AND is_deleted = FALSE
+        WHERE name = %s
     """
     db_cursor.execute(query, [*stats_to_update.values(), dataset])
     if 0 == db_cursor.rowcount:
