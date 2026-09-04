@@ -4,7 +4,6 @@ import os
 import pathlib
 import shutil
 import subprocess
-import time
 import uuid
 from contextlib import closing
 from typing import Any
@@ -26,6 +25,8 @@ from clp_py_utils.clp_logging import set_logging_level
 from clp_py_utils.clp_metadata_db_utils import (
     get_archives_table_name,
     get_datasets_table_name,
+    get_long_span_archives_table_name,
+    LONG_SPAN_THRESHOLD_MILLIS,
 )
 from clp_py_utils.core import read_yaml_config_file
 from clp_py_utils.s3_utils import (
@@ -119,13 +120,14 @@ def update_archive_metadata(
     dataset: str | None,
     archive_stats: dict[str, Any],
 ) -> None:
+    begin_timestamp = archive_stats["begin_timestamp"]
+    end_timestamp = archive_stats["end_timestamp"]
     stats_to_update = {
         "uuid": uuid.UUID(archive_stats["id"]).bytes,
-        "timestamp_range_begin_millis": archive_stats["begin_timestamp"],
-        "timestamp_range_end_millis": archive_stats["end_timestamp"],
+        "timestamp_range_begin_millis": begin_timestamp,
+        "timestamp_range_end_millis": end_timestamp,
         "num_uncompressed_bytes": archive_stats["uncompressed_size"],
         "num_compressed_bytes": archive_stats["size"],
-        "creation_time_millis": int(time.time() * 1000),
     }
 
     keys = ", ".join(stats_to_update.keys())
@@ -133,13 +135,27 @@ def update_archive_metadata(
     archives_table_name = get_archives_table_name(table_prefix)
     datasets_table_name = get_datasets_table_name(table_prefix)
     query = f"""
-        INSERT INTO {archives_table_name} (dataset_id, {keys})
-        SELECT id, {value_placeholders} FROM {datasets_table_name}
+        INSERT INTO {archives_table_name} (dataset_id, creation_time_millis, {keys})
+        SELECT id, CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS SIGNED),
+        {value_placeholders} FROM {datasets_table_name}
         WHERE name = %s
     """
     db_cursor.execute(query, [*stats_to_update.values(), dataset])
     if 0 == db_cursor.rowcount:
         raise ValueError(f"Dataset '{dataset}' doesn't exist")
+
+    if LONG_SPAN_THRESHOLD_MILLIS < end_timestamp - begin_timestamp:
+        archive_id = db_cursor.lastrowid
+        long_span_archives_table_name = get_long_span_archives_table_name(table_prefix)
+        db_cursor.execute(
+            f"""
+            INSERT INTO {long_span_archives_table_name}
+            (dataset_id, timestamp_range_begin_millis, timestamp_range_end_millis, archive_id)
+            SELECT dataset_id, timestamp_range_begin_millis, timestamp_range_end_millis, id
+            FROM {archives_table_name} WHERE id = %s
+            """,
+            (archive_id,),
+        )
 
 
 def _generate_fs_logs_list(
