@@ -24,6 +24,7 @@ import datetime
 import multiprocessing
 import pathlib
 import sys
+import uuid
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -41,6 +42,7 @@ from clp_py_utils.clp_logging import configure_logging, get_logger
 from clp_py_utils.clp_metadata_db_utils import (
     fetch_existing_datasets,
     get_archives_table_name,
+    get_datasets_table_name,
     get_files_table_name,
 )
 from clp_py_utils.core import read_yaml_config_file
@@ -595,7 +597,7 @@ def _get_archives_for_search_without_datasets(
     if len(filter_clauses) > 0:
         where_clause = " WHERE " + " AND ".join(filter_clauses)
 
-    table = get_archives_table_name(table_prefix, None)
+    table = get_archives_table_name(table_prefix)
     query = f"SELECT id AS archive_id, end_timestamp FROM {table}{where_clause}"
     query += " ORDER BY end_timestamp DESC"
 
@@ -612,30 +614,40 @@ def get_archives_for_search(
     archive_end_ts_lower_bound: int | None,
     datasets: list[str],
 ):
-    filter_clauses = []
+    filter_clauses = ["archives.is_deleted = FALSE"]
     if search_config.end_timestamp is not None:
-        filter_clauses.append(f"begin_timestamp <= {search_config.end_timestamp}")
+        filter_clauses.append(
+            f"archives.timestamp_range_begin_millis <= {search_config.end_timestamp}"
+        )
     if search_config.begin_timestamp is not None:
-        filter_clauses.append(f"end_timestamp >= {search_config.begin_timestamp}")
+        filter_clauses.append(
+            f"archives.timestamp_range_end_millis >= {search_config.begin_timestamp}"
+        )
     if archive_end_ts_lower_bound is not None:
         filter_clauses.append(
-            f"(end_timestamp >= {archive_end_ts_lower_bound} OR end_timestamp = 0)"
+            f"(archives.timestamp_range_end_millis >= {archive_end_ts_lower_bound}"
+            f" OR archives.timestamp_range_end_millis = 0)"
         )
-    where_clause = ""
-    if len(filter_clauses) > 0:
-        where_clause = " WHERE " + " AND ".join(filter_clauses)
 
-    union_parts = []
-    for ds in datasets:
-        table = get_archives_table_name(table_prefix, ds)
-        union_parts.append(
-            f"SELECT id AS archive_id, end_timestamp, '{ds}' AS dataset FROM {table}{where_clause}"
-        )
-    query = " UNION ALL ".join(union_parts) + " ORDER BY end_timestamp DESC"
+    dataset_placeholders = ", ".join(["%s"] * len(datasets))
+    archives_table_name = get_archives_table_name(table_prefix)
+    datasets_table_name = get_datasets_table_name(table_prefix)
+    query = f"""
+        SELECT archives.uuid, archives.timestamp_range_end_millis AS end_timestamp,
+        datasets.name AS dataset
+        FROM {archives_table_name} AS archives
+        JOIN {datasets_table_name} AS datasets ON archives.dataset_id = datasets.id
+        WHERE datasets.name IN ({dataset_placeholders}) AND {" AND ".join(filter_clauses)}
+        ORDER BY end_timestamp DESC
+    """
 
     with contextlib.closing(db_conn.cursor(dictionary=True)) as cursor:
-        cursor.execute(query)
-        return cursor.fetchall()
+        cursor.execute(query, datasets)
+        rows = cursor.fetchall()
+
+    for row in rows:
+        row["archive_id"] = str(uuid.UUID(bytes=row.pop("uuid")))
+    return rows
 
 
 def get_archive_and_file_split_ids_for_ir_extraction(
@@ -679,7 +691,7 @@ def get_archive_and_file_split_ids(
     an exception occurs while interacting with the database.
     """
     query = f"""SELECT archive_id, id as file_split_id
-            FROM {get_files_table_name(table_prefix, None)} WHERE
+            FROM {get_files_table_name(table_prefix)} WHERE
             orig_file_id = '{orig_file_id}' AND
             begin_message_ix <= {msg_ix} AND
             (begin_message_ix + num_messages) > {msg_ix}
@@ -698,10 +710,15 @@ def archive_exists(
     dataset: str | None,
     archive_id: str,
 ) -> bool:
-    archives_table_name = get_archives_table_name(table_prefix, dataset)
-    query = f"SELECT 1 FROM {archives_table_name} WHERE id = %s"
+    archives_table_name = get_archives_table_name(table_prefix)
+    datasets_table_name = get_datasets_table_name(table_prefix)
+    query = f"""
+        SELECT 1 FROM {archives_table_name} AS archives
+        JOIN {datasets_table_name} AS datasets ON archives.dataset_id = datasets.id
+        WHERE datasets.name = %s AND archives.uuid = %s AND archives.is_deleted = FALSE
+    """
     with contextlib.closing(db_conn.cursor(dictionary=True)) as cursor:
-        cursor.execute(query, (archive_id,))
+        cursor.execute(query, (dataset, uuid.UUID(archive_id).bytes))
         if cursor.fetchone():
             return True
 
@@ -848,7 +865,7 @@ def handle_pending_query_jobs(
     stream_collection_name: str,
     num_archives_to_search_per_sub_job: int,
     max_datasets_per_query: int | None,
-    existing_datasets: set[str],
+    existing_datasets: dict[str, int],
     archive_retention_period: int | None,
     process_pool: concurrent.futures.ProcessPoolExecutor,
 ) -> list[asyncio.Task]:
@@ -1236,7 +1253,7 @@ async def handle_jobs(
         )
 
         tasks = [handle_updating_task]
-        existing_datasets: set[str] = set()
+        existing_datasets: dict[str, int] = {}
         while True:
             reducer_acquisition_tasks = handle_pending_query_jobs(
                 db_conn_pool,
@@ -1380,7 +1397,7 @@ def _handle_new_search_job(
     table_prefix: str,
     max_datasets_per_query: int | None,
     archive_retention_period: int | None,
-    existing_datasets: set[str],
+    existing_datasets: dict[str, int],
     results_cache_uri: str,
     pending_search_jobs: list,
     reducer_acquisition_tasks: list[asyncio.Task],
@@ -1455,10 +1472,10 @@ def _handle_new_search_job(
             return
 
         # NOTE: This assumes we never delete a dataset.
-        missing = set(datasets) - existing_datasets
+        missing = set(datasets) - existing_datasets.keys()
         if len(missing) > 0:
             existing_datasets.update(fetch_existing_datasets(db_cursor, table_prefix))
-            missing = set(datasets) - existing_datasets
+            missing = set(datasets) - existing_datasets.keys()
             if len(missing) > 0:
                 logger.error("Datasets %s don't exist.", missing)
                 if not set_job_or_task_status(
