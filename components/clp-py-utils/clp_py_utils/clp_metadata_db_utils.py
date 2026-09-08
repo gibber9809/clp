@@ -7,6 +7,11 @@ from clp_py_utils.clp_config import ArchiveOutput, StorageType
 # Constants
 DATASET_NAME_MAX_LEN = 255
 
+# An archive whose timestamp range is wider than this is also recorded in the long-span archives
+# table, so that time-ranged queries can still find it after the archives table is partitioned.
+# TODO: Make this configurable.
+LONG_SPAN_THRESHOLD_MILLIS = 24 * 60 * 60 * 1000
+
 ARCHIVES_TABLE_SUFFIX = "archives"
 COLUMN_METADATA_TABLE_SUFFIX = "column_metadata"
 DATASETS_TABLE_SUFFIX = "datasets"
