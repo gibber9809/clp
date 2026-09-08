@@ -136,7 +136,7 @@ def update_archive_metadata(
     datasets_table_name = get_datasets_table_name(table_prefix)
     query = f"""
         INSERT INTO {archives_table_name} (dataset_id, creation_time_millis, {keys})
-        SELECT id, CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS SIGNED),
+        SELECT id, CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS BIGINT),
         {value_placeholders} FROM {datasets_table_name}
         WHERE name = %s
     """
