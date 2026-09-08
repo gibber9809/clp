@@ -11,10 +11,7 @@
 #include "../TimestampDictionaryReader.hpp"
 
 namespace clp_s::indexer {
-IndexManager::IndexManager(
-        std::optional<clp::GlobalMetadataDBConfig> const& optional_db_config,
-        bool should_create_table
-) {
+IndexManager::IndexManager(std::optional<clp::GlobalMetadataDBConfig> const& optional_db_config) {
     try {
         auto const& db_config = optional_db_config.value();
         m_mysql_index_storage = std::make_unique<MySQLIndexStorage>(
@@ -32,7 +29,6 @@ IndexManager::IndexManager(
     m_field_update_callback = [this](std::string& field_name, NodeType field_type) {
         m_mysql_index_storage->add_field(field_name, field_type);
     };
-    m_should_create_table = should_create_table;
     m_output_type = OutputType::Database;
 }
 
@@ -42,8 +38,8 @@ IndexManager::~IndexManager() {
     }
 }
 
-void IndexManager::update_metadata(std::string const& dataset_name, Path const& archive_path) {
-    m_mysql_index_storage->init(dataset_name, m_should_create_table);
+void IndexManager::update_metadata(uint16_t dataset_id, Path const& archive_path) {
+    m_mysql_index_storage->init(dataset_id);
 
     ArchiveReader archive_reader;
     archive_reader.open(archive_path, NetworkAuthOption{});

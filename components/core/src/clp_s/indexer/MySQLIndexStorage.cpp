@@ -8,7 +8,8 @@
 #include "../../clp/type_utils.hpp"
 
 enum class TableMetadataFieldIndexes : uint16_t {
-    Name = 0,
+    DatasetId = 0,
+    Name,
     Type,
     Length,
 };
@@ -23,32 +24,22 @@ void MySQLIndexStorage::open() {
     m_is_open = true;
 }
 
-void MySQLIndexStorage::init(std::string const& dataset_name, bool should_create_table) {
+void MySQLIndexStorage::init(uint16_t dataset_id) {
     if (false == m_is_open) {
         throw OperationFailed(ErrorCodeNotReady, __FILENAME__, __LINE__);
     }
 
-    auto const table_name{
-            fmt::format("{}{}_{}", m_table_prefix, dataset_name, cColumnMetadataTableSuffix)
-    };
-    if (should_create_table) {
-        m_db.execute_query(
-                fmt::format(
-                        "CREATE TABLE IF NOT EXISTS {} ("
-                        "name VARCHAR(512) NOT NULL, "
-                        "type TINYINT NOT NULL,"
-                        "PRIMARY KEY (name, type)"
-                        ")",
-                        table_name
-                )
-        );
-    }
+    m_dataset_id = dataset_id;
+
+    auto const table_name{fmt::format("{}{}", m_table_prefix, cColumnMetadataTableSuffix)};
 
     m_insert_field_statement.reset();
 
     std::vector<std::string> table_metadata_field_names(
             clp::enum_to_underlying_type(TableMetadataFieldIndexes::Length)
     );
+    table_metadata_field_names[clp::enum_to_underlying_type(TableMetadataFieldIndexes::DatasetId)]
+            = "dataset_id";
     table_metadata_field_names[clp::enum_to_underlying_type(TableMetadataFieldIndexes::Name)]
             = "name";
     table_metadata_field_names[clp::enum_to_underlying_type(TableMetadataFieldIndexes::Type)]
@@ -77,6 +68,10 @@ void MySQLIndexStorage::add_field(std::string const& field_name, NodeType field_
     }
 
     auto& statement_bindings = m_insert_field_statement->get_statement_bindings();
+    statement_bindings.bind_uint64(
+            clp::enum_to_underlying_type(TableMetadataFieldIndexes::DatasetId),
+            m_dataset_id
+    );
     statement_bindings.bind_varchar(
             clp::enum_to_underlying_type(TableMetadataFieldIndexes::Name),
             field_name.c_str(),

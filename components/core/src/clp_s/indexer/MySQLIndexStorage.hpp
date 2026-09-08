@@ -47,11 +47,10 @@ public:
     void open();
 
     /**
-     * Creates the table if it is required and prepares the insert statement
-     * @param dataset_name
-     * @param should_create_table
+     * Prepares the insert statement for the given dataset
+     * @param dataset_id
      */
-    void init(std::string const& dataset_name, bool should_create_table);
+    void init(uint16_t dataset_id);
 
     /**
      * Closes the database connection
@@ -75,6 +74,9 @@ private:
     std::string m_password;
     std::string m_database_name;
     std::string m_table_prefix;
+    // NOTE: Held as a `uint64_t` since that's the widest unsigned type the parameter bindings
+    // support; the column is a `SMALLINT unsigned`.
+    uint64_t m_dataset_id{};
 
     clp::MySQLDB m_db;
 

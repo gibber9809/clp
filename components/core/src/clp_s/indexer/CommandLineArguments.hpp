@@ -1,6 +1,7 @@
 #ifndef CLP_S_INDEXER_COMMANDLINEARGUMENTS_HPP
 #define CLP_S_INDEXER_COMMANDLINEARGUMENTS_HPP
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -28,7 +29,7 @@ public:
 
     std::string const& get_program_name() const { return m_program_name; }
 
-    std::string const& get_dataset_name() const { return m_dataset_name; }
+    uint16_t get_dataset_id() const { return m_dataset_id; }
 
     Path const& get_archive_path() const { return m_archive_path; }
 
@@ -36,19 +37,16 @@ public:
         return m_metadata_db_config;
     }
 
-    bool should_create_table() const { return m_should_create_table; }
-
 private:
     // Methods
     void print_basic_usage() const;
 
     // Variables
     std::string m_program_name;
-    std::string m_dataset_name;
+    uint16_t m_dataset_id{0};
     Path m_archive_path;
 
     std::optional<clp::GlobalMetadataDBConfig> m_metadata_db_config;
-    bool m_should_create_table{false};
 };
 }  // namespace clp_s::indexer
 
