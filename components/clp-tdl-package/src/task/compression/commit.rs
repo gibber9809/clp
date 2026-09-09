@@ -208,21 +208,18 @@ async fn insert_archives(
             continue;
         }
 
-        // NOTE: The archives' IDs are read back rather than derived from the insert's ID, since
-        // MySQL doesn't guarantee that a multi-row insert's auto-increment values are consecutive.
-        let mut builder = sqlx::QueryBuilder::<sqlx::MySql>::new(format!(
+        let placeholders = vec!["?"; long_span_uuids.len()].join(", ");
+        let mut query = sqlx::query(&format!(
             "INSERT INTO `{long_span_archives_table}` (dataset_id, \
              timestamp_range_begin_millis, timestamp_range_end_millis, archive_id) SELECT \
              dataset_id, timestamp_range_begin_millis, timestamp_range_end_millis, id FROM \
-             `{archives_table}` WHERE dataset_id = "
-        ));
-        builder.push_bind(dataset_id).push(" AND uuid IN (");
-        let mut separated = builder.separated(", ");
+             `{archives_table}` WHERE `dataset_id` = ? AND `uuid` IN ({placeholders})"
+        ))
+        .bind(dataset_id);
         for uuid in long_span_uuids {
-            separated.push_bind(uuid.clone());
+            query = query.bind(uuid.clone());
         }
-        separated.push_unseparated(")");
-        builder.build().execute(&mut **tx).await.with_context(|| {
+        query.execute(&mut **tx).await.with_context(|| {
             format!("failed to insert archives into `{long_span_archives_table}`")
         })?;
     }
