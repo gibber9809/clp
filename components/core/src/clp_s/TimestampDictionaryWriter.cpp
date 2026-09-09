@@ -1,6 +1,7 @@
 #include "TimestampDictionaryWriter.hpp"
 
 #include <cstdint>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
