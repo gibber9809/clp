@@ -65,7 +65,6 @@ impl<SubmitterType: S3CompressionJobSubmitter> S3CompressionJobHandle<SubmitterT
     ///
     /// * [`Error::UnsupportedInputConfig`] if `clp_io_config`'s input config is not an
     ///   [`InputConfig::S3ObjectMetadataInputConfig`].
-    /// * [`Error::InvalidDataset`] if the configured dataset name is not a valid dataset name.
     pub fn new(
         db_pool: MySqlPool,
         compression_job_id: CompressionJobId,
@@ -82,9 +81,6 @@ impl<SubmitterType: S3CompressionJobSubmitter> S3CompressionJobHandle<SubmitterT
             return Err(Error::UnsupportedInputConfig);
         };
         let dataset: Option<String> = s3_object_metadata_config.dataset.clone().map(String::from);
-        if let Some(dataset_name) = dataset.as_ref() {
-            return Err(Error::InvalidDataset(dataset_name.clone()));
-        }
 
         let output_config = clp_io_config.output;
         let clp_s_compression_option = ClpSCompressionOption {
