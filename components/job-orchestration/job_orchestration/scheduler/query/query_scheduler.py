@@ -1420,7 +1420,7 @@ def _handle_new_search_job(
     :param table_prefix:
     :param max_datasets_per_query:
     :param archive_retention_period:
-    :param existing_datasets: [out] May be updated with newly fetched datasets.
+    :param existing_datasets: [out] May be replaced with the datasets currently in the database.
     :param results_cache_uri: URI of the MongoDB results cache. Used to create a timestamp index
         on the job's results collection so that sorted reads (e.g., for max-num-results checks)
         can be served efficiently.
@@ -1471,9 +1471,11 @@ def _handle_new_search_job(
                 logger.error("Failed to set job as failed.")
             return
 
-        # NOTE: This assumes we never delete a dataset.
         missing = set(datasets) - existing_datasets.keys()
         if len(missing) > 0:
+            # NOTE: A dataset deleted after this refresh is still treated as existing until the
+            # next refresh.
+            existing_datasets.clear()
             existing_datasets.update(fetch_existing_datasets(db_cursor, table_prefix))
             missing = set(datasets) - existing_datasets.keys()
             if len(missing) > 0:
