@@ -92,12 +92,12 @@ public:
     /**
      * @return The beginning of this archive's time range as milliseconds since the UNIX epoch
      */
-    epochtime_t get_begin_timestamp() const;
+    epochtime_t get_begin_timestamp();
 
     /**
      * @return The end of this archive's time range as milliseconds since the UNIX epoch
      */
-    epochtime_t get_end_timestamp() const;
+    epochtime_t get_end_timestamp();
 
     /**
      * Clears and resets all internal state.
