@@ -192,7 +192,7 @@ auto TimestampDictionaryWriter::ingest_unknown_precision_epoch_timestamp(
     return {epoch_timestamp, pattern_it->second.second};
 }
 
-epochtime_t TimestampDictionaryWriter::get_begin_timestamp() const {
+epochtime_t TimestampDictionaryWriter::get_begin_timestamp() {
     merge_file_split_time_range();
     auto it = m_archive_column_id_to_range.begin();
     if (m_archive_column_id_to_range.end() == it) {
@@ -203,7 +203,7 @@ epochtime_t TimestampDictionaryWriter::get_begin_timestamp() const {
     return it->second.get_begin_timestamp();
 }
 
-epochtime_t TimestampDictionaryWriter::get_end_timestamp() const {
+epochtime_t TimestampDictionaryWriter::get_end_timestamp() {
     merge_file_split_time_range();
     auto it = m_archive_column_id_to_range.begin();
     if (m_archive_column_id_to_range.end() == it) {
@@ -222,8 +222,8 @@ void TimestampDictionaryWriter::clear() {
     m_file_split_column_id_to_range.clear();
 }
 
-auto TimestampDictionaryWriter::close_current_file_split() -> std::optional
-        < std::pair<epochtime_t, epochtime_t> {
+auto TimestampDictionaryWriter::close_current_file_split()
+        -> std::optional<std::pair<epochtime_t, epochtime_t>> {
     merge_file_split_time_range();
 
     if (m_file_split_column_id_to_range.empty()) {
@@ -240,7 +240,7 @@ auto TimestampDictionaryWriter::close_current_file_split() -> std::optional
     return time_range;
 }
 
-auto merge_file_split_time_range() -> void {
+auto TimestampDictionaryWriter::merge_file_split_time_range() -> void {
     for (auto const& [node_id, split_range] : m_file_split_column_id_to_range) {
         auto& [_, archive_range]
                 = *m_archive_column_id_to_range

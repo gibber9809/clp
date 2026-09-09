@@ -30,7 +30,7 @@ void TimestampEntry::ingest_timestamp(epochtime_t timestamp) {
     m_epoch_end = std::max(m_epoch_end, millisecond_timestamp_upper_bound);
 }
 
-void ingest_millisecond_timestamp(epochtime_t millisecond_timestamp) {
+void TimestampEntry::ingest_millisecond_timestamp(epochtime_t millisecond_timestamp) {
     m_encoding = Epoch;
     m_epoch_start = std::min(m_epoch_start, millisecond_timestamp);
     m_epoch_end = std::max(m_epoch_end, millisecond_timestamp);
