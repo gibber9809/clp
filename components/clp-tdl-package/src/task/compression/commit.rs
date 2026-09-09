@@ -182,8 +182,6 @@ async fn insert_archives(
              creation_time_millis) "
         ));
         builder.push_values(archives.iter().zip(&uuids), |mut row, (archive, uuid)| {
-            // NOTE: The creation time comes from the DB clock so it stays consistent with the DB's
-            // time.
             row.push_bind(dataset_id)
                 .push_bind(uuid.clone())
                 .push_bind(archive.begin_timestamp)
