@@ -167,7 +167,6 @@ async fn insert_archives(
     archives: &[ArchiveMetadata],
 ) -> anyhow::Result<()> {
     for archives in archives.chunks(1000) {
-        // NOTE: The UUIDs are parsed up-front since `push_values`' closure can't fail.
         let uuids = archives
             .iter()
             .map(|archive| {
