@@ -191,7 +191,7 @@ async fn insert_archives(
                 .push_bind(archive.end_timestamp)
                 .push_bind(archive.uncompressed_size)
                 .push_bind(archive.size)
-                .push("CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS SIGNED)");
+                .push("CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS BIGINT)");
         });
         builder
             .build()
