@@ -103,7 +103,19 @@ public:
      */
     void clear();
 
+    /**
+     * Closes the current file split, resetting the accumulated time ranges for the next file split.
+     * @return An option containing a pair representing the start and end timestamp of the closed
+     * file split as milliseconds since the UNIX epoch.
+     */
+    auto close_current_file_split() -> std::optional<std::pair<epochtime_t, epochtime_t>>;
+
 private:
+    /**
+     * Merges time ranges for the current file split with the archive's time range.
+     */
+    auto merge_file_split_time_range() -> void;
+
     // Variables
     std::vector<std::pair<timestamp_parser::TimestampPattern, uint64_t>>
             m_string_pattern_and_id_pairs;
@@ -111,7 +123,8 @@ private:
             m_numeric_pattern_to_id;
     uint64_t m_next_id{};
 
-    std::unordered_map<int32_t, TimestampEntry> m_column_id_to_range;
+    std::unordered_map<int32_t, TimestampEntry> m_archive_column_id_to_range;
+    std::unordered_map<int32_t, TimestampEntry> m_file_split_column_id_to_range{};
 
     std::string m_generated_pattern;
     std::vector<timestamp_parser::TimestampPattern> m_quoted_timestamp_patterns;

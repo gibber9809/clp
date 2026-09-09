@@ -14,8 +14,9 @@
 
 namespace clp_s {
 void TimestampDictionaryWriter::write(std::stringstream& stream) {
-    write_numeric_value<uint64_t>(stream, m_column_id_to_range.size());
-    for (auto const& [id, range] : m_column_id_to_range) {
+    merge_file_split_time_range();
+    write_numeric_value<uint64_t>(stream, m_archive_column_id_to_range.size());
+    for (auto const& [id, range] : m_archive_column_id_to_range) {
         range.write_to_stream(stream);
     }
 
@@ -45,7 +46,8 @@ auto TimestampDictionaryWriter::ingest_string_timestamp(
         std::string_view timestamp,
         bool is_json_literal
 ) -> std::pair<epochtime_t, uint64_t> {
-    auto& [_, timestamp_entry] = *m_column_id_to_range.try_emplace(node_id, key, node_id).first;
+    auto& [_, timestamp_entry]
+            = *m_file_split_column_id_to_range.try_emplace(node_id, key, node_id).first;
 
     // Try parsing the timestamp as one of the previously seen timestamp patterns
     for (auto const& [quoted_pattern, pattern_id] : m_string_pattern_and_id_pairs) {
@@ -101,7 +103,8 @@ auto TimestampDictionaryWriter::ingest_numeric_json_timestamp(
         int32_t node_id,
         std::string_view timestamp
 ) -> std::pair<epochtime_t, uint64_t> {
-    auto& [_, timestamp_entry] = *m_column_id_to_range.try_emplace(node_id, key, node_id).first;
+    auto& [_, timestamp_entry]
+            = *m_file_split_column_id_to_range.try_emplace(node_id, key, node_id).first;
 
     for (auto const& [raw_pattern, pattern_and_id] : m_numeric_pattern_to_id) {
         auto const& [pattern, id] = pattern_and_id;
@@ -156,7 +159,8 @@ auto TimestampDictionaryWriter::ingest_unknown_precision_epoch_timestamp(
         int32_t node_id,
         int64_t timestamp
 ) -> std::pair<epochtime_t, uint64_t> {
-    auto& [_, timestamp_entry] = *m_column_id_to_range.try_emplace(node_id, key, node_id).first;
+    auto& [_, timestamp_entry]
+            = *m_file_split_column_id_to_range.try_emplace(node_id, key, node_id).first;
 
     auto const [factor, precision] = timestamp_parser::estimate_timestamp_precision(timestamp);
     auto const epoch_timestamp{timestamp * factor};
@@ -188,8 +192,9 @@ auto TimestampDictionaryWriter::ingest_unknown_precision_epoch_timestamp(
 }
 
 epochtime_t TimestampDictionaryWriter::get_begin_timestamp() const {
-    auto it = m_column_id_to_range.begin();
-    if (m_column_id_to_range.end() == it) {
+    merge_file_split_time_range();
+    auto it = m_archive_column_id_to_range.begin();
+    if (m_archive_column_id_to_range.end() == it) {
         // replicate behaviour of CLP
         return 0;
     }
@@ -198,8 +203,9 @@ epochtime_t TimestampDictionaryWriter::get_begin_timestamp() const {
 }
 
 epochtime_t TimestampDictionaryWriter::get_end_timestamp() const {
-    auto it = m_column_id_to_range.begin();
-    if (m_column_id_to_range.end() == it) {
+    merge_file_split_time_range();
+    auto it = m_archive_column_id_to_range.begin();
+    if (m_archive_column_id_to_range.end() == it) {
         // replicate behaviour of CLP
         return 0;
     }
@@ -211,6 +217,36 @@ void TimestampDictionaryWriter::clear() {
     m_next_id = 0;
     m_string_pattern_and_id_pairs.clear();
     m_numeric_pattern_to_id.clear();
-    m_column_id_to_range.clear();
+    m_archive_column_id_to_range.clear();
+    m_file_split_column_id_to_range.clear();
+}
+
+auto TimestampDictionaryWriter::close_current_file_split() -> std::optional
+        < std::pair<epochtime_t, epochtime_t> {
+    merge_file_split_time_range();
+
+    if (m_file_split_column_id_to_range.empty()) {
+        return std::nullopt;
+    }
+
+    auto const& range{m_file_split_column_id_to_range.begin()->second};
+    std::pair<epochtime_t, epochtime_t> const time_range{
+            range.get_begin_timestamp(),
+            range.get_end_timestamp()
+    };
+
+    m_file_split_column_id_to_range.clear();
+    return time_range;
+}
+
+auto merge_file_split_time_range() -> void {
+    for (auto const& [node_id, split_range] : m_file_split_column_id_to_range) {
+        auto& [_, archive_range]
+                = *m_archive_column_id_to_range
+                           .try_emplace(node_id, split_range.get_key_name(), node_id)
+                           .first;
+        archive_range.ingest_millisecond_timestamp(split_range.get_begin_timestamp());
+        archive_range.ingest_millisecond_timestamp(split_range.get_end_timestamp());
+    }
 }
 }  // namespace clp_s
