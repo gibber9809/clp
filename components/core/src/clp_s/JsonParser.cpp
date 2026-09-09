@@ -822,7 +822,61 @@ auto JsonParser::ingest_json(
         return false;
     }
     auto update_fields_after_archive_split = [&]() { ++file_split_number; };
+    auto finalize_fields_for_file_split = [&](size_t split_size) -> bool {
+        if (false == m_record_log_order) {
+            return true;
+        }
 
+        if (auto const rc = m_archive_writer->add_field_to_current_range(
+                    std::string{constants::range_index::cFileNumUncompressedBytes},
+                    split_size
+            );
+            ErrorCodeSuccess != rc)
+        {
+            SPDLOG_ERROR(
+                    "Failed to add metadata field \"{}\" ({})",
+                    constants::range_index::cFileNumUncompressedBytes,
+                    static_cast<int64_t>(rc)
+            );
+            return false;
+        }
+
+        // TODO: decide whether we should omit begin/end or leave null
+        auto const time_range_millis{m_archive_writer->close_current_file_split_time_range()};
+        if (false == time_range_millis.has_value()) {
+            return true;
+        }
+
+        auto const [begin_time_millis, end_time_millis] = time_range_millis.value();
+
+        if (auto const rc = m_archive_writer->add_field_to_current_range(
+                    std::string{constants::range_index::cTimestampRangeBeginMillis},
+                    begin_time_millis
+            );
+            ErrorCodeSuccess != rc)
+        {
+            SPDLOG_ERROR(
+                    "Failed to add metadata field \"{}\" ({})",
+                    constants::range_index::cTimestampRangeBeginMillis,
+                    static_cast<int64_t>(rc)
+            );
+            return false;
+        }
+        if (auto const rc = m_archive_writer->add_field_to_current_range(
+                    std::string{constants::range_index::cTimestampRangeEndMillis},
+                    end_time_millis
+            );
+            ErrorCodeSuccess != rc)
+        {
+            SPDLOG_ERROR(
+                    "Failed to add metadata field \"{}\" ({})",
+                    constants::range_index::cTimestampRangeEndMillis,
+                    static_cast<int64_t>(rc)
+            );
+            return false;
+        }
+        return true;
+    };
     while (json_file_iterator.get_json(json_it)) {
         m_current_schema.clear();
 
@@ -873,10 +927,12 @@ auto JsonParser::ingest_json(
 
         bytes_consumed_up_to_prev_record = json_file_iterator.get_num_bytes_consumed();
         if (m_archive_writer->get_data_size() >= m_target_encoded_size) {
-            m_archive_writer->increment_uncompressed_size(
+            auto const split_size{
                     bytes_consumed_up_to_prev_record - bytes_consumed_up_to_prev_archive
-            );
+            };
+            m_archive_writer->increment_uncompressed_size(split_size);
             bytes_consumed_up_to_prev_archive = bytes_consumed_up_to_prev_record;
+            finalize_fields_for_file_split(split_size);
             split_archive();
             update_fields_after_archive_split();
             if (false == initialize_fields_for_archive()) {
@@ -887,9 +943,11 @@ auto JsonParser::ingest_json(
         m_current_parsed_message.clear();
     }
 
-    m_archive_writer->increment_uncompressed_size(
+    auto const split_size{
             json_file_iterator.get_num_bytes_read() - bytes_consumed_up_to_prev_archive
-    );
+    };
+    m_archive_writer->increment_uncompressed_size(split_size);
+    finalize_fields_for_file_split(split_size);
 
     if (simdjson::error_code::SUCCESS != json_file_iterator.get_error()) {
         SPDLOG_ERROR(
