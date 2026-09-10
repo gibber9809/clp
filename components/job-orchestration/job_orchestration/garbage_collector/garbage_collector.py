@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import sys
-from collections.abc import Callable
 from pathlib import Path
 
 from clp_py_utils.clp_config import (
