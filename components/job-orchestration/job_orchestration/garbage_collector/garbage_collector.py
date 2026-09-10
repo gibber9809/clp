@@ -49,8 +49,6 @@ async def main(argv: list[str]) -> int:
 
     gc_tasks: list[asyncio.Task[None]] = []
 
-    # NOTE: Archive retention is configured per dataset, so the archive garbage collector is always
-    # created; it's a no-op for datasets that have no retention period.
     logger.info(f"Creating {ARCHIVE_GARBAGE_COLLECTOR_NAME}")
     gc_tasks.append(
         asyncio.create_task(

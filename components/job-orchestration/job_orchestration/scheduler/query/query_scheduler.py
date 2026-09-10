@@ -614,8 +614,6 @@ def get_archives_for_search(
     expiry_base_epoch_secs: int,
     datasets: list[str],
 ):
-    # NOTE: The retention clause mirrors the archive garbage collector's expiry criteria, so an
-    # archive is searchable if and only if the collector hasn't decided it's expired.
     filter_clauses = [
         "archives.is_deleted = FALSE",
         "(datasets.retention_period_minutes IS NULL OR archives.creation_time_millis >="
