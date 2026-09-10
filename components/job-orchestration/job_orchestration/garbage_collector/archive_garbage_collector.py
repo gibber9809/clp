@@ -61,8 +61,6 @@ def _delete_expired_archives(
 
     results = db_cursor.fetchall()
     if len(results) != 0:
-        # NOTE: Deleting an archive requires both of its identifiers: its ID to delete its row
-        # from the metadata database, and its UUID to locate it in storage.
         archive_ids_by_dataset_id: dict[int, list[int]] = defaultdict(list)
         for result in results:
             archive_ids_by_dataset_id[result["dataset_id"]].append(result["id"])
@@ -148,8 +146,6 @@ def _collect_and_sweep_expired_archives(
     ):
         expiry_base_epoch = _get_safe_expiry_base_epoch(db_cursor)
         if StorageEngine.CLP_S != storage_engine:
-            # TODO: clp-text archives aren't represented in the new metadata schema, since their
-            # rows have no dataset. Support for them needs to be re-established separately.
             raise ValueError(f"Unsupported Storage engine: {storage_engine}.")
 
         _delete_expired_archives(

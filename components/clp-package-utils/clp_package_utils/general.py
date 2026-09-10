@@ -713,8 +713,6 @@ def validate_dataset_name(dataset_name: str) -> None:
 
 
 def validate_retention_config(clp_config: ClpConfig) -> None:
-    # NOTE: Archive retention is configured per dataset rather than in the config file, so it can't
-    # be validated here.
     clp_query_engine = clp_config.webui.query_engine
     if clp_config.results_cache.retention_period is not None and (
         clp_query_engine == QueryEngine.PRESTO
