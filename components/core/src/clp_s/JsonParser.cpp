@@ -841,17 +841,16 @@ auto JsonParser::ingest_json(
             return false;
         }
 
-        // TODO: decide whether we should omit begin/end or leave null
+        nlohmann::json begin_time_millis_json(nullptr);
+        nlohmann::json end_time_millis_json(nullptr);
         auto const time_range_millis{m_archive_writer->close_current_file_split_time_range()};
-        if (false == time_range_millis.has_value()) {
-            return true;
+        if (time_range_millis.has_value()) {
+            begin_time_millis_json = time_range_millis.value().first;
+            end_time_millis_json = time_range_millis.value().second;
         }
-
-        auto const [begin_time_millis, end_time_millis] = time_range_millis.value();
-
         if (auto const rc = m_archive_writer->add_field_to_current_range(
                     std::string{constants::range_index::cTimestampRangeBeginMillis},
-                    begin_time_millis
+                    begin_time_millis_json
             );
             ErrorCodeSuccess != rc)
         {
@@ -864,7 +863,7 @@ auto JsonParser::ingest_json(
         }
         if (auto const rc = m_archive_writer->add_field_to_current_range(
                     std::string{constants::range_index::cTimestampRangeEndMillis},
-                    end_time_millis
+                    end_time_millis_json
             );
             ErrorCodeSuccess != rc)
         {
