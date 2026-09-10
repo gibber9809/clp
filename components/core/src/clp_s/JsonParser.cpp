@@ -1065,6 +1065,60 @@ auto JsonParser::ingest_kvir(
         return false;
     }
     auto update_fields_after_archive_split = [&]() { ++file_split_number; };
+    auto finalize_fields_for_file_split = [&](size_t split_size) -> bool {
+        if (false == m_record_log_order) {
+            return true;
+        }
+
+        if (auto const rc = m_archive_writer->add_field_to_current_range(
+                    std::string{constants::range_index::cFileNumUncompressedBytes},
+                    split_size
+            );
+            ErrorCodeSuccess != rc)
+        {
+            SPDLOG_ERROR(
+                    "Failed to add metadata field \"{}\" ({})",
+                    constants::range_index::cFileNumUncompressedBytes,
+                    static_cast<int64_t>(rc)
+            );
+            return false;
+        }
+
+        nlohmann::json begin_time_millis_json(nullptr);
+        nlohmann::json end_time_millis_json(nullptr);
+        auto const time_range_millis{m_archive_writer->close_current_file_split_time_range()};
+        if (time_range_millis.has_value()) {
+            begin_time_millis_json = time_range_millis.value().first;
+            end_time_millis_json = time_range_millis.value().second;
+        }
+        if (auto const rc = m_archive_writer->add_field_to_current_range(
+                    std::string{constants::range_index::cTimestampRangeBeginMillis},
+                    begin_time_millis_json
+            );
+            ErrorCodeSuccess != rc)
+        {
+            SPDLOG_ERROR(
+                    "Failed to add metadata field \"{}\" ({})",
+                    constants::range_index::cTimestampRangeBeginMillis,
+                    static_cast<int64_t>(rc)
+            );
+            return false;
+        }
+        if (auto const rc = m_archive_writer->add_field_to_current_range(
+                    std::string{constants::range_index::cTimestampRangeEndMillis},
+                    end_time_millis_json
+            );
+            ErrorCodeSuccess != rc)
+        {
+            SPDLOG_ERROR(
+                    "Failed to add metadata field \"{}\" ({})",
+                    constants::range_index::cTimestampRangeEndMillis,
+                    static_cast<int64_t>(rc)
+            );
+            return false;
+        }
+        return true;
+    };
 
     size_t curr_pos{};
     size_t last_pos{};
@@ -1111,8 +1165,10 @@ auto JsonParser::ingest_kvir(
                 m_ir_node_to_archive_node_id_mapping.clear();
                 m_autogen_ir_node_to_archive_node_id_mapping.clear();
                 curr_pos = reader->get_pos();
-                m_archive_writer->increment_uncompressed_size(curr_pos - last_pos);
+                auto const split_size{curr_pos - last_pos};
+                m_archive_writer->increment_uncompressed_size(split_size);
                 last_pos = curr_pos;
+                finalize_fields_for_file_split(split_size);
                 split_archive();
                 update_fields_after_archive_split();
                 if (false == initialize_fields_for_archive()) {
@@ -1137,7 +1193,9 @@ auto JsonParser::ingest_kvir(
     m_ir_node_to_archive_node_id_mapping.clear();
     m_autogen_ir_node_to_archive_node_id_mapping.clear();
     curr_pos = reader->get_pos();
-    m_archive_writer->increment_uncompressed_size(curr_pos - last_pos);
+    auto const split_size{curr_pos - last_pos};
+    m_archive_writer->increment_uncompressed_size(split_size);
+    finalize_fields_for_file_split(split_size);
 
     if (m_record_log_order) {
         if (auto const rc = m_archive_writer->close_current_range(); ErrorCodeSuccess != rc) {
