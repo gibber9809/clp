@@ -101,6 +101,7 @@ def create_datasets_table(db_cursor, table_prefix: str) -> None:
             `id` SMALLINT unsigned NOT NULL AUTO_INCREMENT,
             `name` VARCHAR(255) NOT NULL,
             `archive_storage_path` VARCHAR(4096) NOT NULL,
+            `retention_period_minutes` INT unsigned DEFAULT NULL,
             `is_deleted` BOOLEAN NOT NULL DEFAULT FALSE,
             UNIQUE KEY `dataset_name` (`name`) USING BTREE,
             PRIMARY KEY (`id`)

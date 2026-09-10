@@ -721,9 +721,8 @@ def validate_retention_config(clp_config: ClpConfig) -> None:
 
 
 def is_retention_period_configured(clp_config: ClpConfig) -> bool:
-    if clp_config.archive_output.retention_period is not None:
-        return True
-
+    # NOTE: Archive retention is configured per dataset rather than in the config file, so it can't
+    # be determined here.
     if clp_config.results_cache.retention_period is not None:
         return True
 
