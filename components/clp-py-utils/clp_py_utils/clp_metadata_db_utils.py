@@ -12,6 +12,12 @@ DATASET_NAME_MAX_LEN = 255
 # TODO: Make this configurable.
 LONG_SPAN_THRESHOLD_MILLIS = 24 * 60 * 60 * 1000
 
+# Archives whose timestamp range begins outside this range are quarantined in the archives table's
+# `p_bad_low`/`p_bad_high` partitions, so that an implausible timestamp can't define a time-range
+# partition boundary.
+MIN_VALID_TIMESTAMP_MILLIS = 946_684_800_000  # 2000-01-01T00:00:00Z
+MAX_VALID_TIMESTAMP_MILLIS = 4_102_444_800_000  # 2100-01-01T00:00:00Z
+
 ARCHIVES_TABLE_SUFFIX = "archives"
 COLUMN_METADATA_TABLE_SUFFIX = "column_metadata"
 DATASETS_TABLE_SUFFIX = "datasets"
@@ -41,7 +47,9 @@ def _create_archives_table(db_cursor, archives_table_name: str) -> None:
             KEY `archives_gc_order` (`dataset_id`, `creation_time_millis`)
         ) ENGINE=InnoDB ROW_FORMAT=COMPRESSED KEY_BLOCK_SIZE=8
         PARTITION BY RANGE (`timestamp_range_begin_millis`) (
-            PARTITION `p_future` VALUES LESS THAN MAXVALUE
+            PARTITION `p_bad_low` VALUES LESS THAN ({MIN_VALID_TIMESTAMP_MILLIS}),
+            PARTITION `p_future` VALUES LESS THAN ({MAX_VALID_TIMESTAMP_MILLIS}),
+            PARTITION `p_bad_high` VALUES LESS THAN MAXVALUE
         )
         """
     )
