@@ -931,7 +931,9 @@ auto JsonParser::ingest_json(
             };
             m_archive_writer->increment_uncompressed_size(split_size);
             bytes_consumed_up_to_prev_archive = bytes_consumed_up_to_prev_record;
-            finalize_fields_for_file_split(split_size);
+            if (false == finalize_fields_for_file_split(split_size)) {
+                return false;
+            }
             split_archive();
             update_fields_after_archive_split();
             if (false == initialize_fields_for_archive()) {
@@ -946,7 +948,9 @@ auto JsonParser::ingest_json(
             json_file_iterator.get_num_bytes_read() - bytes_consumed_up_to_prev_archive
     };
     m_archive_writer->increment_uncompressed_size(split_size);
-    finalize_fields_for_file_split(split_size);
+    if (false == finalize_fields_for_file_split(split_size)) {
+        return false;
+    }
 
     if (simdjson::error_code::SUCCESS != json_file_iterator.get_error()) {
         SPDLOG_ERROR(
@@ -1168,7 +1172,9 @@ auto JsonParser::ingest_kvir(
                 auto const split_size{curr_pos - last_pos};
                 m_archive_writer->increment_uncompressed_size(split_size);
                 last_pos = curr_pos;
-                finalize_fields_for_file_split(split_size);
+                if (false == finalize_fields_for_file_split(split_size)) {
+                    return false;
+                }
                 split_archive();
                 update_fields_after_archive_split();
                 if (false == initialize_fields_for_archive()) {
@@ -1195,7 +1201,9 @@ auto JsonParser::ingest_kvir(
     curr_pos = reader->get_pos();
     auto const split_size{curr_pos - last_pos};
     m_archive_writer->increment_uncompressed_size(split_size);
-    finalize_fields_for_file_split(split_size);
+    if (false == finalize_fields_for_file_split(split_size)) {
+        return false;
+    }
 
     if (m_record_log_order) {
         if (auto const rc = m_archive_writer->close_current_range(); ErrorCodeSuccess != rc) {
