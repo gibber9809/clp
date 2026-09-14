@@ -352,7 +352,11 @@ clpConfig:
     # Interval (in minutes) at which garbage collector jobs run
     sweep_interval:
       archive: 60
+      archive_partition: 60
       search_result: 30
+
+    # How many days ahead the archives table's time-range partitions are extended
+    archive_partition_lookahead_days: 7
 
   # AWS config content (e.g., `~/.aws/config`). Provide file contents via `--set-file` to create a
   # chart-managed Secret that is mounted into pods. Set to null to disable.
