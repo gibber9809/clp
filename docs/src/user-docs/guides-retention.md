@@ -18,7 +18,7 @@ the following definitions:
 | $sweep\_interval$   | The interval (in minutes) at which the garbage collector wakes up to check for expired data.                                                                                |
 | $retention\_period$ | The duration (in minutes) for which data (an archive or search result) is retained before it is considered expired.                                                        |
 | $current\_time$     | The time at which the garbage collector is performing a check.                                                                                                             |
-| $data\_timestamp$   | The time at which the data was created (e.g., for an archive, the time at which it was written).                                                                           |
+| $data\_timestamp$   | The time at which the data was created (e.g., for an archive, the time at which it finished being compressed). |
 
 When the garbage collector wakes up, it will scan for and delete any data that satisfies the expiry
 criteria shown in [Figure 1](#figure-1):
