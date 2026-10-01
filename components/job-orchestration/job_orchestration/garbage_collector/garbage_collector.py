@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from clp_py_utils.clp_config import (
@@ -23,6 +24,11 @@ from job_orchestration.garbage_collector.search_result_garbage_collector import 
 )
 
 logger = get_logger(GARBAGE_COLLECTOR_COMPONENT_NAME)
+
+
+# Placeholder retention period for a garbage collector that resolves retention per resource.
+class UnknownRetentionPeriod:
+    pass
 
 
 async def main(argv: list[str]) -> int:
@@ -47,32 +53,30 @@ async def main(argv: list[str]) -> int:
         logger.exception("Failed to parse CLP configuration file.")
         return 1
 
+    gc_task_configs: dict[
+        str, tuple[int | UnknownRetentionPeriod | None, Callable[[ClpConfig], None]]
+    ] = {
+        ARCHIVE_GARBAGE_COLLECTOR_NAME: (
+            UnknownRetentionPeriod(),
+            archive_garbage_collector,
+        ),
+        SEARCH_RESULT_GARBAGE_COLLECTOR_NAME: (
+            clp_config.results_cache.retention_period,
+            search_result_garbage_collector,
+        ),
+    }
     gc_tasks: list[asyncio.Task[None]] = []
 
-    logger.info(f"Creating {ARCHIVE_GARBAGE_COLLECTOR_NAME}")
-    gc_tasks.append(
-        asyncio.create_task(
-            archive_garbage_collector(clp_config), name=ARCHIVE_GARBAGE_COLLECTOR_NAME
-        )
-    )
-
-    search_result_retention_period = clp_config.results_cache.retention_period
-    if search_result_retention_period is None:
-        logger.info(
-            "Retention period is not configured, skip creating"
-            f" {SEARCH_RESULT_GARBAGE_COLLECTOR_NAME}."
-        )
-    else:
-        logger.info(
-            f"Creating {SEARCH_RESULT_GARBAGE_COLLECTOR_NAME} with retention period ="
-            f" {search_result_retention_period} minutes"
-        )
-        gc_tasks.append(
-            asyncio.create_task(
-                search_result_garbage_collector(clp_config),
-                name=SEARCH_RESULT_GARBAGE_COLLECTOR_NAME,
-            )
-        )
+    # Create GC tasks
+    for gc_name, (retention_period, task_method) in gc_task_configs.items():
+        if retention_period is None:
+            logger.info(f"Retention period is not configured, skip creating {gc_name}.")
+            continue
+        if isinstance(retention_period, UnknownRetentionPeriod):
+            logger.info(f"Creating {gc_name}.")
+        else:
+            logger.info(f"Creating {gc_name} with retention period = {retention_period} minutes")
+        gc_tasks.append(asyncio.create_task(task_method(clp_config), name=gc_name))
 
     # Poll and report any task that finished unexpectedly
     while len(gc_tasks) != 0:
