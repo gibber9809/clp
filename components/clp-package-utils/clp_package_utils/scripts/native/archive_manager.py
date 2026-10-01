@@ -238,7 +238,7 @@ def main(argv: list[str]) -> int:
             try:
                 delete_handler: IdDeleteHandler = IdDeleteHandler(parsed_args.ids)
             except ValueError:
-                logger.exception("Failed to parse the given archive IDs.")
+                logger.exception("Some of the provided archive IDs are not valid UUIDs.")
                 return -1
             return _delete_archives(
                 archives_dir,
