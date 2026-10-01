@@ -714,20 +714,12 @@ def validate_dataset_name(dataset_name: str) -> None:
 
 def validate_retention_config(clp_config: ClpConfig) -> None:
     clp_query_engine = clp_config.webui.query_engine
-    if is_retention_period_configured(clp_config) and clp_query_engine == QueryEngine.PRESTO:
+    if clp_config.results_cache.retention_period is not None and (
+        clp_query_engine == QueryEngine.PRESTO
+    ):
         raise ValueError(
             f"Retention control is not supported with query_engine `{clp_query_engine}`"
         )
-
-
-def is_retention_period_configured(clp_config: ClpConfig) -> bool:
-    if clp_config.archive_output.retention_period is not None:
-        return True
-
-    if clp_config.results_cache.retention_period is not None:
-        return True
-
-    return False
 
 
 def get_common_env_vars_list(

@@ -611,10 +611,15 @@ def get_archives_for_search(
     db_conn,
     table_prefix: str,
     search_config: SearchJobConfig,
-    archive_end_ts_lower_bound: int | None,
+    expiry_base_epoch_secs: int,
     datasets: list[str],
 ):
-    filter_clauses = ["archives.is_deleted = FALSE"]
+    filter_clauses = [
+        "archives.is_deleted = FALSE",
+        "(datasets.retention_period_minutes IS NULL OR archives.creation_time_millis >="
+        f" ({expiry_base_epoch_secs} - datasets.retention_period_minutes * {MIN_TO_SECONDS})"
+        f" * {SECOND_TO_MILLISECOND})",
+    ]
     if search_config.end_timestamp is not None:
         filter_clauses.append(
             f"archives.timestamp_range_begin_millis <= {search_config.end_timestamp}"
@@ -622,11 +627,6 @@ def get_archives_for_search(
     if search_config.begin_timestamp is not None:
         filter_clauses.append(
             f"archives.timestamp_range_end_millis >= {search_config.begin_timestamp}"
-        )
-    if archive_end_ts_lower_bound is not None:
-        filter_clauses.append(
-            f"(archives.timestamp_range_end_millis >= {archive_end_ts_lower_bound}"
-            f" OR archives.timestamp_range_end_millis = 0)"
         )
 
     dataset_placeholders = ", ".join(["%s"] * len(datasets))
@@ -866,7 +866,6 @@ def handle_pending_query_jobs(
     num_archives_to_search_per_sub_job: int,
     max_datasets_per_query: int | None,
     existing_datasets: dict[str, int],
-    archive_retention_period: int | None,
     process_pool: concurrent.futures.ProcessPoolExecutor,
 ) -> list[asyncio.Task]:
     global active_jobs
@@ -903,7 +902,6 @@ def handle_pending_query_jobs(
                         table_prefix=table_prefix,
                         max_datasets_per_query=max_datasets_per_query,
                         existing_datasets=existing_datasets,
-                        archive_retention_period=archive_retention_period,
                         results_cache_uri=results_cache_uri,
                         pending_search_jobs=pending_search_jobs,
                         reducer_acquisition_tasks=reducer_acquisition_tasks,
@@ -1240,7 +1238,6 @@ async def handle_jobs(
     jobs_poll_delay: float,
     num_archives_to_search_per_sub_job: int,
     max_datasets_per_query: int | None,
-    archive_retention_period: int | None,
     scheduler_concurrency: int,
 ) -> None:
     with concurrent.futures.ProcessPoolExecutor(
@@ -1263,7 +1260,6 @@ async def handle_jobs(
                 num_archives_to_search_per_sub_job,
                 max_datasets_per_query,
                 existing_datasets,
-                archive_retention_period,
                 process_pool,
             )
             if 0 == len(reducer_acquisition_tasks):
@@ -1362,7 +1358,6 @@ async def main(argv: list[str]) -> int:
                 jobs_poll_delay=clp_config.query_scheduler.jobs_poll_delay,
                 num_archives_to_search_per_sub_job=batch_size,
                 max_datasets_per_query=clp_config.query_scheduler.max_datasets_per_query,
-                archive_retention_period=clp_config.archive_output.retention_period,
                 scheduler_concurrency=clp_config.query_scheduler.scheduler_concurrency,
             )
         )
@@ -1396,7 +1391,6 @@ def _handle_new_search_job(
     job_creation_time: float,
     table_prefix: str,
     max_datasets_per_query: int | None,
-    archive_retention_period: int | None,
     existing_datasets: dict[str, int],
     results_cache_uri: str,
     pending_search_jobs: list,
@@ -1419,7 +1413,6 @@ def _handle_new_search_job(
     :param job_creation_time:
     :param table_prefix:
     :param max_datasets_per_query:
-    :param archive_retention_period:
     :param existing_datasets: [out] May be replaced with the datasets currently in the database.
     :param results_cache_uri: URI of the MongoDB results cache. Used to create a timestamp index
         on the job's results collection so that sorted reads (e.g., for max-num-results checks)
@@ -1492,20 +1485,14 @@ def _handle_new_search_job(
                     logger.error("Failed to set job as failed.")
                 return
 
-    archive_end_ts_lower_bound: int | None = None
-    if archive_retention_period is not None:
-        archive_end_ts_lower_bound = SECOND_TO_MILLISECOND * (
-            job_creation_time - archive_retention_period * MIN_TO_SECONDS
-        )
-
     if datasets is None:
         # CLP-Text does not support datasets.
         archives_for_search = _get_archives_for_search_without_datasets(
-            db_conn, table_prefix, search_config, archive_end_ts_lower_bound
+            db_conn, table_prefix, search_config, None
         )
     else:
         archives_for_search = get_archives_for_search(
-            db_conn, table_prefix, search_config, archive_end_ts_lower_bound, datasets
+            db_conn, table_prefix, search_config, int(job_creation_time), datasets
         )
     if len(archives_for_search) == 0:
         if set_job_or_task_status(
