@@ -148,7 +148,6 @@ async fn register_dataset(
 ///
 /// Returns an error if:
 ///
-/// * An archive's ID isn't a valid UUID.
 /// * Forwards [`sqlx::query::Query::execute`]'s return values on failure.
 async fn insert_archives(
     tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
@@ -158,14 +157,10 @@ async fn insert_archives(
     archives: &[ArchiveMetadata],
 ) -> anyhow::Result<()> {
     for archives in archives.chunks(1000) {
-        let uuids = archives
+        let uuids: Vec<Vec<u8>> = archives
             .iter()
-            .map(|archive| {
-                uuid::Uuid::parse_str(&archive.id)
-                    .map(|uuid| uuid.as_bytes().to_vec())
-                    .with_context(|| format!("invalid archive UUID `{}`", archive.id))
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?;
+            .map(|archive| archive.id.as_bytes().to_vec())
+            .collect();
 
         let mut builder = sqlx::QueryBuilder::<sqlx::MySql>::new(format!(
             "INSERT INTO `{archives_table}` (dataset_id, uuid, timestamp_range_begin_millis, \
