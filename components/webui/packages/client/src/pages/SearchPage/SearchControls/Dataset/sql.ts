@@ -1,13 +1,7 @@
 import {querySql} from "../../../../api/sql";
 import {settings} from "../../../../settings";
+import {CLP_DATASETS_TABLE_COLUMN_NAMES} from "../../../IngestPage/sqlConfig";
 
-
-/**
- * Column names for the datasets table.
- */
-enum CLP_DATASETS_TABLE_COLUMN_NAMES {
-    NAME = "name",
-}
 
 /**
  * SQL query to get all dataset names.
