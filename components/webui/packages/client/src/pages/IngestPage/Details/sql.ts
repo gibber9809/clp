@@ -1,11 +1,13 @@
-import {SqlTableSuffix} from "@webui/common/config";
 import {Nullable} from "@webui/common/utility-types";
 
 import {querySql} from "../../../api/sql";
 import {settings} from "../../../settings";
 import {
+    buildDatasetNameList,
     CLP_ARCHIVES_TABLE_COLUMN_NAMES,
+    CLP_DATASETS_TABLE_COLUMN_NAMES,
     CLP_FILES_TABLE_COLUMN_NAMES,
+    CLP_S_ARCHIVES_TABLE_COLUMN_NAMES,
 } from "../sqlConfig";
 
 
@@ -17,6 +19,14 @@ interface DetailsItem {
     end_timestamp: Nullable<number>;
     num_files: Nullable<number>;
     num_messages: Nullable<number>;
+}
+
+/**
+ * Row returned by the clp-s details query, which only covers the archives' time range.
+ */
+interface DetailsTimeRangeRow {
+    begin_timestamp: Nullable<number>;
+    end_timestamp: Nullable<number>;
 }
 
 /**
@@ -64,67 +74,41 @@ FROM
  * Builds the query string for details stats when using CLP-S storage engine
  * (i.e. multiple datasets).
  *
+ * NOTE: `num_files` and `num_messages` aren't queried, since the clp-s details panel only renders
+ * the time range and the files tables don't exist in the shared schema yet.
+ *
  * @param datasetNames
  * @return
  */
-const buildMultiDatasetDetailsSql = (datasetNames: string[]): string => {
-    const archiveQueries = datasetNames.map((name) => `
+const buildMultiDatasetDetailsSql = (datasetNames: string[]): string => `
     SELECT
-      MIN(${CLP_ARCHIVES_TABLE_COLUMN_NAMES.BEGIN_TIMESTAMP}) AS begin_timestamp,
-      MAX(${CLP_ARCHIVES_TABLE_COLUMN_NAMES.END_TIMESTAMP}) AS end_timestamp
-    FROM ${settings.SqlDbClpTablePrefix}${name}_${SqlTableSuffix.ARCHIVES}
-  `);
-
-    const fileQueries = datasetNames.map((name) => `
-    SELECT
-      COUNT(DISTINCT ${CLP_FILES_TABLE_COLUMN_NAMES.ORIG_FILE_ID}) AS num_files,
-      CAST(
-        COALESCE(SUM(${CLP_FILES_TABLE_COLUMN_NAMES.NUM_MESSAGES}), 0) AS UNSIGNED
-      ) AS num_messages
-    FROM ${settings.SqlDbClpTablePrefix}${name}_${SqlTableSuffix.FILES}
-  `);
-
-    return `
-    SELECT
-      a.begin_timestamp,
-      a.end_timestamp,
-      b.num_files,
-      b.num_messages
-    FROM
-    (
-      SELECT
-        MIN(begin_timestamp) AS begin_timestamp,
-        MAX(end_timestamp)   AS end_timestamp
-      FROM (
-        ${archiveQueries.join("\nUNION ALL\n")}
-      ) AS archives_combined
-    ) a,
-    (
-      SELECT
-        SUM(num_files)    AS num_files,
-        SUM(num_messages) AS num_messages
-      FROM (
-        ${fileQueries.join("\nUNION ALL\n")}
-      ) AS files_combined
-    ) b;
+      MIN(archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.TIMESTAMP_RANGE_BEGIN_MILLIS})
+        AS begin_timestamp,
+      MAX(archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.TIMESTAMP_RANGE_END_MILLIS})
+        AS end_timestamp
+    FROM ${settings.SqlDbClpArchivesTableName} AS archives
+    JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
+      ON archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.DATASET_ID} =
+         datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
+    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME}
+      IN (${buildDatasetNameList(datasetNames)});
   `;
-};
 
 /**
- * Executes details SQL query and extracts details result.
+ * Executes a details SQL query and extracts its single row.
  *
  * @param sql
  * @return
  * @throws {Error} if query result does not contain data
  */
-const executeDetailsQuery = async (sql: string): Promise<DetailsItem> => {
-    const resp = await querySql<DetailsItem[]>(sql);
-    const [detailsResult] = resp.data;
-    if ("undefined" === typeof detailsResult) {
+const executeSingleRowQuery = async <T>(sql: string): Promise<T> => {
+    const resp = await querySql<T[]>(sql);
+    const [row] = resp.data;
+    if ("undefined" === typeof row) {
         throw new Error("Details result does not contain data.");
     }
 
-    return detailsResult;
+    return row;
 };
 
 /**
@@ -134,7 +118,7 @@ const executeDetailsQuery = async (sql: string): Promise<DetailsItem> => {
  */
 const fetchClpDetails = async (): Promise<DetailsItem> => {
     const sql = getDetailsSql();
-    return executeDetailsQuery(sql);
+    return executeSingleRowQuery<DetailsItem>(sql);
 };
 
 /**
@@ -150,7 +134,13 @@ const fetchClpsDetails = async (
         return DETAILS_DEFAULT;
     }
     const sql = buildMultiDatasetDetailsSql(datasetNames);
-    return executeDetailsQuery(sql);
+    const timeRange = await executeSingleRowQuery<DetailsTimeRangeRow>(sql);
+
+    return {
+        ...DETAILS_DEFAULT,
+        begin_timestamp: timeRange.begin_timestamp,
+        end_timestamp: timeRange.end_timestamp,
+    };
 };
 
 export type {DetailsItem};

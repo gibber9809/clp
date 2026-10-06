@@ -2,15 +2,12 @@ import {SqlTableSuffix} from "@webui/common/config";
 
 import {querySql} from "../../../../../api/sql";
 import {settings} from "../../../../../settings";
+import {
+    CLP_DATASETS_TABLE_COLUMN_NAMES,
+    CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES,
+    escapeSqlStringLiteral,
+} from "../../../../IngestPage/sqlConfig";
 
-
-/**
- * Column names for the column metadata table.
- */
-enum CLP_COLUMN_METADATA_TABLE_COLUMN_NAMES {
-    NAME = "name",
-    TYPE = "type",
-}
 
 /**
  * Matching the `NodeType::DeprecatedDateString` and `NodeType::Timestamp` values in
@@ -20,7 +17,7 @@ const DEPRECATED_TIMESTAMP_TYPE = 8;
 const TIMESTAMP_TYPE = 14;
 
 interface TimestampColumnItem {
-    [CLP_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME]: string;
+    [CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME]: string;
 }
 
 /**
@@ -31,11 +28,16 @@ interface TimestampColumnItem {
  */
 const buildTimestampColumnsSql = (datasetName: string): string => `
     SELECT DISTINCT
-        ${CLP_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME}
-    FROM ${settings.SqlDbClpTablePrefix}${datasetName}_${SqlTableSuffix.COLUMN_METADATA}
-    WHERE ${CLP_COLUMN_METADATA_TABLE_COLUMN_NAMES.TYPE} IN
+        columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME}
+    FROM ${settings.SqlDbClpTablePrefix}${SqlTableSuffix.COLUMN_METADATA} AS columns
+    JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
+        ON columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.DATASET_ID} =
+           datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
+    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME} =
+        '${escapeSqlStringLiteral(datasetName)}'
+    AND columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.TYPE} IN
     (${TIMESTAMP_TYPE}, ${DEPRECATED_TIMESTAMP_TYPE})
-    ORDER BY ${CLP_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME};
+    ORDER BY columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME};
 `;
 
 /**

@@ -1,8 +1,11 @@
-import {SqlTableSuffix} from "@webui/common/config";
-
 import {querySql} from "../../../api/sql";
 import {settings} from "../../../settings";
-import {CLP_ARCHIVES_TABLE_COLUMN_NAMES} from "../sqlConfig";
+import {
+    buildDatasetNameList,
+    CLP_ARCHIVES_TABLE_COLUMN_NAMES,
+    CLP_DATASETS_TABLE_COLUMN_NAMES,
+    CLP_S_ARCHIVES_TABLE_COLUMN_NAMES,
+} from "../sqlConfig";
 
 
 /**
@@ -51,33 +54,27 @@ FROM ${settings.SqlDbClpArchivesTableName}
  * @param datasetNames
  * @return
  */
-const buildMultiDatasetSpaceSavingsSql = (datasetNames: string[]): string => {
-    const archiveQueries = datasetNames.map((name) => `
-    SELECT
-        ${CLP_ARCHIVES_TABLE_COLUMN_NAMES.UNCOMPRESSED_SIZE},
-        ${CLP_ARCHIVES_TABLE_COLUMN_NAMES.SIZE}
-    FROM ${settings.SqlDbClpTablePrefix}${name}_${SqlTableSuffix.ARCHIVES}
-    `);
-
-    return `
+const buildMultiDatasetSpaceSavingsSql = (datasetNames: string[]): string => `
     SELECT
         CAST(
             COALESCE(
-                SUM(${CLP_ARCHIVES_TABLE_COLUMN_NAMES.UNCOMPRESSED_SIZE}),
+                SUM(archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.NUM_UNCOMPRESSED_BYTES}),
                 0
             ) AS UNSIGNED
         ) AS total_uncompressed_size,
         CAST(
             COALESCE(
-                SUM(${CLP_ARCHIVES_TABLE_COLUMN_NAMES.SIZE}),
+                SUM(archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.NUM_COMPRESSED_BYTES}),
                 0
             ) AS UNSIGNED
         ) AS total_compressed_size
-    FROM (
-        ${archiveQueries.join("\nUNION ALL\n")}
-    ) AS archives_combined
+    FROM ${settings.SqlDbClpArchivesTableName} AS archives
+    JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
+        ON archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.DATASET_ID} =
+           datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
+    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME}
+        IN (${buildDatasetNameList(datasetNames)})
     `;
-};
 
 /**
  * Executes space savings SQL query and extracts space savings result.
