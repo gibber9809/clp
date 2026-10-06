@@ -15,8 +15,12 @@ from clp_py_utils.core import read_yaml_config_file
 from pydantic import ValidationError
 
 from job_orchestration.garbage_collector.archive_garbage_collector import archive_garbage_collector
+from job_orchestration.garbage_collector.archive_partition_maintainer import (
+    archive_partition_maintainer,
+)
 from job_orchestration.garbage_collector.constants import (
     ARCHIVE_GARBAGE_COLLECTOR_NAME,
+    ARCHIVE_PARTITION_MAINTAINER_NAME,
     SEARCH_RESULT_GARBAGE_COLLECTOR_NAME,
 )
 from job_orchestration.garbage_collector.search_result_garbage_collector import (
@@ -26,7 +30,8 @@ from job_orchestration.garbage_collector.search_result_garbage_collector import 
 logger = get_logger(GARBAGE_COLLECTOR_COMPONENT_NAME)
 
 
-# Placeholder retention period for a garbage collector that resolves retention per resource.
+# Placeholder for a task with no statically-configured retention period, either because it resolves
+# retention per resource or because it isn't retention-based.
 class UnknownRetentionPeriod:
     pass
 
@@ -63,6 +68,12 @@ async def main(argv: list[str]) -> int:
         SEARCH_RESULT_GARBAGE_COLLECTOR_NAME: (
             clp_config.results_cache.retention_period,
             search_result_garbage_collector,
+        ),
+        # NOTE: The archives table's partitions are extended to cover incoming archives rather than
+        # to expire them, so this task has no retention period of its own.
+        ARCHIVE_PARTITION_MAINTAINER_NAME: (
+            UnknownRetentionPeriod(),
+            archive_partition_maintainer,
         ),
     }
     gc_tasks: list[asyncio.Task[None]] = []

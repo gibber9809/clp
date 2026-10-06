@@ -193,7 +193,11 @@ telemetry:
 #  # Interval (in minutes) at which garbage collector jobs run
 #  sweep_interval:
 #    archive: 60
+#    archive_partition: 60
 #    search_result: 30
+#
+#  # How many days ahead the archives table's time-range partitions are extended
+#  archive_partition_lookahead_days: 7
 #
 ## Presto client config
 #presto: null

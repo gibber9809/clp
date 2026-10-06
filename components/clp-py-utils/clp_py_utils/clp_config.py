@@ -728,6 +728,7 @@ class SweepInterval(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     archive: PositiveInt = 60
+    archive_partition: PositiveInt = 60
     search_result: PositiveInt = 30
 
 
@@ -742,6 +743,7 @@ class McpServer(BaseModel):
 class GarbageCollector(BaseModel):
     logging_level: LoggingLevel = "INFO"
     sweep_interval: SweepInterval = SweepInterval()
+    archive_partition_lookahead_days: PositiveInt = 7
 
 
 class QueryJobPollingConfig(BaseModel):

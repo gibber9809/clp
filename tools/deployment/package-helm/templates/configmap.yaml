@@ -112,7 +112,9 @@ data:
       logging_level: {{ .Values.clpConfig.garbage_collector.logging_level | quote }}
       sweep_interval:
         archive: {{ .Values.clpConfig.garbage_collector.sweep_interval.archive | int }}
+        archive_partition: {{ .Values.clpConfig.garbage_collector.sweep_interval.archive_partition | int }}
         search_result: {{ .Values.clpConfig.garbage_collector.sweep_interval.search_result | int }}
+      archive_partition_lookahead_days: {{ .Values.clpConfig.garbage_collector.archive_partition_lookahead_days | int }}
     database:
       auto_commit: false
       compress: true
