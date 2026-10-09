@@ -194,6 +194,7 @@ void splice_into(
 bool double_as_int(double in, FilterOperation op, int64_t& out) {
     switch (op) {
         case FilterOperation::EQ:
+        case FilterOperation::NEQ:
             out = static_cast<int64_t>(in);
             return in == static_cast<double>(out);
         case FilterOperation::LT:

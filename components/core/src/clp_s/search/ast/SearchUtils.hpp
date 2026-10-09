@@ -23,12 +23,15 @@ void splice_into(
 );
 
 /**
- * Casts a double to an int64_t, rounding up or down depending on the filter operation
+ * Casts a double to an int64_t, rounding up or down depending on the filter operation.
+ *
+ * When `op` is `EQ` or `NEQ` the cast is treated as unsuccessful if the resulting value of the
+ * integer `out` is not identical to the double value `in`.
+ *
  * @param in
  * @param op
  * @param out
- * @return false if under FilterOperation::EQ the cast double is not equal to int64_t out, true
- * otherwise
+ * @return Whether the cast was successful.
  */
 bool double_as_int(double in, FilterOperation op, int64_t& out);
 
