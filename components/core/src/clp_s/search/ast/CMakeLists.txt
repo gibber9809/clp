@@ -41,6 +41,8 @@ set(
     StringLiteral.hpp
     Transformation.hpp
     Value.hpp
+    ValueLiteral.cpp
+    ValueLiteral.hpp
 )
 
 set(
