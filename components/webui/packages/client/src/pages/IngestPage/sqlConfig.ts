@@ -46,33 +46,10 @@ enum CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES {
     TYPE = "type",
 }
 
-/**
- * Escapes a string so that it can be embedded in a SQL string literal. Dataset names are arbitrary
- * UTF-8, so they can't be interpolated into a query as-is.
- *
- * @param value
- * @return The escaped value, without surrounding quotes.
- */
-const escapeSqlStringLiteral = (value: string): string => value
-    .replaceAll("\\", "\\\\")
-    .replaceAll("'", "\\'");
-
-/**
- * Builds a quoted, comma-separated list of dataset names for use in a SQL `IN` clause.
- *
- * @param datasetNames
- * @return
- */
-const buildDatasetNameList = (datasetNames: string[]): string => datasetNames
-    .map((name) => `'${escapeSqlStringLiteral(name)}'`)
-    .join(", ");
-
 export {
-    buildDatasetNameList,
     CLP_ARCHIVES_TABLE_COLUMN_NAMES,
     CLP_DATASETS_TABLE_COLUMN_NAMES,
     CLP_FILES_TABLE_COLUMN_NAMES,
     CLP_S_ARCHIVES_TABLE_COLUMN_NAMES,
     CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES,
-    escapeSqlStringLiteral,
 };

@@ -1,7 +1,6 @@
 import {querySql} from "../../../api/sql";
 import {settings} from "../../../settings";
 import {
-    buildDatasetNameList,
     CLP_ARCHIVES_TABLE_COLUMN_NAMES,
     CLP_DATASETS_TABLE_COLUMN_NAMES,
     CLP_S_ARCHIVES_TABLE_COLUMN_NAMES,
@@ -51,10 +50,9 @@ FROM ${settings.SqlDbClpArchivesTableName}
  * Builds the query string for space savings stats when using CLP-S storage
  * engine (i.e. multiple datasets).
  *
- * @param datasetNames
  * @return
  */
-const buildMultiDatasetSpaceSavingsSql = (datasetNames: string[]): string => `
+const buildMultiDatasetSpaceSavingsSql = (): string => `
     SELECT
         CAST(
             COALESCE(
@@ -72,19 +70,22 @@ const buildMultiDatasetSpaceSavingsSql = (datasetNames: string[]): string => `
     JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
         ON archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.DATASET_ID} =
            datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
-    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME}
-        IN (${buildDatasetNameList(datasetNames)})
+    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME} IN (?)
     `;
 
 /**
  * Executes space savings SQL query and extracts space savings result.
  *
  * @param sql
+ * @param queryParams
  * @return
  * @throws {Error} if query result does not contain data
  */
-const executeSpaceSavingsQuery = async (sql: string): Promise<SpaceSavingsItem> => {
-    const resp = await querySql<SpaceSavingsItem[]>(sql);
+const executeSpaceSavingsQuery = async (
+    sql: string,
+    queryParams?: unknown[]
+): Promise<SpaceSavingsItem> => {
+    const resp = await querySql<SpaceSavingsItem[]>(sql, queryParams);
     const [spaceSavingsResult] = resp.data;
     if ("undefined" === typeof spaceSavingsResult) {
         throw new Error("Space savings result does not contain data.");
@@ -115,8 +116,8 @@ const fetchClpsSpaceSavings = async (
     if (0 === datasetNames.length) {
         return SPACE_SAVINGS_DEFAULT;
     }
-    const sql = buildMultiDatasetSpaceSavingsSql(datasetNames);
-    return executeSpaceSavingsQuery(sql);
+    const sql = buildMultiDatasetSpaceSavingsSql();
+    return executeSpaceSavingsQuery(sql, [datasetNames]);
 };
 
 export type {SpaceSavingsItem};

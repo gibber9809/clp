@@ -5,7 +5,6 @@ import {settings} from "../../../../../settings";
 import {
     CLP_DATASETS_TABLE_COLUMN_NAMES,
     CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES,
-    escapeSqlStringLiteral,
 } from "../../../../IngestPage/sqlConfig";
 
 
@@ -23,18 +22,16 @@ interface TimestampColumnItem {
 /**
  * Builds SQL query to get timestamp columns for a specific dataset.
  *
- * @param datasetName
  * @return
  */
-const buildTimestampColumnsSql = (datasetName: string): string => `
+const buildTimestampColumnsSql = (): string => `
     SELECT DISTINCT
         columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME}
     FROM ${settings.SqlDbClpTablePrefix}${SqlTableSuffix.COLUMN_METADATA} AS columns
     JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
         ON columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.DATASET_ID} =
            datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
-    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME} =
-        '${escapeSqlStringLiteral(datasetName)}'
+    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME} = ?
     AND columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.TYPE} IN
     (${TIMESTAMP_TYPE}, ${DEPRECATED_TIMESTAMP_TYPE})
     ORDER BY columns.${CLP_S_COLUMN_METADATA_TABLE_COLUMN_NAMES.NAME};
@@ -47,8 +44,8 @@ const buildTimestampColumnsSql = (datasetName: string): string => `
  * @return
  */
 const fetchTimestampColumns = async (datasetName: string): Promise<string[]> => {
-    const sql = buildTimestampColumnsSql(datasetName);
-    const resp = await querySql<TimestampColumnItem[]>(sql);
+    const sql = buildTimestampColumnsSql();
+    const resp = await querySql<TimestampColumnItem[]>(sql, [datasetName]);
     return resp.data.map((column) => column.name);
 };
 

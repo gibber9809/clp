@@ -1,20 +1,19 @@
 import {querySql} from "../../../../../api/sql";
 import {settings} from "../../../../../settings";
 import {
-    buildDatasetNameList,
     CLP_DATASETS_TABLE_COLUMN_NAMES,
     CLP_S_ARCHIVES_TABLE_COLUMN_NAMES,
 } from "../../../../IngestPage/sqlConfig";
 
 
 /**
- * Builds the archives subquery, exposing each archive's UUID as `archive_uuid` so that it can be
- * joined against `query_tasks`.
+ * Builds the archives subquery for the query speed SQL, exposing each archive's UUID as
+ * `archive_uuid` so that it can be joined against `query_tasks`.
  *
  * @param datasetNames
  * @return
  */
-const buildArchivesSubquery = (datasetNames: string[]): string => {
+const buildQuerySpeedArchivesSubquery = (datasetNames: string[]): string => {
     const columns = `archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.NUM_UNCOMPRESSED_BYTES}
             AS num_uncompressed_bytes,
         archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.UUID} AS archive_uuid`;
@@ -28,8 +27,7 @@ const buildArchivesSubquery = (datasetNames: string[]): string => {
     JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
         ON archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.DATASET_ID} =
            datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
-    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME}
-        IN (${buildDatasetNameList(datasetNames)})`;
+    WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME} IN (?)`;
 };
 
 /**
@@ -39,23 +37,24 @@ const buildArchivesSubquery = (datasetNames: string[]): string => {
  * NOTE: `query_tasks.archive_id` holds an archive's UUID in its canonical text form, so it's
  * converted to the archives table's binary representation to join on `uuid`.
  *
+ * TODO: Drop the conversion once `query_tasks.archive_id` is switched to `BINARY(16)`.
+ *
  * @param datasetNames
- * @param jobId
  * @return
  */
-const buildQuerySpeedSql = (datasetNames: string[], jobId: string) => `WITH qt AS (
+const buildQuerySpeedSql = (datasetNames: string[]) => `WITH qt AS (
     SELECT job_id, UNHEX(REPLACE(archive_id, '-', '')) AS archive_uuid
     FROM query_tasks
     WHERE
         archive_id IS NOT NULL
-        AND job_id = ${jobId}
+        AND job_id = ?
 ),
 totals AS (
     SELECT
         qt.job_id,
         SUM(ca.num_uncompressed_bytes) AS total_uncompressed_bytes
     FROM qt
-    JOIN (${buildArchivesSubquery(datasetNames)}) ca
+    JOIN (${buildQuerySpeedArchivesSubquery(datasetNames)}) ca
     ON qt.archive_uuid = ca.archive_uuid
 )
 SELECT
@@ -79,7 +78,14 @@ interface QuerySpeedResp {
  * @return
  */
 const fetchQuerySpeed = async (datasetNames: string[], jobId: string): Promise<QuerySpeedResp> => {
-    const resp = await querySql<QuerySpeedResp[]>(buildQuerySpeedSql(datasetNames, jobId));
+    const queryParams: unknown[] = [jobId];
+    if (0 !== datasetNames.length) {
+        queryParams.push(datasetNames);
+    }
+    const resp = await querySql<QuerySpeedResp[]>(
+        buildQuerySpeedSql(datasetNames),
+        queryParams
+    );
     const [data] = resp.data;
     if ("undefined" === typeof data) {
         throw new Error("Invalid query speed.");

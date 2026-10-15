@@ -6,7 +6,6 @@ import {querySql} from "../../../../api/sql";
 import {SETTINGS_STORAGE_ENGINE} from "../../../../config";
 import {settings} from "../../../../settings";
 import {
-    buildDatasetNameList,
     CLP_ARCHIVES_TABLE_COLUMN_NAMES,
     CLP_DATASETS_TABLE_COLUMN_NAMES,
     CLP_S_ARCHIVES_TABLE_COLUMN_NAMES,
@@ -30,10 +29,9 @@ FROM ${settings.SqlDbClpArchivesTableName}
  * Builds a SQL query string to retrieve the minimum and maximum timestamps across the given
  * CLP-s datasets' archives.
  *
- * @param datasetNames
  * @return
  */
-const buildClpsTimeRangeSql = (datasetNames: string[]): string => `SELECT
+const buildClpsTimeRangeSql = (): string => `SELECT
   MIN(archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.TIMESTAMP_RANGE_BEGIN_MILLIS})
     AS begin_timestamp,
   MAX(archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.TIMESTAMP_RANGE_END_MILLIS})
@@ -42,8 +40,7 @@ FROM ${settings.SqlDbClpArchivesTableName} AS archives
 JOIN ${settings.SqlDbClpDatasetsTableName} AS datasets
   ON archives.${CLP_S_ARCHIVES_TABLE_COLUMN_NAMES.DATASET_ID} =
      datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.ID}
-WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME}
-  IN (${buildDatasetNameList(datasetNames)})`;
+WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME} IN (?)`;
 
 /**
  * Fetches the earliest and latest log entry timestamps ("all time" range)
@@ -54,6 +51,7 @@ WHERE datasets.${CLP_DATASETS_TABLE_COLUMN_NAMES.NAME}
  */
 const fetchAllTimeRange = async (selectedDatasets: string[]): Promise<[Dayjs, Dayjs]> => {
     let sql: string;
+    let queryParams: unknown[] | undefined;
     if (CLP_STORAGE_ENGINES.CLP === SETTINGS_STORAGE_ENGINE) {
         sql = buildClpTimeRangeSql();
     } else {
@@ -62,14 +60,15 @@ const fetchAllTimeRange = async (selectedDatasets: string[]): Promise<[Dayjs, Da
 
             return DEFAULT_TIME_RANGE;
         }
-        sql = buildClpsTimeRangeSql(selectedDatasets);
+        sql = buildClpsTimeRangeSql();
+        queryParams = [selectedDatasets];
     }
     const resp = await querySql<
         {
             begin_timestamp: Nullable<number>;
             end_timestamp: Nullable<number>;
         }[]
-    >(sql);
+    >(sql, queryParams);
     const [timestamps] = resp.data;
     if ("undefined" === typeof timestamps ||
               null === timestamps.begin_timestamp ||
